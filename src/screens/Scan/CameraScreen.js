@@ -8,7 +8,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const CameraScreen = ({ navigation }) => {
-  console.log(navigation);
   const cameraRef = useRef(null);
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
