@@ -5,6 +5,12 @@ node_modules/
 .expo/
 .expo-shared/
 
+#ios
+ios/
+
+#android
+android/
+
 # Env
 .env
 
