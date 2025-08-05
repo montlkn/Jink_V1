@@ -12,7 +12,7 @@ import HomeScreen from "../screens/Home/HomeScreen";
 import PassportScreen from "../screens/Passport/PassportScreen";
 import CameraScreen from "../screens/Scan/CameraScreen";
 import SearchScreen from "../screens/Search/SearchScreen";
-import WalkSetupScreen from "../screens/Walk/WalkSetupScreen";
+import WalkStackNavigator from "./WalkStackNavigator";
 
 const Tab = createBottomTabNavigator();
 
@@ -91,7 +91,7 @@ const BottomTabNavigator = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Camera" component={CameraScreen} />
-      <Tab.Screen name="Derive" component={WalkSetupScreen} />
+      <Tab.Screen name="Derive" component={WalkStackNavigator} />
       <Tab.Screen name="Passport" component={PassportScreen} />
       <Tab.Screen
         name="Search"

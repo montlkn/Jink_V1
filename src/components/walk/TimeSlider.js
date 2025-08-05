@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-const TimeSlider = ({ min = 5, max = 90, initialValue = 45 }) => {
-  const [value, setValue] = useState(initialValue);
-
+const TimeSlider = ({ min, max, initialValue, setValue }) => {
+  const value = initialValue;
   return (
     <View style={styles.sliderContainer}>
       <Text style={styles.sliderText}>{min}</Text>
       <View style={styles.sliderTrack}>
-        <View style={[styles.sliderThumb, { left: `${((value - min) / (max - min)) * 100}%` }]} />
+        <View
+          style={[
+            styles.sliderThumb,
+            { left: `${((value - min) / (max - min)) * 100}%` },
+          ]}
+        />
       </View>
       <Text style={styles.sliderText}>{max}</Text>
     </View>
@@ -17,35 +21,35 @@ const TimeSlider = ({ min = 5, max = 90, initialValue = 45 }) => {
 
 const styles = StyleSheet.create({
   sliderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    transform: [{ rotate: '-90deg' }],
-    position: 'absolute',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    transform: [{ rotate: "-90deg" }],
+    position: "absolute",
     left: -100,
     width: 350,
   },
   sliderText: {
-    color: '#000',
+    color: "#000",
     fontSize: 18,
-    fontWeight: '600',
-    transform: [{ rotate: '90deg' }],
+    fontWeight: "600",
+    transform: [{ rotate: "90deg" }],
   },
   sliderTrack: {
     height: 4,
-    width: '70%',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    width: "70%",
+    backgroundColor: "rgba(0,0,0,0.3)",
     borderRadius: 2,
-    position: 'relative',
+    position: "relative",
   },
   sliderThumb: {
-    position: 'absolute',
+    position: "absolute",
     width: 20,
     height: 20,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
     borderRadius: 10,
     top: -8,
   },
 });
 
-export default TimeSlider; 
+export default TimeSlider;
