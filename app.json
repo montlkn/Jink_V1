@@ -1,5 +1,13 @@
 {
   "expo": {
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "We use your location to guide your walk."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "b12162bd-7319-470b-b952-a352382cfd2c"

@@ -2,22 +2,27 @@
   File: /src/screens/Walk/WalkSetupScreen.js
   Description: The screen where users configure and start their "Dérive" or walk.
 */
+import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, StyleSheet, View } from "react-native";
 import { getNearbyPlaces } from "../../api/buildingsApi.js";
 import TimeSlider from "../../components/walk/TimeSlider";
 import WalkTypeButton from "../../components/walk/WalkTypeButton";
+
 const WalkSetupScreen = ({ navigation }) => {
   const [location, setLocation] = useState({
     latitude: 40.7128,
     longitude: -74.006,
   }); // Default location
+
   const [time, SetTime] = useState(45);
   const [data, setData] = useState([]);
 
   useEffect(() => {
     (async () => {
+      console.log("Requesting location permissions...");
       const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("Location permission status:", status);
       if (status !== "granted") {
         Alert.alert("Permission to access location was denied");
         return;
@@ -26,9 +31,8 @@ const WalkSetupScreen = ({ navigation }) => {
       const {
         coords: { latitude, longitude },
       } = await Location.getCurrentPositionAsync({});
-
+      console.log("Current location:", { latitude, longitude });
       setLocation({ latitude, longitude });
-      console.log("📍 Current Location:", latitude, longitude);
     })();
   }, []);
 
@@ -41,15 +45,14 @@ const WalkSetupScreen = ({ navigation }) => {
         1000
       ); // 1000 meters radius
       setData(nearbyPlaces);
+      navigation.navigate("WalkNavScreen", {
+        places: nearbyPlaces,
+        location: location,
+      });
     } catch (error) {
       console.error("Error fetching nearby places:", error);
     }
   };
-  useEffect(() => {
-    if (data?.length) {
-      console.log("✅ Received nearby places:", data);
-    }
-  }, [data]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
