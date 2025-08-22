@@ -17,11 +17,14 @@
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.15",
     "@react-navigation/native-stack": "^7.3.22",
+    "@react-navigation/stack": "^7.4.4",
     "@supabase/supabase-js": "^2.52.1",
     "axios": "^1.11.0",
     "expo": "^53.0.20",
     "expo-blur": "~14.1.5",
+    "expo-camera": "^16.1.11",
     "expo-constants": "~17.1.7",
+    "expo-dev-client": "~5.2.4",
     "expo-font": "~13.3.2",
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.4.0",
@@ -44,13 +47,14 @@
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "zustand": "^5.0.6",
-    "expo-dev-client": "~5.2.4"
+    "expo-location": "~18.1.6"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "supabase": "^2.33.7",
     "typescript": "~5.8.3"
   },
   "private": true
