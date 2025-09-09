@@ -12,8 +12,9 @@ import { Platform, StyleSheet, Text, View } from "react-native";
  * - Red rim triangle + red rim dot that rotate with the needle (point to target)
  * - NEW: distance to target readout
  */
-export default function Compass({ buildings = [], size = 280 }) {
-  const target = buildings[0] ?? null;
+
+export default function Compass({ buildings = [], size = 280, buildingIndex }) {
+  const target = buildings[buildingIndex] ?? null;
 
   const [perm, setPerm] = useState("undetermined");
   const [pos, setPos] = useState(null); // { lat, lng }
@@ -74,13 +75,13 @@ export default function Compass({ buildings = [], size = 280 }) {
   const bearing = useMemo(() => {
     if (!target || !pos) return 0;
     return bearingDeg(pos, target);
-  }, [pos?.lat, pos?.lng, target?.lat, target?.lng]);
+  }, [pos, target]);
 
   // NEW: distance (meters) to target
   const distanceM = useMemo(() => {
     if (!pos || !target) return null;
     return haversineMeters(pos, target);
-  }, [pos?.lat, pos?.lng, target?.lat, target?.lng]);
+  }, [pos, target]);
 
   const dialRotation = -heading;
   const needleRotation = normalizeDeg(bearing - heading);

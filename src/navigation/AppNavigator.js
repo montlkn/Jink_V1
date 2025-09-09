@@ -4,7 +4,7 @@ import React from "react";
 import { ActivityIndicator, View } from "react-native";
 
 import { useAuth } from "../auth/authProvider";
-import LoginScreen from "../screens/Auth/LoginScreen";
+import WalkCameraScreen from "../screens/Walk/WalkCameraScreen";
 import BottomTabNavigator from "./BottomTabNavigator";
 
 const Stack = createNativeStackNavigator();
@@ -26,13 +26,19 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {session ? (
+      <Stack.Navigator id="RootNav" screenOptions={{ headerShown: false }}>
+        {/* {session  ( */}
+        <>
           <Stack.Screen name="Main" component={BottomTabNavigator} />
-        ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        )}
-        {/* Add other screens here if needed */}
+          <Stack.Screen
+            name="WalkCameraScreen"
+            component={WalkCameraScreen}
+            options={{ headerShown: false }}
+          />
+        </>
+        {/* ) : ( */}
+        {/* <Stack.Screen name="Login" component={LoginScreen} /> */}
+        {/* )} */}
       </Stack.Navigator>
     </NavigationContainer>
   );

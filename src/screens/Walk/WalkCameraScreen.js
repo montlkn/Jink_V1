@@ -3,7 +3,7 @@ import * as MediaLibrary from "expo-media-library";
 import React, { useEffect, useRef, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function CameraScreen() {
+export default function WalkCameraScreen() {
   const cameraRef = useRef(null);
 
   const [permission, requestPermission] = useCameraPermissions();

@@ -3,11 +3,11 @@
   Description: The main entry point for the entire application.
   Its only job is to render the main navigator.
 */
-import { NavigationContainer } from "@react-navigation/native";
 import React from "react";
 import { AuthProvider } from "./src/auth/authProvider";
-import BottomTabNavigator from "./src/navigation/BottomTabNavigator";
+import AppNavigator from "./src/navigation/AppNavigator";
 // This is our global color and theme configuration
+
 const AppTheme = {
   dark: false,
   colors: {
@@ -23,9 +23,7 @@ const AppTheme = {
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer theme={AppTheme}>
-        <BottomTabNavigator />
-      </NavigationContainer>
+      <AppNavigator />
     </AuthProvider>
   );
 }

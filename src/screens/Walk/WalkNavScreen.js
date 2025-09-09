@@ -1,7 +1,8 @@
 import Compass from "@/components/walk/Compass";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Button,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -16,18 +17,20 @@ const normalizeCoords = (v) => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 };
 
-const WalkNavScreen = ({ route }) => {
+const WalkNavScreen = ({ route, navigation }) => {
+  // const navigation = useNavigation();
+
+  const [buildingIndex, setBuildingIndex] = useState(0);
+
   const tsp = useMemo(() => {
     const userStart = { lat: 40.712744754012, lng: -74.0059917068915 };
     const places = route.params?.places ?? [];
 
     const location = normalizeCoords(route.params?.location ?? userStart);
-    console.log(location, "📍 WalkNavScreen Location");
     const formattedLocation = {
       lat: location.lat ?? location.latitude,
       lng: location.lng ?? location.longitude,
     };
-    console.log("📍 WalkNavScreen Location:", location);
     if (!places.length)
       return { route: [], total_distance_km: 0, est_duration_min: 0 };
     // deriveBuildingOrder should return { route, legs, total_distance_km, est_duration_min, ... }
@@ -50,15 +53,30 @@ const WalkNavScreen = ({ route }) => {
             borderRadius: 8,
           }}
         >
-          <Text style={{ marginBottom: 8 }}>{tsp.route[0].des_addres}</Text>
+          <Text style={{ marginBottom: 8 }}>
+            {tsp.route[buildingIndex].des_addres}
+          </Text>
 
-          {!tsp.route?.length ? (
+          {!tsp.route?.length && (
             <ActivityIndicator size="large" color="#0000ff" />
-          ) : (
-            <View style={{ width: 300, height: 300, margin: 16 }}>
-              <Compass buildings={tsp.route} />
-            </View>
           )}
+
+          <Button
+            title="I'm here!"
+            onPress={() => {
+              navigation
+                .getParent()
+                ?.getParent()
+                ?.navigate("WalkCameraScreen", {
+                  building: tsp.route[buildingIndex],
+                });
+              setBuildingIndex((prev) => (prev + 1) % tsp.route.length);
+            }}
+          />
+
+          <View style={{ width: 300, height: 300, margin: 16 }}>
+            <Compass buildings={tsp.route} buildingIndex={buildingIndex} />
+          </View>
 
           {/* Optional summary */}
           {tsp.route?.length > 0 && (
