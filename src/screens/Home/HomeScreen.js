@@ -17,7 +17,10 @@ const HomeScreen = ({ navigation }) => {
 
           {/* Aesthetic Profile Section */}
           <View style={styles.section}>
-            <AestheticProfile onNavigate={() => navigation.navigate('ProfileDetail')} />
+            <AestheticProfile 
+              navigation={navigation} 
+              onNavigate={() => navigation.navigate('ProfileDetail')} 
+            />
           </View>
 
           {/* Past Walks Section */}

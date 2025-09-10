@@ -22,15 +22,12 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
 
   const loadUserProfile = async () => {
     if (!session?.user?.id) {
-      console.log('No session user ID available');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('Loading aesthetic profile for user:', session.user.id);
       const userProfile = await getUserAestheticProfile(session.user.id);
-      console.log('User profile loaded:', userProfile);
       setProfile(userProfile);
       setError(null);
     } catch (err) {
@@ -71,23 +68,9 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
     }
 
     if (!profile || !profile.archetype_scores) {
-      // Show test chart data for debugging
-      const testChartData = [
-        { archetype: 'modernist', name: 'Modernist', score: 45, percentage: 45, color: '#FF6B6B', isPrimary: true, isSecondary: false },
-        { archetype: 'classicist', name: 'Classicist', score: 30, percentage: 30, color: '#4ECDC4', isPrimary: false, isSecondary: true },
-        { archetype: 'romantic', name: 'Romantic', score: 25, percentage: 25, color: '#45B7D1', isPrimary: false, isSecondary: false }
-      ];
-      
       return (
-        <View style={styles.profileContent}>
+        <View style={styles.noProfileContainer}>
           <Text style={styles.noProfileText}>Complete the quiz to see your aesthetic profile</Text>
-          <Text style={styles.testText}>Showing test chart for debugging:</Text>
-          <D3DonutChart 
-            data={testChartData}
-            size={180}
-            strokeWidth={22}
-            onSegmentPress={handleSegmentPress}
-          />
         </View>
       );
     }
@@ -97,7 +80,6 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
       profile.primary_archetype, 
       profile.secondary_archetype
     );
-    console.log('Chart data prepared:', chartData);
 
     const summary = generateProfileSummary({
       primaryArchetype: profile.primary_archetype,
@@ -208,13 +190,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-  testText: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 10,
-    fontStyle: 'italic',
   },
 });
 
