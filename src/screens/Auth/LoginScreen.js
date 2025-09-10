@@ -27,8 +27,8 @@ export default function LoginScreen({ navigation }) {
     if (loginError) {
       setError(loginError.message);
     } else {
-      // Navigate to home or main screen
-      navigation.replace("Home");
+      // Don't navigate - let AppNavigator handle routing based on session state
+      console.log('Login successful, session should be updated');
     }
   };
 

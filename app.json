@@ -6,6 +6,12 @@
         {
           "locationWhenInUsePermission": "We use your location to guide your walk."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan buildings."
+        }
       ]
     ],
     "extra": {

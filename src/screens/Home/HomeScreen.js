@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import AestheticProfile from '../../components/home/AestheticProfile';
 
 const HomeScreen = ({ navigation }) => {
   return (
@@ -15,11 +16,9 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* Aesthetic Profile Section */}
-          <TouchableOpacity style={styles.section}>
-            <Text style={styles.sectionTitle}>AESTHETIC PROFILE &gt;</Text>
-            <View style={styles.pieChartPlaceholder} />
-            <Text style={styles.pieChartLabel}>ART DECO 44%</Text>
-          </TouchableOpacity>
+          <View style={styles.section}>
+            <AestheticProfile onNavigate={() => navigation.navigate('ProfileDetail')} />
+          </View>
 
           {/* Past Walks Section */}
           <TouchableOpacity style={styles.section}>
@@ -69,8 +68,6 @@ const styles = StyleSheet.create({
   linkTextSmall: { color: '#000', fontSize: 14, fontWeight: 'bold', marginTop: 12 },
   section: { marginTop: 40 },
   sectionTitle: { color: '#888', fontSize: 14, fontWeight: 'bold', letterSpacing: 1, marginBottom: 12, textTransform: 'uppercase' },
-  pieChartPlaceholder: { width: 150, height: 150, borderRadius: 75, backgroundColor: '#e0e0e0', alignSelf: 'center' },
-  pieChartLabel: { color: '#000', alignSelf: 'center', marginTop: 8, fontWeight: '500' },
   listItem: { paddingVertical: 15, borderTopWidth: 1, borderColor: '#e0e0e0' },
   listItemText: { color: '#000', fontSize: 16 },
   featuredCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#eee' },
