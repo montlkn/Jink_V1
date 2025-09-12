@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { useAuth } from '../../auth/authProvider';
-import D3DonutChart from '../../components/charts/D3DonutChart';
+import DonutChart from '../../components/charts/DonutChart';
+import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
 import { generateProfileSummary, getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
+import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
 
 const ProfileDetailScreen = ({ navigation }) => {
   const { session } = useAuth();
@@ -21,6 +23,8 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [highlightedArchetype, setHighlightedArchetype] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedArchetype, setSelectedArchetype] = useState(null);
   const scrollViewRef = useRef();
 
   useEffect(() => {
@@ -48,6 +52,19 @@ const ProfileDetailScreen = ({ navigation }) => {
   const handleSegmentPress = (segment) => {
     setHighlightedArchetype(segment.archetype);
     // Add scroll to logic if needed
+  };
+
+  const handleArchetypePress = (archetypeName) => {
+    const detailedInfo = getDetailedArchetypeInfo(archetypeName);
+    if (detailedInfo) {
+      setSelectedArchetype(detailedInfo);
+      setModalVisible(true);
+    }
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedArchetype(null);
   };
 
   if (loading) {
@@ -111,11 +128,12 @@ const ProfileDetailScreen = ({ navigation }) => {
 
       <ScrollView ref={scrollViewRef} style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.chartSection}>
-          <D3DonutChart
+          <DonutChart
             data={chartData}
             size={220}
             strokeWidth={30}
             onSegmentPress={handleSegmentPress}
+            hideMoreDetails={true}
           />
         </View>
 
@@ -203,7 +221,11 @@ const ProfileDetailScreen = ({ navigation }) => {
               
               return (
                 <View key={index}>
-                  <View style={[styles.scoreRow, highlightedArchetype === item.archetype && styles.highlightedRow]}>
+                  <TouchableOpacity 
+                    style={[styles.scoreRow, highlightedArchetype === item.archetype && styles.highlightedRow]}
+                    onPress={() => handleArchetypePress(item.archetype)}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.scoreInfo}>
                       <View style={[styles.colorDot, { backgroundColor: item.color }]} />
                       <Text style={styles.scoreName}>{item.name}</Text>
@@ -212,11 +234,15 @@ const ProfileDetailScreen = ({ navigation }) => {
                       <Text style={styles.scorePercentage}>{item.percentage}%</Text>
                       <Text style={styles.scorePoints}>({item.score} pts)</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                   
                   {/* Show infrastructuralist subtype if applicable */}
                   {hasInfrastructuralistSubtype && (
-                    <View style={[styles.scoreRow, styles.subtypeRow]}>
+                    <TouchableOpacity 
+                      style={[styles.scoreRow, styles.subtypeRow]}
+                      onPress={() => handleArchetypePress('infrastructuralist')}
+                      activeOpacity={0.7}
+                    >
                       <View style={styles.scoreInfo}>
                         <View style={styles.subtypeIndent} />
                         <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: '#4682B4' }]} />
@@ -228,12 +254,16 @@ const ProfileDetailScreen = ({ navigation }) => {
                         </Text>
                         <Text style={[styles.scorePoints, styles.subtypePoints]}>({profile.archetype_scores.infrastructuralist} pts)</Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   )}
                   
                   {/* Show naturalist subtype if applicable */}
                   {hasNaturalistSubtype && (
-                    <View style={[styles.scoreRow, styles.subtypeRow]}>
+                    <TouchableOpacity 
+                      style={[styles.scoreRow, styles.subtypeRow]}
+                      onPress={() => handleArchetypePress('naturalist')}
+                      activeOpacity={0.7}
+                    >
                       <View style={styles.scoreInfo}>
                         <View style={styles.subtypeIndent} />
                         <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: '#8FBC8F' }]} />
@@ -245,7 +275,7 @@ const ProfileDetailScreen = ({ navigation }) => {
                         </Text>
                         <Text style={[styles.scorePoints, styles.subtypePoints]}>({profile.archetype_scores.naturalist} pts)</Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   )}
                 </View>
               );
@@ -254,6 +284,12 @@ const ProfileDetailScreen = ({ navigation }) => {
         </View>
 
       </ScrollView>
+
+      <ArchetypeDetailModal
+        visible={modalVisible}
+        archetype={selectedArchetype}
+        onClose={closeModal}
+      />
     </SafeAreaView>
   );
 };

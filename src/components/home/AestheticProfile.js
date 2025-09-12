@@ -7,7 +7,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { useAuth } from '../../auth/authProvider';
 import { generateProfileSummary, prepareChartData } from '../../services/aestheticScoringService';
-import D3DonutChart from '../charts/D3DonutChart';
+import DonutChart from '../charts/DonutChart';
 import SectionHeader from '../common/SectionHeader';
 
 const AestheticProfile = ({ onNavigate, navigation }) => {
@@ -90,7 +90,7 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
 
     return (
       <View style={styles.profileContent}>
-        <D3DonutChart 
+        <DonutChart 
           data={chartData}
           size={180}
           strokeWidth={22}

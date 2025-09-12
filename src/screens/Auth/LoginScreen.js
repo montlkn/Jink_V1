@@ -1,5 +1,4 @@
-// Placeholder for LoginScreen
-// write me a login screen that allows users to log in with email and password
+// Placeholder for LoginScreen write me a login screen that allows users to log in with email and password
 import React, { useState } from "react";
 import {
   Button,
@@ -36,16 +35,16 @@ export default function LoginScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Login</Text>
       <TextInput
-        style={styles.input}
-        placeholder="Email"
+        style={[styles.input, styles.inputNarrow]}
+        placeholder="email"
         autoCapitalize="none"
         keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
+       value={email}
+       onChangeText={setEmail}
       />
       <TextInput
-        style={styles.input}
-        placeholder="Password"
+        style={[styles.input, styles.inputNarrow]}
+        placeholder="password"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
@@ -80,6 +79,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     paddingHorizontal: 12,
+  },
+  inputNarrow: {
+    width: "80%", // make them narrower (or "70%" or 250 for fixed width)
+    alignSelf: "center",
   },
   error: {
     color: "red",
