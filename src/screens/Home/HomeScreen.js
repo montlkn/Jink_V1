@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AestheticProfile from '../../components/home/AestheticProfile';
 
 const HomeScreen = ({ navigation }) => {
@@ -46,15 +46,7 @@ const HomeScreen = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
           </View>
-          
-          {/* Extra content to ensure scrolling */}
-           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>EXPLORE STYLES</Text>
-            <View style={styles.featuredCard}>
-                <Text style={styles.featuredTitle}>Brutalism</Text>
-                <Text style={styles.featuredSubtitle}>Raw, honest, and powerful forms.</Text>
-            </View>
-          </View>
+
 
         </View>
       </ScrollView>

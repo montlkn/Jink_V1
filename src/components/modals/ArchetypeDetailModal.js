@@ -7,9 +7,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 
 const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
   if (!archetype) return null;
+
+  const onGestureEvent = (event) => {
+    const { translationY, velocityY } = event.nativeEvent;
+    
+    // Close modal if swiped down significantly or with high velocity
+    if (translationY > 100 || (velocityY > 500 && translationY > 50)) {
+      onClose();
+    }
+  };
 
   return (
     <Modal
@@ -17,12 +27,17 @@ const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
       transparent={false}
       visible={visible}
       onRequestClose={onClose}
+      presentationStyle="pageSheet"
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={[styles.colorBar, { backgroundColor: archetype.color }]} />
-          <Text style={styles.title}>{archetype.name}</Text>
-        </View>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <PanGestureHandler onGestureEvent={onGestureEvent}>
+          <View style={styles.container}>
+            <View style={styles.header}>
+              {/* Swipe indicator tab */}
+              <View style={styles.swipeIndicator} />
+              <View style={[styles.colorBar, { backgroundColor: archetype.color }]} />
+              <Text style={styles.title}>{archetype.name}</Text>
+            </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Core Concept */}
@@ -71,14 +86,10 @@ const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
               ))}
             </View>
           </View>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <TouchableOpacity style={[styles.doneButton, { backgroundColor: archetype.color }]} onPress={onClose}>
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            </ScrollView>
+          </View>
+        </PanGestureHandler>
+      </GestureHandlerRootView>
     </Modal>
   );
 };
@@ -89,13 +100,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 20,
     paddingBottom: 20,
     paddingHorizontal: 20,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     position: 'relative',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  swipeIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#C0C0C0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+    marginTop: 8,
   },
   colorBar: {
     height: 4,
@@ -112,6 +134,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   section: {
     marginVertical: 16,
@@ -185,22 +208,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontWeight: '500',
-  },
-  footer: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  doneButton: {
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

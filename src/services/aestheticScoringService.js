@@ -135,13 +135,31 @@ export const getArchetypeInfo = (archetype) => {
     classicist: {
       name: 'The Classicist',
       description: 'Embodies reverence for enduring principles of order, harmony, and grandeur.',
+      coreConcept: 'Embodies reverence for enduring principles of order, harmony, and grandeur.',
       vibe: ['Formal', 'Symmetrical', 'Grand', 'Rational', 'Ornate', 'Enduring'],
+      coreQualities: [
+        'Reverence for historical precedent and established forms',
+        'Belief in universal principles of beauty and proportion',
+        'Emphasis on symmetry, hierarchy, and formal order',
+        'Preference for refined materials and skilled craftsmanship'
+      ],
+      urbanExpression: 'Classical architecture in cities emphasizes civic grandeur through monuments, columns, and formal spatial arrangements that convey authority and permanence.',
+      umbrellaMovements: ['Neoclassicism', 'Beaux-Arts', 'Classical Revival'],
       color: '#8B4513'
     },
     romantic: {
       name: 'The Romantic',
       description: 'Prioritizes emotion, narrative, and individualism over rational order.',
+      coreConcept: 'Prioritizes emotion, narrative, and individualism over rational order.',
       vibe: ['Expressive', 'Story-Driven', 'Whimsical', 'Layered', 'Evocative', 'Atmospheric'],
+      coreQualities: [
+        'Emphasis on emotional expression and personal narrative',
+        'Preference for organic, irregular, and picturesque forms',
+        'Value placed on individual creativity over systematic rules',
+        'Appreciation for historical eclecticism and cultural storytelling'
+      ],
+      urbanExpression: 'Romantic urban environments feature eclectic neighborhoods with varied building styles, intimate public spaces, and architecture that tells stories of different eras and cultures.',
+      umbrellaMovements: ['Gothic Revival', 'Art Nouveau', 'Victorian Architecture'],
       color: '#8B008B'
     },
     stylist: {
@@ -221,6 +239,7 @@ export const prepareChartData = (scores, primaryArchetype, secondaryArchetype) =
         archetype,
         name: info?.name || archetype,
         score,
+        value: score,
         percentage: Math.round((score / totalScore) * 100),
         color: info?.color || '#999999',
         isPrimary: archetype === primaryArchetype,

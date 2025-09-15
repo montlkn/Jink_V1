@@ -6,15 +6,22 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { useAuth } from '../../auth/authProvider';
-import { generateProfileSummary, prepareChartData } from '../../services/aestheticScoringService';
+import { generateProfileSummary, prepareChartData, getArchetypeInfo } from '../../services/aestheticScoringService';
+import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
 import DonutChart from '../charts/DonutChart';
 import SectionHeader from '../common/SectionHeader';
+import SegmentModal from '../modals/SegmentModal';
+import ArchetypeDetailModal from '../modals/ArchetypeDetailModal';
 
 const AestheticProfile = ({ onNavigate, navigation }) => {
   const { session } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedArchetype, setSelectedArchetype] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedDetailArchetype, setSelectedDetailArchetype] = useState(null);
 
   useEffect(() => {
     loadUserProfile();
@@ -38,12 +45,50 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
     }
   };
 
-  const handleSegmentPress = () => {
-    if (navigation) {
-      navigation.navigate('ProfileDetail');
-    } else if (onNavigate) {
-      onNavigate();
+  const handleSegmentPress = (archetypeData) => {
+    if (archetypeData) {
+      // Handle individual segment press - show simple modal
+      setSelectedArchetype(archetypeData);
+      setModalVisible(true);
+    } else {
+      // Handle "see all" press - navigate to profile detail
+      if (navigation) {
+        navigation.navigate('ProfileDetail');
+      } else if (onNavigate) {
+        onNavigate();
+      }
     }
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    // Add a small delay to prevent state conflicts
+    setTimeout(() => {
+      setSelectedArchetype(null);
+    }, 100);
+  };
+
+  const handleMoreInfo = (archetypeData) => {
+    // Close segment modal first
+    setModalVisible(false);
+
+    // Get the detailed archetype info with all required properties
+    const detailedInfo = getDetailedArchetypeInfo(archetypeData.archetype);
+    if (detailedInfo) {
+      setSelectedDetailArchetype({
+        ...detailedInfo,
+        score: archetypeData.score,
+        percentage: archetypeData.percentage
+      });
+      setDetailModalVisible(true);
+    }
+  };
+
+  const handleCloseDetailModal = () => {
+    setDetailModalVisible(false);
+    setTimeout(() => {
+      setSelectedDetailArchetype(null);
+    }, 100);
   };
 
   const renderProfileContent = () => {
@@ -88,35 +133,42 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
       separationScore: 0.5
     });
 
+    const centerText = {
+      primary: summary?.title || profile.primary_archetype,
+      secondary: summary?.secondaryArchetype?.name,
+      confidence: summary?.confidenceLevel || 'Medium'
+    };
+
     return (
       <View style={styles.profileContent}>
-        <DonutChart 
+        <DonutChart
           data={chartData}
-          size={180}
-          strokeWidth={22}
+          size={380}
+          strokeWidth={30}
           onSegmentPress={handleSegmentPress}
+          centerText={centerText}
         />
-        <View style={styles.profileSummary}>
-          <Text style={styles.primaryArchetype}>
-            {summary?.title || profile.primary_archetype}
-          </Text>
-          {summary?.secondaryArchetype && (
-            <Text style={styles.secondaryArchetype}>
-              with {summary.secondaryArchetype.name} influences
-            </Text>
-          )}
-          <Text style={styles.confidenceText}>
-            Confidence: {summary?.confidenceLevel || 'Medium'}
-          </Text>
-        </View>
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      <SectionHeader title="Aesthetic Profile" onSeeAll={handleSegmentPress} />
+      <SectionHeader title="Aesthetic Profile" onSeeAll={() => handleSegmentPress()} />
       {renderProfileContent()}
+
+      <SegmentModal
+        visible={modalVisible}
+        segment={selectedArchetype}
+        onClose={handleCloseModal}
+        onMoreInfo={handleMoreInfo}
+      />
+
+      <ArchetypeDetailModal
+        visible={detailModalVisible}
+        archetype={selectedDetailArchetype}
+        onClose={handleCloseDetailModal}
+      />
     </View>
   );
 };
@@ -127,8 +179,17 @@ const styles = StyleSheet.create({
   },
   profileContent: {
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 20,
     paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   profileSummary: {
     marginTop: 20,

@@ -14,6 +14,7 @@ import { getUserAestheticProfile } from '../../api/quizApi';
 import { useAuth } from '../../auth/authProvider';
 import DonutChart from '../../components/charts/DonutChart';
 import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
+import SegmentModal from '../../components/modals/SegmentModal';
 import { generateProfileSummary, getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
 
@@ -25,6 +26,8 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [highlightedArchetype, setHighlightedArchetype] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedArchetype, setSelectedArchetype] = useState(null);
+  const [segmentModalVisible, setSegmentModalVisible] = useState(false);
+  const [selectedSegment, setSelectedSegment] = useState(null);
   const scrollViewRef = useRef();
 
   useEffect(() => {
@@ -50,8 +53,21 @@ const ProfileDetailScreen = ({ navigation }) => {
   };
 
   const handleSegmentPress = (segment) => {
+    setSelectedSegment(segment);
+    setSegmentModalVisible(true);
     setHighlightedArchetype(segment.archetype);
-    // Add scroll to logic if needed
+  };
+
+  const handleMoreInfoFromSegment = (segmentData) => {
+    // Close segment modal first
+    setSegmentModalVisible(false);
+
+    // Get detailed info and open detail modal
+    const detailedInfo = getDetailedArchetypeInfo(segmentData.archetype);
+    if (detailedInfo) {
+      setSelectedArchetype(detailedInfo);
+      setModalVisible(true);
+    }
   };
 
   const handleArchetypePress = (archetypeName) => {
@@ -65,6 +81,13 @@ const ProfileDetailScreen = ({ navigation }) => {
   const closeModal = () => {
     setModalVisible(false);
     setSelectedArchetype(null);
+  };
+
+  const closeSegmentModal = () => {
+    setSegmentModalVisible(false);
+    setTimeout(() => {
+      setSelectedSegment(null);
+    }, 100);
   };
 
   if (loading) {
@@ -130,7 +153,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         <View style={styles.chartSection}>
           <DonutChart
             data={chartData}
-            size={220}
+            size={300}
             strokeWidth={30}
             onSegmentPress={handleSegmentPress}
             hideMoreDetails={true}
@@ -289,6 +312,13 @@ const ProfileDetailScreen = ({ navigation }) => {
         visible={modalVisible}
         archetype={selectedArchetype}
         onClose={closeModal}
+      />
+
+      <SegmentModal
+        visible={segmentModalVisible}
+        segment={selectedSegment}
+        onClose={closeSegmentModal}
+        onMoreInfo={handleMoreInfoFromSegment}
       />
     </SafeAreaView>
   );
