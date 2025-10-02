@@ -47,7 +47,6 @@ const HomeScreen = ({ navigation }) => {
             </View>
           </View>
 
-
         </View>
       </ScrollView>
     </SafeAreaView>

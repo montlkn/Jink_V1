@@ -10,7 +10,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import HomeScreen from "../screens/Home/HomeScreen";
 import PassportScreen from "../screens/Passport/PassportScreen";
-import CameraScreen from "../screens/Scan/CameraScreen";
+import ScanScreen from "../screens/Scan/ScanScreen";
 import SearchScreen from "../screens/Search/SearchScreen";
 import WalkStackNavigator from "./WalkStackNavigator";
 
@@ -90,7 +90,7 @@ const BottomTabNavigator = () => {
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Camera" component={CameraScreen} />
+      <Tab.Screen name="Camera" component={ScanScreen} />
       <Tab.Screen name="Derive" component={WalkStackNavigator} />
       <Tab.Screen name="Passport" component={PassportScreen} />
       <Tab.Screen

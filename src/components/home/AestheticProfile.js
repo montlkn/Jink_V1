@@ -62,7 +62,6 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
 
   const handleCloseModal = () => {
     setModalVisible(false);
-    // Add a small delay to prevent state conflicts
     setTimeout(() => {
       setSelectedArchetype(null);
     }, 100);
@@ -179,12 +178,11 @@ const styles = StyleSheet.create({
   },
   profileContent: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 10,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginHorizontal: 8,
+    borderRadius: 16,
+    marginHorizontal: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

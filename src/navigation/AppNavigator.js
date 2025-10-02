@@ -8,6 +8,8 @@ import WalkCameraScreen from "../screens/Walk/WalkCameraScreen";
 import OnboardingQuizScreen from "../screens/Quiz/OnboardingQuizScreen";
 import LoginScreen from "../screens/Auth/LoginScreen";
 import ProfileDetailScreen from "../screens/Profile/ProfileDetailScreen";
+import BuildingInfoScreen from "../screens/Scan/BuildingInfoScreen";
+import NotFoundScreen from "../screens/Scan/NotFoundScreen";
 import { userNeedsOnboarding } from "../api/quizApi";
 import BottomTabNavigator from "./BottomTabNavigator";
 
@@ -104,6 +106,16 @@ export default function AppNavigator() {
               name="ProfileDetail"
               component={ProfileDetailScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="BuildingInfo"
+              component={BuildingInfoScreen}
+              options={{ headerShown: true, title: "Building Details" }}
+            />
+            <Stack.Screen
+              name="NotFound"
+              component={NotFoundScreen}
+              options={{ headerShown: true, title: "Scan Result" }}
             />
           </>
         )}
