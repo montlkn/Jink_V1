@@ -2,24 +2,14 @@
   Description: The main screen for the user's profile, collections, and achievements.
   Uses common components like SectionHeader and ListItem.
 */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import SectionHeader from '../../components/common/SectionHeader';
 import ListItem from '../../components/common/ListItem';
+import XPMeter from '../../components/passport/XPMeter';
+import { getUserXP, getUserStamps, getUserAchievements, getXPForNextLevel } from '../../services/questService';
 
-// Mock data for demonstration
-const stamps = [
-  { id: '1', image: 'stamp_ny.png' },
-  { id: '2', image: 'stamp_sofia.png' },
-  { id: '3', image: 'stamp_ny_2.png' },
-];
-
-const achievements = [
-  { id: '1', image: 'seal_1.png' },
-  { id: '2', image: 'seal_2.png' },
-  { id: '3', image: 'seal_3.png' },
-];
-
+// Mock data for lists (not yet implemented in backend)
 const lists = [
   { id: '1', name: 'Midtown Marvels' },
   { id: '2', name: 'Downtown Deco' },
@@ -27,27 +17,87 @@ const lists = [
 ];
 
 const PassportScreen = ({ navigation }) => {
+  const [userXP, setUserXP] = useState(0);
+  const [userLevel, setUserLevel] = useState(1);
+  const [xpForNextLevel, setXpForNextLevel] = useState(100);
+  const [stamps, setStamps] = useState([]);
+  const [achievements, setAchievements] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    setLoading(true);
+    try {
+      const [xpData, userStamps, userAchievements] = await Promise.all([
+        getUserXP(),
+        getUserStamps(),
+        getUserAchievements()
+      ]);
+
+      setUserXP(xpData.xp);
+      setUserLevel(xpData.level);
+      setXpForNextLevel(getXPForNextLevel(xpData.level));
+
+      // Convert stamps array to objects for display
+      setStamps(userStamps.map((stamp, index) => ({
+        id: index.toString(),
+        name: stamp
+      })));
+
+      // Convert achievements array to objects for display
+      setAchievements(userAchievements.map((achievement, index) => ({
+        id: index.toString(),
+        name: achievement
+      })));
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
-      {/* We can add the passport texture as a background image later */}
       <Text style={styles.passportTitle}>USER PASSPORT</Text>
+
+      {/* XP METER */}
+      <XPMeter
+        currentXP={userXP}
+        level={userLevel}
+        xpForNextLevel={xpForNextLevel}
+      />
 
       {/* STAMPS SECTION */}
       <SectionHeader title="Stamps" onSeeAll={() => console.log('See all stamps')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-        {stamps.map(stamp => (
-          <View key={stamp.id} style={styles.stamp} />
-        ))}
+        {stamps.length > 0 ? (
+          stamps.map(stamp => (
+            <View key={stamp.id} style={styles.stamp}>
+              <Text style={styles.stampText}>{stamp.name.substring(0, 10)}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No stamps yet. Complete quests to earn stamps!</Text>
+        )}
       </ScrollView>
 
       {/* ACHIEVEMENTS SECTION */}
       <SectionHeader title="Achievements" onSeeAll={() => console.log('See all achievements')} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-        {achievements.map(achievement => (
-          <View key={achievement.id} style={styles.achievement} />
-        ))}
+        {achievements.length > 0 ? (
+          achievements.map(achievement => (
+            <View key={achievement.id} style={styles.achievement}>
+              <Text style={styles.achievementText}>{achievement.name.substring(0, 10)}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>No achievements yet. Complete quests to unlock achievements!</Text>
+        )}
       </ScrollView>
-      
+
       {/* LISTS SECTION */}
       <SectionHeader title="Lists" onSeeAll={() => console.log('See all lists')} />
       <View style={styles.listContainer}>
@@ -55,6 +105,8 @@ const PassportScreen = ({ navigation }) => {
            <ListItem key={list.id} text={list.name} onPress={() => console.log(`Go to ${list.name}`)} />
         ))}
       </View>
+
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 };
@@ -72,7 +124,7 @@ const styles = StyleSheet.create({
     color: '#888',
     letterSpacing: 1.5,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   horizontalScroll: {
     paddingLeft: 0,
@@ -84,7 +136,6 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     backgroundColor: '#e0e0e0',
     marginRight: 15,
-    // In a real app, this would be an <Image />
   },
   achievement: {
     width: 80,
@@ -98,6 +149,24 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     marginTop: 10,
+  },
+  stampText: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  achievementText: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    fontStyle: 'italic',
+    marginVertical: 10,
   }
 });
 

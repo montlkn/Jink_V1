@@ -9,6 +9,7 @@ import {
   detectMovementType,
 } from '../../utils/sensorFusion';
 import SimpleLoadingOrb from '../../components/SimpleLoadingOrb';
+import { awardXP } from '../../services/questService';
 
 export default function ScanScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -245,6 +246,9 @@ export default function ScanScreen({ navigation }) {
 
       // Navigate based on result
       if (data.building && data.building.name) {
+        // Award XP for successful scan (50 XP base)
+        await awardXP(50, 'building_scan');
+
         // Successfully identified building
         navigation.navigate('BuildingInfo', { buildingData: data.building });
       } else {

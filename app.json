@@ -21,6 +21,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.lucienmount.architectureapp",
+      "usesSwiftUI": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

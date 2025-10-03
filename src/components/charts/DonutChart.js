@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import React from 'react';
 import { Dimensions, StyleSheet, Text, View } from 'react-native';
-import Svg, { G, Path, Polyline, Text as SvgText } from 'react-native-svg';
+import Svg, { G, Path, Text as SvgText } from 'react-native-svg';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -118,7 +118,7 @@ const DonutChart = ({
               </SvgText>
               {centerText.secondary && (
                 <SvgText
-                  x={0}
+                  x={-45}
                   y={5}
                   fontSize={10}
                   fill="#666"
@@ -130,7 +130,7 @@ const DonutChart = ({
               )}
               {centerText.confidence && (
                 <SvgText
-                  x={0}
+                  x={-10}
                   y={20}
                   fontSize={9}
                   fill="#999"
