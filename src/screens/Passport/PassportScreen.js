@@ -6,8 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import SectionHeader from '../../components/common/SectionHeader';
 import ListItem from '../../components/common/ListItem';
-import XPMeter from '../../components/passport/XPMeter';
-import { getUserXP, getUserStamps, getUserAchievements, getXPForNextLevel } from '../../services/questService';
+import { getUserStamps, getUserAchievements } from '../../services/questService';
 
 // Mock data for lists (not yet implemented in backend)
 const lists = [
@@ -17,9 +16,6 @@ const lists = [
 ];
 
 const PassportScreen = ({ navigation }) => {
-  const [userXP, setUserXP] = useState(0);
-  const [userLevel, setUserLevel] = useState(1);
-  const [xpForNextLevel, setXpForNextLevel] = useState(100);
   const [stamps, setStamps] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,15 +27,10 @@ const PassportScreen = ({ navigation }) => {
   const loadUserData = async () => {
     setLoading(true);
     try {
-      const [xpData, userStamps, userAchievements] = await Promise.all([
-        getUserXP(),
+      const [userStamps, userAchievements] = await Promise.all([
         getUserStamps(),
         getUserAchievements()
       ]);
-
-      setUserXP(xpData.xp);
-      setUserLevel(xpData.level);
-      setXpForNextLevel(getXPForNextLevel(xpData.level));
 
       // Convert stamps array to objects for display
       setStamps(userStamps.map((stamp, index) => ({
@@ -62,13 +53,6 @@ const PassportScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.passportTitle}>USER PASSPORT</Text>
-
-      {/* XP METER */}
-      <XPMeter
-        currentXP={userXP}
-        level={userLevel}
-        xpForNextLevel={xpForNextLevel}
-      />
 
       {/* STAMPS SECTION */}
       <SectionHeader title="Stamps" onSeeAll={() => console.log('See all stamps')} />

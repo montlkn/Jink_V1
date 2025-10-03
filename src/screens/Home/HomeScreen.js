@@ -3,8 +3,9 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } fr
 import AestheticProfile from '../../components/home/AestheticProfile';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
+import XPMeter from '../../components/passport/XPMeter';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
-import { getActiveDailyQuest, getActiveWeeklyQuest } from '../../services/questService';
+import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
 
 const HomeScreen = ({ navigation }) => {
   const [selectedQuest, setSelectedQuest] = useState(null);
@@ -14,6 +15,9 @@ const HomeScreen = ({ navigation }) => {
   const [dailyQuest, setDailyQuest] = useState(null);
   const [weeklyQuest, setWeeklyQuest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userXP, setUserXP] = useState(0);
+  const [userLevel, setUserLevel] = useState(1);
+  const [xpForNextLevel, setXpForNextLevel] = useState(100);
 
   // Load quests from Supabase
   useEffect(() => {
@@ -23,10 +27,16 @@ const HomeScreen = ({ navigation }) => {
   const loadQuests = async () => {
     setLoading(true);
     try {
-      const [daily, weekly] = await Promise.all([
+      const [daily, weekly, xpData] = await Promise.all([
         getActiveDailyQuest(),
-        getActiveWeeklyQuest()
+        getActiveWeeklyQuest(),
+        getUserXP()
       ]);
+
+      // Set XP data
+      setUserXP(xpData.xp);
+      setUserLevel(xpData.level);
+      setXpForNextLevel(getXPForNextLevel(xpData.level));
 
       if (daily) {
         setDailyQuest({
@@ -112,6 +122,15 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.linkText}>BEGIN YOUR DERIVE NOW &gt;</Text>
           </TouchableOpacity>
 
+          {/* XP Meter */}
+          <View style={styles.xpSection}>
+            <XPMeter
+              currentXP={userXP}
+              level={userLevel}
+              xpForNextLevel={xpForNextLevel}
+            />
+          </View>
+
           {/* Aesthetic Profile Section */}
           <View style={styles.section}>
             <AestheticProfile
@@ -192,6 +211,7 @@ const styles = StyleSheet.create({
   sectionTitle: { color: '#888', fontSize: 14, fontWeight: 'bold', letterSpacing: 1, marginBottom: 12, textTransform: 'uppercase' },
   listItem: { paddingVertical: 15, borderTopWidth: 1, borderColor: '#e0e0e0' },
   listItemText: { color: '#000', fontSize: 16 },
+  xpSection: { marginTop: 24, marginBottom: -16 },
 });
 
 export default HomeScreen; 

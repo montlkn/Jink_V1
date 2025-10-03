@@ -20,10 +20,10 @@ const Tab = createBottomTabNavigator();
 // Enhanced Liquid Glass Tab Bar
 const EnhancedGlassTabBar = ({ routes, currentIndex, onTabPress }) => (
   <View style={styles.glassContainer}>
-    <BlurView intensity={80} tint="light" style={styles.blurPill}>
+    <BlurView intensity={100} tint="light" style={styles.blurPill}>
       {/* Multi-layer glass effect */}
       <LinearGradient
-        colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.1)']}
+        colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.05)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.gradientOverlay}
@@ -41,17 +41,17 @@ const EnhancedGlassTabBar = ({ routes, currentIndex, onTabPress }) => (
               styles.tabButton,
               isFocused && styles.tabButtonFocused
             ]}
-            activeOpacity={0.6}
+            activeOpacity={0.8}
           >
             {/* Focused state glow */}
             {isFocused && (
               <BlurView 
-                intensity={20} 
+                intensity={35} 
                 tint="light" 
                 style={styles.focusedGlow}
               >
                 <LinearGradient
-                  colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.2)']}
+                  colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.1)']}
                   style={styles.focusedGlowGradient}
                 />
               </BlurView>
@@ -93,7 +93,7 @@ const EnhancedGlassSearchButton = ({ onPress }) => (
   >
     <BlurView intensity={80} tint="light" style={styles.searchButtonBlur}>
       <LinearGradient
-        colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0.2)']}
+        colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.08)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.searchGradient}
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 50,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "rgba(255,255,255,0.08)",
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -212,14 +212,14 @@ const styles = StyleSheet.create({
   },
   glassOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(255,255,255,0.12)",
     borderRadius: 50,
     borderWidth: 1,
     borderTopWidth: 1.5,
-    borderTopColor: "rgba(255,255,255,0.8)",
-    borderBottomColor: "rgba(255,255,255,0.3)",
-    borderLeftColor: "rgba(255,255,255,0.5)",
-    borderRightColor: "rgba(255,255,255,0.5)",
+    borderTopColor: "rgba(255,255,255,0.6)",
+    borderBottomColor: "rgba(255,255,255,0.2)",
+    borderLeftColor: "rgba(255,255,255,0.35)",
+    borderRightColor: "rgba(255,255,255,0.35)",
   },
   tabButton: {
     flex: 1,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.10)",
   },
   searchGradient: {
     ...StyleSheet.absoluteFillObject,
@@ -268,14 +268,14 @@ const styles = StyleSheet.create({
   },
   searchGlassOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: "rgba(255,255,255,0.12)",
     borderRadius: 30,
     borderWidth: 1,
     borderTopWidth: 1.5,
-    borderTopColor: "rgba(255,255,255,0.9)",
-    borderBottomColor: "rgba(255,255,255,0.3)",
-    borderLeftColor: "rgba(255,255,255,0.6)",
-    borderRightColor: "rgba(255,255,255,0.6)",
+    borderTopColor: "rgba(255,255,255,0.6)",
+    borderBottomColor: "rgba(255,255,255,0.2)",
+    borderLeftColor: "rgba(255,255,255,0.35)",
+    borderRightColor: "rgba(255,255,255,0.35)",
   },
 });
 
