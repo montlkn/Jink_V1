@@ -12,6 +12,14 @@
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan buildings."
         }
+      ],
+      [
+        "@expo/ui",
+        {
+          "ios": {
+            "enabled": true
+          }
+        }
       ]
     ],
     "extra": {
