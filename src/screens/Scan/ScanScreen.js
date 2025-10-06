@@ -233,13 +233,22 @@ export default function ScanScreen({ navigation }) {
       formData.append('movement_type', movementType);
       formData.append('gps_accuracy', (position.accuracy || 10).toString());
 
+      // Add timeout (90 seconds for first request when backend wakes up)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+
       const response = await fetch(`${BACKEND_URL}/api/scan`, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        const errorText = await response.text();
+        console.error('Scan API error:', response.status, errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
@@ -259,10 +268,20 @@ export default function ScanScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Scan failed:', error);
+
+      // Handle specific error types
+      let message = 'An error occurred while scanning. Please try again.';
+
+      if (error.name === 'AbortError') {
+        message = 'The scan timed out. The backend may be waking up from sleep. Please wait 30 seconds and try again.';
+      } else if (error.message && error.message.includes('Network request failed')) {
+        message = 'Could not connect to the scanning service. Please check your internet connection.';
+      } else if (error.message) {
+        message = error.message;
+      }
+
       // Navigate to NotFound screen on error
-      navigation.navigate('NotFound', {
-        message: 'An error occurred while scanning. Please try again.'
-      });
+      navigation.navigate('NotFound', { message });
     } finally {
       setIsScanning(false);
     }

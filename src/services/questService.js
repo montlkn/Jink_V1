@@ -25,7 +25,7 @@ export const getActiveDailyQuest = async () => {
       .single();
 
     if (profileError) throw profileError;
-
+    console
     // If no quest assigned or completed, get a new one
     if (!profile.daily_quest_id || profile.daily_quest_completed) {
       const { data: newQuest } = await supabase

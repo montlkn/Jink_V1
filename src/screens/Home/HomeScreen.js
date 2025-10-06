@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AestheticProfile from '../../components/home/AestheticProfile';
+import XPMeter from '../../components/passport/XPMeter';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
-import XPMeter from '../../components/passport/XPMeter';
-import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
+import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 
 const HomeScreen = ({ navigation }) => {
   const [selectedQuest, setSelectedQuest] = useState(null);
@@ -119,7 +119,7 @@ const HomeScreen = ({ navigation }) => {
 
           {/* Begin Derive CTA */}
           <TouchableOpacity onPress={() => navigation.navigate('Derive')}>
-            <Text style={styles.linkText}>BEGIN YOUR DERIVE NOW &gt;</Text>
+            <Text style={styles.linkText}>LET'S JINK... &gt;</Text>
           </TouchableOpacity>
 
           {/* XP Meter */}
