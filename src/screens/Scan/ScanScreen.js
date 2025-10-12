@@ -8,7 +8,7 @@ import {
   calculatePositionConfidence,
   detectMovementType,
 } from '../../utils/sensorFusion';
-import SimpleLoadingOrb from '../../components/SimpleLoadingOrb';
+import ArchetypeOrb from '../../components/ArchetypeOrb';
 import { awardXP } from '../../services/questService';
 
 export default function ScanScreen({ navigation }) {
@@ -354,7 +354,7 @@ export default function ScanScreen({ navigation }) {
       {/* Loading Overlay with Orb */}
       {isScanning && (
         <View style={styles.loadingOverlay}>
-          <SimpleLoadingOrb size={260} />
+          <ArchetypeOrb size={260} />
           <Text style={styles.loadingText}>Identifying building...</Text>
         </View>
       )}

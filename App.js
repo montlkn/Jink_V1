@@ -6,6 +6,7 @@
 import React from "react";
 import { AuthProvider } from "./src/auth/authProvider";
 import AppNavigator from "./src/navigation/AppNavigator";
+import { installExpoGLGuards } from "./src/utils/expoGLGuards";
 // This is our global color and theme configuration
 
 const AppTheme = {
@@ -19,6 +20,8 @@ const AppTheme = {
     notification: "rgb(255, 69, 58)",
   },
 };
+
+installExpoGLGuards({ verbose: __DEV__ });
 
 export default function App() {
   return (

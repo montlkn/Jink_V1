@@ -1,33 +1,38 @@
 /*
   File: /src/components/home/AestheticProfile.js
-  Description: A component for the Home Screen that displays the user's aesthetic profile pie chart.
+  Description: Home screen aura that visualizes a user's aesthetic profile.
 */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { useAuth } from '../../auth/authProvider';
-import { generateProfileSummary, prepareChartData, getArchetypeInfo } from '../../services/aestheticScoringService';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
-import DonutChart from '../charts/DonutChart';
-import SectionHeader from '../common/SectionHeader';
-import SegmentModal from '../modals/SegmentModal';
+// Switch to shader-based liquid aura (metaball-like blending)
+import ArchetypeOrb from '../ArchetypeOrb';
+import AuraBreakdownModal from '../modals/AuraBreakdownModal';
 import ArchetypeDetailModal from '../modals/ArchetypeDetailModal';
+
+const FALLBACK_ORB_DATA = [
+  { name: 'Romantic', percentage: 0.36 },
+  { name: 'Modernist', percentage: 0.32 },
+  { name: 'Classicist', percentage: 0.28 },
+];
+
+const formatDisplayName = (key) =>
+  key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 const AestheticProfile = ({ onNavigate, navigation }) => {
   const { session } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedArchetype, setSelectedArchetype] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [summaryVisible, setSummaryVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedDetailArchetype, setSelectedDetailArchetype] = useState(null);
 
-  useEffect(() => {
-    loadUserProfile();
-  }, [session]);
-
-  const loadUserProfile = async () => {
+  const loadUserProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false);
       return;
@@ -43,44 +48,93 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]);
 
-  const handleSegmentPress = (archetypeData) => {
-    if (archetypeData) {
-      // Handle individual segment press - show simple modal
-      setSelectedArchetype(archetypeData);
-      setModalVisible(true);
-    } else {
-      // Handle "see all" press - navigate to profile detail
-      if (navigation) {
-        navigation.navigate('ProfileDetail');
-      } else if (onNavigate) {
-        onNavigate();
-      }
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
+
+  const { topSegments, orbArchetypeData, hasScores } = useMemo(() => {
+    if (!profile?.archetype_scores) {
+      return { topSegments: [], orbArchetypeData: [], hasScores: false };
+    }
+
+    const entries = Object.entries(profile.archetype_scores).filter(
+      ([, value]) => typeof value === 'number' && value > 0
+    );
+
+    if (!entries.length) {
+      return { topSegments: [], orbArchetypeData: [], hasScores: false };
+    }
+
+    const total = entries.reduce((sum, [, value]) => sum + Math.max(0, value), 0);
+
+    const segments = entries
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([key, rawScore]) => {
+        const detail = getDetailedArchetypeInfo(key) || {};
+        return {
+          archetype: key,
+          name: detail?.name || formatDisplayName(key),
+          color: detail?.color || '#666666',
+          percentage: total ? Math.round((Math.max(0, rawScore) / total) * 100) : 0,
+          score: Math.round(rawScore),
+        };
+      });
+
+    const orbData = entries.map(([key, rawScore]) => ({
+      name: key,
+      percentage: Math.max(0, rawScore),
+    }));
+
+    return { topSegments: segments, orbArchetypeData: orbData, hasScores: true };
+  }, [profile?.archetype_scores]);
+
+  const hasProfileData = hasScores && !!profile?.archetype_scores;
+  const resolvedOrbData = hasProfileData ? orbArchetypeData : FALLBACK_ORB_DATA;
+
+  const navigateToProfileDetail = () => {
+    if (navigation) {
+      navigation.navigate('ProfileDetail');
+    } else if (onNavigate) {
+      onNavigate();
     }
   };
 
-  const handleCloseModal = () => {
-    setModalVisible(false);
-    setTimeout(() => {
-      setSelectedArchetype(null);
-    }, 100);
+  const handleAuraPress = () => {
+    if (topSegments.length) {
+      setSummaryVisible(true);
+    } else {
+      navigateToProfileDetail();
+    }
+  };
+
+  const handleCloseSummary = () => {
+    setSummaryVisible(false);
   };
 
   const handleMoreInfo = (archetypeData) => {
-    // Close segment modal first
-    setModalVisible(false);
+    setSummaryVisible(false);
 
-    // Get the detailed archetype info with all required properties
     const detailedInfo = getDetailedArchetypeInfo(archetypeData.archetype);
     if (detailedInfo) {
       setSelectedDetailArchetype({
         ...detailedInfo,
         score: archetypeData.score,
-        percentage: archetypeData.percentage
+        percentage: archetypeData.percentage,
       });
       setDetailModalVisible(true);
     }
+  };
+
+  const handleSelectBreakdownItem = (segment) => {
+    if (!segment) return;
+    handleMoreInfo({
+      archetype: segment.archetype,
+      score: segment.score,
+      percentage: segment.percentage,
+    });
   };
 
   const handleCloseDetailModal = () => {
@@ -100,67 +154,48 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
       );
     }
 
-    if (error) {
-      return (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Unable to load profile</Text>
-          <TouchableOpacity onPress={loadUserProfile} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    if (!profile || !profile.archetype_scores) {
-      return (
-        <View style={styles.noProfileContainer}>
-          <Text style={styles.noProfileText}>Complete the quiz to see your aesthetic profile</Text>
-        </View>
-      );
-    }
-
-    const chartData = prepareChartData(
-      profile.archetype_scores, 
-      profile.primary_archetype, 
-      profile.secondary_archetype
-    );
-
-    const summary = generateProfileSummary({
-      primaryArchetype: profile.primary_archetype,
-      secondaryArchetype: profile.secondary_archetype,
-      confidenceScore: profile.response_confidence_score || 0.5,
-      separationScore: 0.5
-    });
-
-    const centerText = {
-      primary: summary?.title || profile.primary_archetype,
-      secondary: summary?.secondaryArchetype?.name,
-      confidence: summary?.confidenceLevel || 'Medium'
-    };
+    const showError = Boolean(error);
+    const showFallback = !hasProfileData;
 
     return (
-      <View style={styles.profileContent}>
-        <DonutChart
-          data={chartData}
-          size={380}
-          strokeWidth={30}
-          onSegmentPress={handleSegmentPress}
-          centerText={centerText}
+      <View style={styles.auraWrapper}>
+        <ArchetypeOrb
+          archetypeData={resolvedOrbData}
+          size={220}
+          quality="high"
+          onPress={handleAuraPress}
+          style={styles.orb}
         />
+
+        {showError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Unable to load profile</Text>
+            <TouchableOpacity onPress={loadUserProfile} style={styles.retryButton}>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : showFallback ? (
+          <View style={styles.noProfileContainer}>
+            <Text style={styles.noProfileText}>Complete the quiz to unlock your aesthetic profile.</Text>
+            <TouchableOpacity onPress={navigateToProfileDetail} style={styles.fallbackButton}>
+              <Text style={styles.fallbackButtonText}>Start Quiz</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <SectionHeader title="Aesthetic Profile" onSeeAll={() => handleSegmentPress()} />
-      {renderProfileContent()}
+    <>
+      <View style={styles.container}>{renderProfileContent()}</View>
 
-      <SegmentModal
-        visible={modalVisible}
-        segment={selectedArchetype}
-        onClose={handleCloseModal}
-        onMoreInfo={handleMoreInfo}
+      <AuraBreakdownModal
+        visible={summaryVisible}
+        segments={topSegments}
+        onClose={handleCloseSummary}
+        onSelectSegment={handleSelectBreakdownItem}
+        onViewProfile={navigateToProfileDetail}
       />
 
       <ArchetypeDetailModal
@@ -168,49 +203,23 @@ const AestheticProfile = ({ onNavigate, navigation }) => {
         archetype={selectedDetailArchetype}
         onClose={handleCloseDetailModal}
       />
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-  },
-  profileContent: {
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    marginTop: 12,
   },
-  profileSummary: {
-    marginTop: 20,
+  auraWrapper: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
   },
-  primaryArchetype: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  secondaryArchetype: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  confidenceText: {
-    fontSize: 12,
-    color: '#999',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  orb: {
+    marginVertical: 12,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -219,36 +228,47 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 8,
     fontSize: 14,
-    color: '#666',
+    color: '#444',
   },
   errorContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 30,
   },
   errorText: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: 16,
+    color: '#000',
     marginBottom: 12,
   },
   retryButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
     backgroundColor: '#000',
-    borderRadius: 16,
   },
   retryText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   noProfileContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 16,
+    gap: 12,
   },
   noProfileText: {
     fontSize: 14,
-    color: '#666',
+    color: '#555',
     textAlign: 'center',
+    paddingHorizontal: 24,
+  },
+  fallbackButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#000',
+  },
+  fallbackButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

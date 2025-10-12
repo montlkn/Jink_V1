@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import AestheticProfile from '../../components/home/AestheticProfile';
 import XPMeter from '../../components/passport/XPMeter';
 import QuestCard from '../../components/quests/QuestCard';
@@ -114,14 +114,15 @@ const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.homeContainer}>
-          {/* Header */}
-          <Text style={styles.headerTitle}>HI LUCIEN!</Text>
 
-          {/* Begin Derive CTA */}
-          <TouchableOpacity onPress={() => navigation.navigate('Derive')}>
-            <Text style={styles.linkText}>LET'S JINK... &gt;</Text>
-          </TouchableOpacity>
-
+          {/* Aesthetic Profile Section */}
+          <View style={styles.section}>
+            <AestheticProfile
+              navigation={navigation}
+              onNavigate={() => navigation.navigate('ProfileDetail')}
+            />
+          </View>
+          
           {/* XP Meter */}
           <View style={styles.xpSection}>
             <XPMeter
@@ -131,18 +132,9 @@ const HomeScreen = ({ navigation }) => {
             />
           </View>
 
-          {/* Aesthetic Profile Section */}
-          <View style={styles.section}>
-            <AestheticProfile
-              navigation={navigation}
-              onNavigate={() => navigation.navigate('ProfileDetail')}
-            />
-          </View>
-
           {/* Daily Quest Section */}
           {dailyQuest && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>TODAY'S QUEST</Text>
               <QuestCard
                 type="daily"
                 title={dailyQuest.title}
@@ -160,7 +152,6 @@ const HomeScreen = ({ navigation }) => {
           {/* Weekly Quest Section */}
           {weeklyQuest && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>THIS WEEK'S CHALLENGE</Text>
               <QuestCard
                 type="weekly"
                 title={weeklyQuest.title}
@@ -175,16 +166,6 @@ const HomeScreen = ({ navigation }) => {
             </View>
           )}
 
-          {/* Past Walks Section */}
-          <TouchableOpacity style={styles.section}>
-            <Text style={styles.sectionTitle}>PAST WALKS &gt;</Text>
-            <View style={styles.listItem}>
-              <Text style={styles.listItemText}>A Walk Through SoHo's Cast-Iron District</Text>
-            </View>
-            <View style={styles.listItem}>
-              <Text style={styles.listItemText}>Midtown's Modernist Marvels</Text>
-            </View>
-          </TouchableOpacity>
 
         </View>
       </ScrollView>
@@ -204,14 +185,9 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F8F8F8' },
   scrollView: { flex: 1 },
-  homeContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 }, // paddingBottom to avoid overlap with tab bar
-  headerTitle: { color: '#000', fontSize: 28, fontWeight: 'bold', letterSpacing: 1 },
-  linkText: { color: '#000', fontSize: 16, fontWeight: 'bold', marginTop: 8, letterSpacing: 0.5 },
-  section: { marginTop: 40 },
-  sectionTitle: { color: '#888', fontSize: 14, fontWeight: 'bold', letterSpacing: 1, marginBottom: 12, textTransform: 'uppercase' },
-  listItem: { paddingVertical: 15, borderTopWidth: 1, borderColor: '#e0e0e0' },
+  homeContainer: { paddingHorizontal: 20, paddingTop: 0, paddingBottom: 100 }, // paddingBottom to avoid overlap with tab bar
   listItemText: { color: '#000', fontSize: 16 },
-  xpSection: { marginTop: 24, marginBottom: -16 },
+  xpSection: { marginTop: 24, marginBottom: 0 },
 });
 
 export default HomeScreen; 

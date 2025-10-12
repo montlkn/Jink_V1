@@ -46,12 +46,13 @@ const EnhancedGlassTabBar = ({ routes, currentIndex, onTabPress }) => (
             {/* Focused state glow */}
             {isFocused && (
               <BlurView 
-                intensity={35} 
+                intensity={50} 
                 tint="light" 
                 style={styles.focusedGlow}
+                size={24}
               >
                 <LinearGradient
-                  colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.1)']}
+                  colors={['rgba(0, 0, 0, 0)', 'rgba(255, 255, 255, 0.21)']}
                   style={styles.focusedGlowGradient}
                 />
               </BlurView>
@@ -130,7 +131,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     const iconMap = {
       Home: "home",
       Camera: "camera",
-      Derive: "map",
+      Jink: "map",
       Passport: "person",
     };
     const iconName = iconMap[route.name] || "circle";
@@ -164,7 +165,7 @@ const BottomTabNavigator = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Camera" component={ScanScreen} />
-      <Tab.Screen name="Derive" component={WalkStackNavigator} />
+      <Tab.Screen name="Jink" component={WalkStackNavigator} />
       <Tab.Screen name="Passport" component={PassportScreen} />
       <Tab.Screen
         name="Search"

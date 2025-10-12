@@ -2,11 +2,11 @@
   Description: The main screen for the user's profile, collections, and achievements.
   Uses common components like SectionHeader and ListItem.
 */
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import SectionHeader from '../../components/common/SectionHeader';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import ListItem from '../../components/common/ListItem';
-import { getUserStamps, getUserAchievements } from '../../services/questService';
+import SectionHeader from '../../components/common/SectionHeader';
+import { getUserAchievements, getUserStamps } from '../../services/questService';
 
 // Mock data for lists (not yet implemented in backend)
 const lists = [
@@ -90,6 +90,17 @@ const PassportScreen = ({ navigation }) => {
         ))}
       </View>
 
+      {/* PAST WALKS SECTION */}
+      <SectionHeader title="Past Walks" onSeeAll={() => console.log('See all past walks')} />
+      <View style={styles.listContainer}>
+        <View style={styles.listItem}>
+          <Text style={styles.listItemText}>A Walk Through SoHo's Cast-Iron District</Text>
+        </View>
+        <View style={styles.listItem}>
+          <Text style={styles.listItemText}>Midtown's Modernist Marvels</Text>
+        </View>
+      </View>
+
       <View style={{ height: 100 }} />
     </ScrollView>
   );
@@ -151,6 +162,15 @@ const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
     marginVertical: 10,
+  },
+  listItem: {
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  listItemText: {
+    color: '#000',
+    fontSize: 16,
   }
 });
 
