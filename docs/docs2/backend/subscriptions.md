@@ -19,3 +19,17 @@ Defines Free vs Pro, entitlements, billing integration, and enforcement. XP is o
 ## Grace
 - If subscription lapses, creator unlocks remain visible but disabled; user can still view their past content.
 
+
+
+## Webhooks & Entitlements Addendum
+
+### Webhooks
+- /webhooks/stripe
+  - events: checkout.session.completed, invoice.payment_succeeded, customer.subscription.deleted
+  - action: upsert subscriptions row, recompute entitlements
+
+### Entitlement Map (Pro)
+- deep_dive_credits: +1 / 1000 XP
+- xp_multipliers: { scan:1.2, derive:1.25, quest:1.3, contrib:1.4 }
+- create_public_quests: true
+- orb_modulation: true

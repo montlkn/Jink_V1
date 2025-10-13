@@ -47,3 +47,32 @@ AffinityEngine updates a user's 9-archetype taste vector using weighted signals 
 - Batch apply over session end to reduce jitter, or apply per event with small alpha.
 - Log per-archetype deltas for analytics and tuning.
 
+
+
+## Implementation Addendum v1.1 (Oct 2025)
+
+### Explicit Math
+Let V_raw ∈ R^9, V_norm = softmax(V_raw/τ).
+Given action a with normalized style S, learning rate α:
+1) d = α · S
+2) d' = d + A·d − O·d    where A is affinity matrix (sym), O is opposition matrix (diag or sparse)
+3) V_raw = (1−β)·V_raw + β·(V_raw + d')
+4) V_norm = softmax(V_raw/τ), τ = clamp(1−c·0.2, 0.8, 1.2)
+
+### Surprise
+If V_norm[i] < τ_u and S[i] > 0: V_raw[i] += ε, ε=0.02 decays with weekly diversity.
+
+### Pseudocode
+update(V_raw, S, a, ctx):
+    α = base_alpha * w_action[a] * w_ctx(ctx)
+    d = α * normalize(S)
+    d_coupled = d + A@d - O@d
+    β = clamp(α*0.6, 0.05, 0.35)
+    V_raw = (1-β)*V_raw + β*(V_raw + d_coupled)
+    apply_surprise(V_raw, V_norm, S)
+    V_norm = softmax(V_raw/τ(c))
+    c = update_confidence(c, S, V_norm)
+    return V_raw, V_norm, c
+
+### Versioning
+- Store model_id and params hash per update for reproducibility.

@@ -28,3 +28,22 @@ credibility = base + w_rep * normalized_rep + w_votes * net_votes_scaled + w_sou
 - Composer with minimal fields and clear guidance.
 - Verification progress bar; transparent outcomes.
 
+
+
+## Implementation Addendum v1.1 (Oct 2025)
+
+### Roles
+- Contributor, Peer, Verifier (staff/curator)
+- Verifier actions service-role only
+
+### Anti-spam
+- Rate limit: 3 submissions/hour/user
+- Similarity check (Levenshtein) against recent submissions
+- Auto-quarantine low-cred accounts with bursty posts
+
+### State Machine
+draft → submitted → under_review → verified | rejected
+SLA: first review < 24h; auto-nudge peers at 12h.
+
+### Exposure
+- Unverified shows as “Community Note” collapsed by default.

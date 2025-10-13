@@ -26,3 +26,19 @@ Minimal, privacy-respecting events to measure product health and guide tuning.
 - No precise addresses; round lat/lon or bucket by tiling.
 - Honoring OS-level analytics opt-out.
 
+
+
+## Event Catalog v1.1
+
+### scan_success
+- payload: { building_id, confidence, hdop, latency_ms, source:"camera"|"gallery" }
+
+### xp_gain
+- payload: { amount, reason, source_id?, total_xp }
+
+### derive_finish
+- payload: { stops:int, duration_m, route_len_km }
+
+### privacy_guard
+- coarse_geo tile id, no raw lat/lng
+- user_id hashed with stable salt

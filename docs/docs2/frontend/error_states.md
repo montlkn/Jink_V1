@@ -36,3 +36,13 @@ Defines user-facing states and recovery paths for camera scans, GPS, network, an
 - Route/derive p95 under 1200 ms.
 - Search/autocomplete p95 under 200 ms.
 
+
+
+## State Mappings v1.1
+
+| error_code | Banner | Primary Action | Secondary |
+|------------|--------|----------------|-----------|
+| CAMERA_PERMISSION_DENIED | Camera access needed | Open Settings | Demo Mode |
+| LOCATION_PERMISSION_DENIED | Location helps recognition | Enable | Proceed anyway |
+| SCAN_CONFIDENCE_LOW | Not sure yet | Pick from matches | Retry |
+| NETWORK_OFFLINE | You’re offline | Save for later | Learn more |

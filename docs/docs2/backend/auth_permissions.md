@@ -25,3 +25,21 @@ Security posture and row-level security (RLS) policies for core tables. JWT-base
 - All API keys stored as environment variables on the edge runtime.
 - No secrets in client; runtime feature flags delivered via signed config endpoints.
 
+
+
+## RLS Policy Examples (SQL Sketch)
+
+-- profiles: self-read/write subset
+create policy sel_profiles_self on profiles for select
+  using (user_id = auth.uid());
+
+create policy upd_profiles_self on profiles for update
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+-- scans: insert by owner, read own
+create policy ins_scans_self on scans for insert
+  with check (user_id = auth.uid());
+
+create policy sel_scans_self on scans for select
+  using (user_id = auth.uid());

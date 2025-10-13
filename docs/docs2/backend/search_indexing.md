@@ -18,3 +18,19 @@ Two-level index: fast text search via Postgres FTS; semantic fallback via pgvect
 ## Diagnostics
 - Log per-query hit sources (fts, vector, both) to monitor costs and quality.
 
+
+
+## DDL & Rebuild
+
+### FTS
+CREATE INDEX idx_buildings_fts ON buildings
+USING GIN (to_tsvector('simple', coalesce(name,'') || ' ' || coalesce(alt_names,'') || ' ' || coalesce(neighborhood,'')));
+
+### Vectors
+ALTER TABLE buildings ADD COLUMN IF NOT EXISTS emb vector(512);
+CREATE INDEX IF NOT EXISTS idx_buildings_emb ON buildings USING ivfflat (emb vector_cosine_ops) WITH (lists = 100);
+
+### Rebuild Procedure
+1) Backfill emb for new/updated rows
+2) ANALYZE buildings
+3) Verify recall with nightly search_eval

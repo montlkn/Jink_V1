@@ -53,3 +53,27 @@ Deliver a fast, legible, delight-first scanning experience where the orb is the 
 ## Risks
 - Over-animated states on low-end hardware; guard by capping live materials to essential uniforms only.
 
+
+
+## Implementation Addendum v1.1 (Oct 2025)
+
+### Finite State Machine
+| State | Enter From | Exit To | Guard | Side Effects |
+|------|------------|---------|-------|--------------|
+| ORB_IDLE | — | ORB_PRESS | onPress | startBreath() |
+| ORB_PRESS | ORB_IDLE | ORB_PROCESSING | onRelease | capture(), hapticTap() |
+| ORB_PROCESSING | ORB_PRESS | ORB_SUCCESS/ORB_FAIL | scanDone | swirl(), setPulse(rate) |
+| ORB_SUCCESS | ORB_PROCESSING | ORB_IDLE | after 300ms | ripple(), setHue(target) |
+| ORB_FAIL | ORB_PROCESSING | ORB_IDLE | after 240ms | shakeSmall(), showRetry() |
+
+### Gesture Tolerances
+- Debounce: 350 ms after capture
+- Move threshold: 12 dp before cancel
+- Multi-touch cancels capture
+
+### Accessibility
+- Long-press alternative menu: “Scan,” “Import,” “Help”
+- VoiceOver reads scan confidence as “Likely, Possible, Uncertain”
+
+### Telemetry (per scan)
+- { t_start, p95_estimate, device_perf_bucket, shader_fallback:bool }
