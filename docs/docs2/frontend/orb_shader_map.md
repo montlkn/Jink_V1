@@ -25,4 +25,3 @@ Defines shader layers, uniforms, and color mapping from aesthetic vector to visu
 ## Performance
 - Cap fragment shader complexity; prefer precomputed LUTs for hue-to-RGB.
 - On low-end devices, freeze uTime updates and drive only uScale and uHuePrimary changes.
-

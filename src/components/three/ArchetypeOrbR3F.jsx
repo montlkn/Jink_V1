@@ -1,4 +1,5 @@
-const SAFE_MODE = true; // Emergency: disable shader smoke on mobile until stable
+const SAFE_MODE = false; // Enable shader-based smoke sprites by default
+const USE_VOL_SMOKE = true; // Feature flag: layered volumetric ray-marched smoke
 
 function SafeSmoke({ config, count = 180, renderOrder = 1 }) {
   const groupRef = useRef();
@@ -54,6 +55,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import * as THREE from "three";
 import { processArchetypeData } from "../../utils/archetypeDataTransformer";
+import VolSmoke from "./VolSmoke";
 
 /**
  * Perf changes vs your original:
@@ -329,14 +331,37 @@ function OrbScene({ configs, quality, groupRef, refraction }) {
       <ambientLight intensity={0.4} />
       <hemisphereLight skyColor={'#ffffff'} groundColor={'#909090'} intensity={0.35} />
 
-      <OrbDepthPrepass quality={quality} />
-      {SAFE_MODE
-        ? configs.map((cfg, idx) => (
-            <SafeSmoke key={cfg.id || cfg.name || idx} config={cfg} renderOrder={1 + idx} />
-          ))
-        : configs.map((cfg, idx) => (
-            <SmokeSprites key={cfg.id || cfg.name || idx} config={cfg} renderOrder={1 + idx} />
-          ))}
+      {/* Skip depth prepass for volumetric to avoid over-constraining depth */}
+      {!USE_VOL_SMOKE && <OrbDepthPrepass quality={quality} />}
+      {USE_VOL_SMOKE && !SAFE_MODE
+        ? configs.map((cfg, idx) => {
+            const pct = Math.max(0, Math.min(1, cfg.percentage ?? 0.33));
+            const density = 0.3 + pct * 0.6; // mapping per plan
+            const scale = 0.9 + pct * 0.35;  // inner smaller, outer larger
+            const steps = 22 - idx * 2;      // inner highest quality
+            const noiseScale = 1.4 + idx * 0.15;
+            const opacity = Math.min(0.55, 0.38 + pct * 0.22);
+            return (
+              <VolSmoke
+                key={cfg.id || cfg.name || idx}
+                color={cfg.color}
+                opacity={opacity}
+                density={density}
+                scale={scale}
+                rotationSpeed={cfg.rotationSpeed || 0.12}
+                steps={steps}
+                noiseScale={noiseScale}
+                renderOrder={1 + idx}
+              />
+            );
+          })
+        : SAFE_MODE
+          ? configs.map((cfg, idx) => (
+              <SafeSmoke key={cfg.id || cfg.name || idx} config={cfg} renderOrder={1 + idx} />
+            ))
+          : configs.map((cfg, idx) => (
+              <SmokeSprites key={cfg.id || cfg.name || idx} config={cfg} renderOrder={1 + idx} />
+            ))}
       <OrbShell quality={quality} refraction={refraction} />
     </group>
   );
@@ -350,7 +375,7 @@ export default function ArchetypeOrbR3F({
   style,
 }) {
   const configs = useMemo(
-    () => processArchetypeData(archetypeData, { allowFallback: false }),
+    () => processArchetypeData(archetypeData, { allowFallback: true }),
     [archetypeData]
   );
 

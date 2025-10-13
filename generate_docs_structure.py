@@ -2,323 +2,119 @@ import os
 
 BASE = "/Users/lucienmount/Arch_App_V2/architecture-app/docs/docs2"
 
-def write(path, content):
-    full = os.path.join(BASE, path)
-    os.makedirs(os.path.dirname(full), exist_ok=True)
-    with open(full, "w", encoding="utf-8") as f:
+def write(rel_path: str, content: str) -> None:
+    full_path = os.path.join(BASE, rel_path)
+    os.makedirs(os.path.dirname(full_path), exist_ok=True)
+    with open(full_path, "w", encoding="utf-8") as f:
         f.write(content)
-
-DOCS = {
-# ---------- SECURITY / RISK ----------
-"security/threat_model.md": """# Threat Model (v1)
-
-## Scope
-Mobile client, edge functions, Supabase (RLS), vector store, 3P AI services.
-
-## Assets
-- PII-lite: email, coarse location buckets, user-generated memories.
-- Sensitive-ish: raw photos (if user opts in), contribution text before moderation.
-- Secrets: API keys (edge only), service-role keys (never on client).
-
-## Actors
-- Honest but curious user
-- Over-eager scraper
-- Malicious spammer
-- Compromised device
-
-## Risks & Mitigations
-| Risk | Vector | Mitigation |
-|------|--------|------------|
-| API scraping | unauth GET search | rate limits per IP+user, cache, require auth for heavy endpoints |
-| Location leakage | raw lat/lng in analytics | tile buckets; never log raw lat/lng |
-| Spam contributions | scripted posts | per-user rate limit, similarity checks, quarantine low-cred |
-| Token theft | jailbroken device | short token TTL, refresh flow, device-bound salts |
-| Key exfiltration | client bundle | no secrets in app, edge-only keys, rotate quarterly |
-
-## RLS Must-haves
-Self-only reads for scans/xp/entries; public buildings read-only; contributions read if verified or own.
-
-## Incident Flow
-Detect → Triage (severity) → Contain (revoke keys, disable endpoints) → Postmortem (blameless, 48h).
-""",
-
-"backend/rate_limits.md": """# Rate Limits (v1)
-
-## Policy
-- Identify users by auth uid and coarse IP hash.
-- Return 429 with Retry-After; never hard drop.
-
-## Limits
-| Endpoint | Free | Pro | Window |
-|----------|------|-----|--------|
-| /scan/identify | 30/min | 60/min | 60s |
-| /search/buildings | 60/min | 120/min | 60s |
-| /quests/generate | 10/day | 30/day | 24h |
-| /contributions/submit | 3/hour | 6/hour | 60m |
-
-## Implementation
-- Edge middleware counter (Redis or Postgres advisory locks)
-- Token bucket with leaky refill; attach headers: X-RateLimit-*
-""",
-
-"backend/cost_controls.md": """# Cost Controls (AI + Vector + Egress)
-
-## AI
-- Exa/LLM calls gated behind feature flags; batched for nightly enrichment.
-- Per-user monthly ceiling, per-session ceiling; degrade to cached summaries.
-
-## Vector
-- Batch re-embeds at off-peak; ivfflat lists=100; cap k=20 on searches.
-
-## Maps/Tile Egress
-- Tile cache (512 squarish) with 7d TTL; limit high-zoom fetching.
-
-## Alerts
-- Budgets per service; Slack alert at 70/90/100%.
-""",
-
-# ---------- DATA DEFINITIONS / ENV ----------
-"backend/data_dictionary.md": """# Data Dictionary (compact v1)
-
-## profiles
-- user_id (uuid, pk)
-- archetype_vector (jsonb[9 floats])
-- total_xp (int)
-- level (int)
-- confidence (float 0..1)
-- plan (text: Free|Pro)
-- updated_at (timestamptz)
-
-## scans
-- id (uuid, pk)
-- user_id (uuid)
-- building_id (int)
-- confidence (float)
-- gps (geog point)
-- heading (float deg)
-- created_at (timestamptz)
-
-## buildings
-- id (int, pk)
-- name (text)
-- coords (geog point)
-- style_vector (vector(512) + jsonb[9])
-- metadata (jsonb)
-- model_id (text)
-- updated_at (timestamptz)
-
-## xp_transactions
-- id (uuid)
-- user_id (uuid)
-- amount (int)
-- reason (text)
-- source_id (uuid|int|null)
-- created_at (timestamptz)
-
-## passport_entries
-- id (uuid)
-- user_id (uuid)
-- building_id (int)
-- acquired_at (timestamptz)
-- source (text: scan|derive|quest)
-
-## contributions
-- id (uuid)
-- user_id (uuid)
-- building_id (int)
-- text (text)
-- media_urls (text[])
-- sources (text[])
-- credibility (float)
-- status (text: submitted|verified|rejected)
-- created_at (timestamptz)
-""",
-
-"backend/env_config.md": """# Environment & Config
-
-## Files
-- .env.development – local dev
-- .env.preview – staging
-- .env.production – prod
-
-## Keys
-- SUPABASE_URL, SUPABASE_ANON_KEY (client)
-- SUPABASE_SERVICE_ROLE (edge only)
-- EXA_API_KEY (edge)
-- MAPS_TOKEN (client ok)
-- SENTRY_DSN (client + edge)
-
-## Flags
-- FEATURE_SEMANTIC_SEARCH
-- FEATURE_ORB_SHADER_HEAVY
-- FEATURE_PRO_MULTIPLIERS
-- PROVIDER_EMBEDDINGS = clip|open-clip|local
-""",
-
-"backend/seeding_content_pipeline.md": """# Seeding & Content Pipeline
-
-## Input
-- CSV: buildings (id,name,lat,lng,year,style tags)
-- Assets: stamps (SVG/PNG), copy blocks
-- Curator notes
-
-## Steps
-1) Validate CSV schema
-2) Geocode sanity check and dedupe
-3) Embed images → vector column
-4) Generate short summaries (batch)
-5) Stamp art mapping table
-6) QA list; push to staging; spot-check derives
-7) Promote to prod with version tag
-
-## Rollback
-Keep last 2 seeds; revert by version id.
-""",
-
-# ---------- OPS ----------
-"ops/release_process.md": """# Release Process
-
-## Branching
-- main protected, release/* branches, hotfix/* for critical regressions.
-
-## Train
-- Weekly release train; feature flags for risky modules.
-
-## Build
-- Bump version; tag; build artifacts; store in releases/
-- Generate changelog from PR titles
-
-## Approvals
-- Design and QA sign-off gates
-
-## Post-Release
-- Monitor KPIs for 24h; fast rollback if p95 scan latency > 1.5s or crash-free < 98.5%
-""",
-
-"ops/rollback_plan.md": """# Rollback Plan
-
-## Triggers
-- Crash-free sessions < 98.5%
-- Scan p95 > 1.5s for 30m
-- RLS misconfig impacts write paths
-
-## Steps
-1) Flip feature flags off (heavy shaders, semantic search)
-2) Revert to previous app build on stores (phased)
-3) Database rollback of last migration (if schema change)
-4) Announce in-app banner if user-visible
-
-## Postmortem
-48h blameless write-up; action items with owners and due dates.
-""",
-
-"ops/observability.md": """# Observability (Logs, Metrics, Traces)
-
-## Client
-- Sentry: crashes, breadcrumbs, release tags
-- Custom: scan timings, derive timings, GPU fallback events
-
-## Edge
-- Structured logs (json): request_id, endpoint, latency_ms, err
-- Metrics: p50/p95 latency, RPS, error rate
-- Traces: scan pipeline spans: prefilter → clip → write
-
-## Dashboards
-- Red routes: scan, derive, search
-- Error budget burn-down per endpoint
-""",
-
-"ops/slo_error_budgets.md": """# SLOs & Error Budgets
-
-## SLOs
-- Scan success ≥ 95%
-- Scan p95 ≤ 900 ms
-- Derive p95 ≤ 1.2 s
-- Crash-free sessions ≥ 99.2%
-
-## Budgets
-- Monthly 2.5% error budget per SLO
-- Freeze risky deploys when burn rate > 2x
-
-## Reviews
-- Weekly SLO check-in; rollback or invest based on burn
-""",
-
-"ops/feature_flags_ab_testing.md": """# Feature Flags & A/B Testing
-
-## Flags
-- Boolean gates for risky modules; stickiness by user_id
-- Remote config via signed JSON endpoint
-
-## Experiments
-- Small, time-bounded, pre-registered hypothesis
-- Metrics: TTFC, scan_success, session length, DAU retention proxy
-""",
-
-# ---------- FRONTEND UX SUPPORT ----------
-"frontend/i18n.md": """# Internationalization (i18n) & Locale
-
-## Strategy
-- One code path; string keys only; no concatenated sentences.
-
-## Files
-- /i18n/en.json initial; later add fr/es/ja
-
-## Dates/Numbers
-- Use Intl APIs; 24h clocks by locale; metric/imperial toggles.
-
-## RTL
-- Audit all screens for RTL mirroring; avoid directional icons hard-coded.
-""",
-
-# ---------- PRODUCT / LEGAL ----------
-"product/content_policy.md": """# User Content Policy (Draft)
-
-## Allowed
-- Building photos, style notes, historical facts with sources.
-
-## Disallowed
-- Faces/license plates (blur or abstain), private residences interior shots, hate/harassment, spam.
-
-## Moderation
-- Auto-filters: profanity list; image detection for faces/plates if feasible
-- Peer verification; staff override
-- Escalation SLA < 48h
-""",
-
-"product/app_store_checklist.md": """# App Store Submission Checklist
-
-## Privacy & Permissions
-- Camera usage description: “Identify buildings and create stamps”
-- Location usage: “Improve recognition and derive routes”
-- Data collection summary matches privacy_data_policy.md
-
-## Assets
-- Screenshots: Home, Camera (orb), Result, Derive, Passport
-- App icon & splash with brand consistency
-
-## Accounts
-- Test account: Free
-- Test account: Pro with sample entitlements
-
-## Review Notes
-- Explain offline mode behavior and limited functionality
-""",
-
-"legal/licenses_attribution.md": """# Licenses & Attribution
-
-## Third-party
-- CLIP model license summary
-- Map tiles provider attribution rules
-- Fonts and icon sets licenses
-- Datasets (if any) and their terms
-
-## Notices
-- Include at Settings → About → Licenses
-""",
-}
+    print(f"✔ Wrote {rel_path}")
+
+# ---------------- 1) PAST WALKS / JINK SUMMARY / NOLLI MAP ----------------
+WALK_MAP = (
+    "# Past Walk Page & Jink Summary (Nolli Map)\n\n"
+    "## Summary\n"
+    "A single screen combining personal history and visual memory.\n"
+    "Users see their past walks and a black-and-white Nolli-style city map that reveals only the regions they’ve explored.\n"
+    "It’s the visual embodiment of \"what you’ve seen.\"\n\n"
+    "## Layout Hierarchy\n"
+    "1. Past Walks Page\n"
+    "   - Carousel of walks (most recent first).\n"
+    "   - Each tile shows the generated drawing + duration + XP earned.\n"
+    "   - Tap -> opens Jink Summary Screen for that walk.\n\n"
+    "2. Jink Summary Screen\n"
+    "   - Header: Walk name, date, XP gained.\n"
+    "   - Body: list of visited buildings (cards with photos and blurbs).\n"
+    "   - Footer: \"View on Map\" -> opens the Nolli-style city view.\n\n"
+    "3. Nolli Map View\n"
+    "   - 2D black-and-white rendering of the city (vector or raster).\n"
+    "   - Only visited buildings are visible:\n"
+    "     - Each is surrounded by a feathered circle (soft mask radius ~75 m).\n"
+    "     - Connection lines join the sequence of buildings in that walk.\n"
+    "   - Unexplored areas are dimmed under a haze overlay.\n"
+    "   - As the user explores more buildings, the map gradually clears, mimicking exploration in EU4-style fog-of-war.\n\n"
+    "## Data Inputs\n"
+    "- passport_entries table for visited buildings.\n"
+    "- Building coords -> projected to map coordinates.\n"
+    "- User city center from last derive session.\n"
+    "- Optional cached map tiles or vector basemap.\n\n"
+    "## Rendering Logic\n"
+    "1) Preload map tile layer in grayscale (desaturated).\n"
+    "2) For each visited building:\n"
+    "   - draw feathered radial gradient mask at its position.\n"
+    "   - opacity = min(1.0, visit_count / 3).\n"
+    "3) Connect consecutive visits from the same walk with semi-transparent line.\n"
+    "4) Overlay subtle fog mask on unvisited areas (alpha 0.65).\n"
+    "5) When zooming:\n"
+    "   - Reveal more detail, fade-in building outlines.\n"
+    "   - At highest zoom, show names; at lowest, only clusters.\n\n"
+    "## Interactions\n"
+    "| Gesture | Action |\n"
+    "|--------|--------|\n"
+    "| Tap building | Opens building info card (same as scan result) |\n"
+    "| Pinch | Zoom in/out (fog dynamically recalculated) |\n"
+    "| Swipe left/right | Switch between walks |\n"
+    "| Long press | \"Revisit walk\" CTA -> triggers derive route from current location |\n\n"
+    "## Performance\n"
+    "- Use off-screen canvas / WebGL layer for mask compositing.\n"
+    "- Tile cache (256 px) with fog alpha baked.\n"
+    "- p95 render target: <= 30 ms per frame on mid device.\n\n"
+    "## Orb Integration\n"
+    "- When the map opens, orb glows faintly at map center.\n"
+    "- As user hovers over a building or zooms near it, orb pulses with that building’s archetype hue (from its style vector).\n"
+    "- When a new area is revealed for the first time, orb emits a small outward ripple and user earns +5 XP \"Explorer bonus.\"\n\n"
+    "## Aesthetic Reference\n"
+    "- Base palette: white background, black fill for mass, light gray streets.\n"
+    "- Feather masks: radial falloff, multiply blend.\n"
+    "- Haze overlay: low-contrast bluish tint, animated noise (slow drift).\n\n"
+    "## Future Hooks\n"
+    "- Toggle between \"All walks\" (aggregate map) and single walk path.\n"
+    "- Option to export current map view as image for sharing.\n"
+)
+
+# ---------------- 2) PRO XP MILESTONES (CREATIVE UNLOCKS) ----------------
+PRO_MILESTONES = (
+    "# XP Milestones for Pro Users (Creative Unlocks)\n\n"
+    "## Purpose\n"
+    "Pro users should feel tangible creative growth as they gain XP.\n"
+    "These unlocks reward exploration and contribution without adding grind or competition.\n\n"
+    "## Philosophy\n"
+    "- Keep it useful, not gamey.\n"
+    "- Each milestone should extend capability, not vanity.\n"
+    "- Milestones are tied to total XP, not time or subscription age.\n\n"
+    "## Unlock Table\n"
+    "| Total XP | Unlock | Description |\n"
+    "|----------|--------|-------------|\n"
+    "| 1 000 | Deep Dive Credits x1 | Access detailed AI building reports. Earn +1 per additional 1000 XP. |\n"
+    "| 2 500 | Custom Derives | Create and save personalized routes; share privately. |\n"
+    "| 5 000 | Stamp Designer | Compose personal stamp styles (color + icon). |\n"
+    "| 7 500 | Public Derives | Publish routes for others; visible after staff review. |\n"
+    "| 10 000 | Aesthetic Export | Export your profile vector as visual (orb state, color palette). |\n"
+    "| 15 000 | Orb Modulation | Orb gains reactive shader layer reflecting your top archetype blend in real time. |\n\n"
+    "## Integration with Entitlements\n"
+    "Each unlock toggles a boolean or counter inside entitlements:\n\n"
+    "{\n"
+    "  \"deep_dive_credits\": 3,\n"
+    "  \"custom_derives\": true,\n"
+    "  \"stamp_designer\": true,\n"
+    "  \"public_derives\": false,\n"
+    "  \"aesthetic_export\": false,\n"
+    "  \"orb_modulation\": true\n"
+    "}\n\n"
+    "Edge function /xp/update checks for crossing thresholds and appends new entitlements.\n"
+    "Client shows a small toast: \"Unlocked: Custom Derives.\"\n\n"
+    "## Visual Feedback\n"
+    "- Unlock events pulse the orb in gold for 1 s.\n"
+    "- Newly unlocked actions get a shimmering outline for 24 h.\n\n"
+    "## Safeguards\n"
+    "- Prevent spam by debouncing entitlement recalculations.\n"
+    "- XP rollbacks never remove unlocks already granted.\n"
+    "- Upgrades sync on next login if user was offline.\n\n"
+    "## Future Extension\n"
+    "- Allow Pro users to trade unused Deep Dive credits for \"guest passes.\"\n"
+    "- Add subtle orb tint per milestone tier for visual bragging rights.\n"
+)
 
 if __name__ == "__main__":
-    for rel, txt in DOCS.items():
-        write(rel, txt)
-    print(f"✅ Wrote {len(DOCS)} final gap-filling docs into {BASE}")
+    write("frontend/walk_summary_and_citymap.md", WALK_MAP)
+    write("systems/xp_system/milestone_unlocks.md", PRO_MILESTONES)
+    print("✅ Added Past Walk / Nolli Map and Pro XP Milestones docs to docs2/")

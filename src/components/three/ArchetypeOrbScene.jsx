@@ -102,15 +102,23 @@ function SmokeBillboards({ configs, maxCount = 400 }) {
       <shaderMaterial
         ref={materialRef}
         transparent
-        blending={THREE.AdditiveBlending}
+        // Use normal blending with depth test for layered volume feel
+        blending={THREE.NormalBlending}
         depthWrite={false}
-        depthTest={false}
+        depthTest={true}
         toneMapped={false}
-        uniforms={{ uOpacity: { value: 0.62 }, uSpriteScale: { value: 2.1 }, uTime: { value: 0 } }}
+        uniforms={{
+          uOpacity: { value: 0.6 },
+          uSpriteScale: { value: 2.3 },
+          uTime: { value: 0 },
+          uClipCenter: { value: new THREE.Vector3(0, 0, 0) },
+          uClipRadius: { value: 0.98 },
+        }}
         vertexShader={`
           uniform float uSpriteScale;
           varying vec2 vUv;
           varying vec3 vColor;
+          varying vec3 vWorldCenter;
 
           void main(){
             vUv = uv;
@@ -118,6 +126,7 @@ function SmokeBillboards({ configs, maxCount = 400 }) {
 
             // Instance center in world space
             vec4 worldCenter = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+            vWorldCenter = worldCenter.xyz;
 
             // Camera right/up vectors in world space
             vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
@@ -134,8 +143,11 @@ function SmokeBillboards({ configs, maxCount = 400 }) {
           precision highp float;
           uniform float uOpacity;
           uniform float uTime;
+          uniform vec3  uClipCenter;
+          uniform float uClipRadius;
           varying vec2 vUv;
           varying vec3 vColor;
+          varying vec3 vWorldCenter;
 
           // 2D value noise + fbm for wispy alpha
           float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
@@ -154,18 +166,25 @@ function SmokeBillboards({ configs, maxCount = 400 }) {
             return v;
           }
           void main(){
-            // radial alpha mask for a soft round sprite
+            // Clip near orb boundary to keep smoke inside the shell
+            float dWorld = length(vWorldCenter - uClipCenter);
+            float clipAlpha = smoothstep(uClipRadius, uClipRadius - 0.16, dWorld);
+
+            // Radial alpha mask for a soft round sprite
             vec2 uv = vUv - 0.5;
             float r = length(uv);
             float radial = smoothstep(0.52, 0.0, r);
+
             // Swirled fbm field in sprite space for filaments
             float theta = atan(uv.y, uv.x);
             vec2 flow = uv * 2.3;
             flow += 0.25 * vec2(cos(theta*3.0 + uTime*0.25), sin(theta*3.0 - uTime*0.22));
             float f = fbm(flow + vec2(uTime*0.08, -uTime*0.05));
             float wispy = smoothstep(0.35, 0.85, f);
-            float alpha = radial * wispy * uOpacity;
+
+            float alpha = radial * wispy * clipAlpha * uOpacity;
             if (alpha < 0.02) discard;
+
             vec3 col = vColor;
             if (length(col) < 0.001) { col = vec3(0.8, 0.8, 0.8); }
             gl_FragColor = vec4(col, alpha);
@@ -184,7 +203,8 @@ function OrbScene({ configs, quality = "high" }) {
     <group>
       <ambientLight intensity={0.6} />
       <hemisphereLight skyColor={"#fff"} groundColor={"#888"} intensity={0.7} />
-      <OrbDepthPrepass quality={quality} />
+      {/* Depth pre-pass disabled so smoke inside the orb isn't depth-killed */}
+      {/* <OrbDepthPrepass quality={quality} /> */}
       <SmokeBillboards configs={configs} maxCount={quality === "high" ? 900 : 240} />
       <OrbShell quality={quality} />
     </group>
