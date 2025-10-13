@@ -54,3 +54,28 @@ Output:
 - No XP decay in v1.
 
 > *Progress is curiosity catching up with memory.*
+
+
+# XP System Overview (Enhanced)
+
+## Summary
+XP in JINK is more than a counter — it’s the connective tissue linking curiosity, creation, and contribution. It tracks engagement across scanning, dérives, quests, and contributions, fueling both progression and creative unlocks. The system supports two tiers: **Free** and **Pro** users, both growing within the same loop but unlocking different layers of depth.
+
+## Design Philosophy
+1. **XP as curiosity index** — not power, but attention.
+2. **Progression without grind** — each action has aesthetic weight.
+3. **Pro users earn utility, not superiority** — more creative control, not higher stats.
+
+## Core XP Actions
+| Action | Base XP | Notes |
+|--------|----------|-------|
+| Building Scan | 25 | +bonus for novelty |
+| Dérive Completion | 40 | proportional to stops |
+| Quest Completion | 60 | dynamic based on rarity |
+| Contribution Verified | 40 | credibility-weighted |
+| Memory Added | 10 | per text or image |
+
+## Tiers
+- **Free Users:** progress visually through orb and passport; can earn stamps, quests, and personal dérives.
+- **Pro Users:** XP doubles as **creative capital** — unlocks access to AI-driven analysis, data layers, and expressive customization.
+

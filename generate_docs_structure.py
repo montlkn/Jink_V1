@@ -1,191 +1,152 @@
 import os
 
-BASE = "/Users/lucienmount/Arch_App_V2/architecture-app/docs/docs2"
+BASE = "/Users/lucienmount/Arch_App_V2/architecture-app/docs/docs2/systems/xp_system"
 
 DOCS = {
-    "systems/scanning/clip_pipeline.md": """# Scanning: CLIP Pipeline
+"overview.md": """# XP System Overview (Enhanced)
 
 ## Summary
-Outlines how JINK processes images through CLIP (Contrastive Language–Image Pretraining) to identify architectural features and match them to the database.
+XP in JINK is more than a counter — it’s the connective tissue linking curiosity, creation, and contribution. It tracks engagement across scanning, dérives, quests, and contributions, fueling both progression and creative unlocks. The system supports two tiers: **Free** and **Pro** users, both growing within the same loop but unlocking different layers of depth.
 
-## Pipeline
-1. Capture image → resize and normalize
-2. Send to remote CLIP inference API
-3. Receive 512-d embedding vector
-4. Compare with stored building vectors using cosine similarity
-5. Return top candidate (confidence ≥ 0.7)
+## Design Philosophy
+1. **XP as curiosity index** — not power, but attention.
+2. **Progression without grind** — each action has aesthetic weight.
+3. **Pro users earn utility, not superiority** — more creative control, not higher stats.
+
+## Core XP Actions
+| Action | Base XP | Notes |
+|--------|----------|-------|
+| Building Scan | 25 | +bonus for novelty |
+| Dérive Completion | 40 | proportional to stops |
+| Quest Completion | 60 | dynamic based on rarity |
+| Contribution Verified | 40 | credibility-weighted |
+| Memory Added | 10 | per text or image |
+
+## Tiers
+- **Free Users:** progress visually through orb and passport; can earn stamps, quests, and personal dérives.
+- **Pro Users:** XP doubles as **creative capital** — unlocks access to AI-driven analysis, data layers, and expressive customization.
+
+""",
+
+"xp_core_mechanics.md": """# XP Core Mechanics (Updated)
+
+## Summary
+XP accumulates linearly but affects different unlock layers depending on user type. It is tracked transactionally and reflected visually through orb animations, profile level, and creative rights.
+
+## XP Storage
+- xp_transactions table: immutable event ledger.
+- profiles.total_xp: rolling total for quick access.
+- profiles.level: discrete progression marker.
+
+## Level Thresholds
+Level_n = 200 * n^1.5 (same curve for both Free and Pro).
+Pro users gain expanded utility at each tier.
+
+| Level | Free Unlock | Pro Unlock |
+|-------|--------------|-------------|
+| 1 | Scan + Passport | Orb customization |
+| 2 | Personal dérive | Deep Dive Credit x1 |
+| 3 | Style Quests | Custom derive route |
+| 4 | Contribution rewards | Upload buildings |
+| 5 | Aesthetic stats | Create public quests |
+| 6 | Badge visualization | 3D orb modulation |
+| 7+ | Stability tuning | Full creative suite |
+
+""",
+
+"economy_tuning.md": """# XP Economy Tuning (Expanded)
+
+## Summary
+The XP economy is tuned for discovery, not addiction. It rewards consistent exploration but caps repetition. Pro users gain **XP efficiency multipliers** and access to parallel creative economies.
+
+## Economy Structure
+1. **Acquisition:** XP gained through scanning, quests, dérives, and contributions.
+2. **Transformation:** XP converted to creative tokens (Deep Dive Credits).
+3. **Consumption:** Credits used for AI-driven building analyses or enhanced dérives.
+
+## XP Multipliers
+| Condition | Free | Pro |
+|------------|------|------|
+| Standard Scan | 1.0x | 1.2x |
+| Verified Contribution | 1.0x | 1.4x |
+| Quest Completion | 1.0x | 1.3x |
+| Dérive Streak | 1.0x | 1.25x |
+
+## Deep Dive Credits
+Every 1000 XP grants 1 credit.
+- Credits unlock AI reports, stylistic insights, or generative visuals.
+- Unused credits roll over; no monetary conversion.
+
+## Anti-Grind Logic
+- XP gain rate capped at 10 events/minute.
+- Duplicate scans within cooldown yield reduced XP (0.3x).
+
+## Pacing Targets
+| Session Length | Avg XP | Intent |
+|----------------|---------|--------|
+| 10 min | 150–250 | micro walk |
+| 30 min | 400–600 | normal derive |
+| 60+ min | 800–1000 | city session |
+
+""",
+
+"pro_usage.md": """# XP Pro Usage System
+
+## Summary
+Pro users unlock practical creative powers as they progress. XP becomes both a proof of participation and a creative resource.
+
+## Core Advantages
+| Category | Description |
+|-----------|--------------|
+| Deep Dive Credits | Convert XP to AI-enhanced insights |
+| Custom Derives | Generate themed dérives or share routes |
+| Orb Customization | Color modulation, pattern, responsiveness |
+| Building Upload | Add new entries verified by peers |
+| Quest Authoring | Design small challenges or theme routes |
+| Contribution Multiplier | Verified data earns more XP |
 
 ## Notes
-- Image preprocessing: 224×224, mean/std normalization
-- Model: ViT-B/32 baseline, extendable to custom fine-tuned weights
-- Store embeddings in Supabase `buildings` table
+- All unlocks remain aesthetic or creative, never pay-to-win.
+- Pro features emphasize personal expression and contribution, not hierarchy.
 
-> *The eye sees, CLIP remembers.*
+> *XP measures curiosity; Pro turns it into authorship.*
+
 """,
 
-    "systems/scanning/gps_fov_logic.md": """# Scanning: GPS & Field of Vision Logic
+"creator_unlocks.md": """# XP Creator Unlocks
 
 ## Summary
-Defines how GPS, magnetometer, and gyroscope combine to produce a spatial filter for candidate buildings.
+Defines the progression ladder from passive explorer to active contributor. Unlocks are cumulative and remain even if subscription lapses (limited access).
 
-## Components
-- **GPS:** position (lat/lon)
-- **Compass:** heading angle
-- **FOV:** cone width (default 60°)
+## Unlocks
+| Tier | Requirement | Unlock |
+|------|--------------|--------|
+| 1 | Level 2 | Personal Derives |
+| 2 | Level 3 | Thematic Quests |
+| 3 | Level 4 | Building Submission |
+| 4 | Level 5 | Orb Modulation (visual expression) |
+| 5 | Level 6 | Public Quest Authoring |
+| 6 | Level 7 | Derive Series Creation |
+| 7 | Level 8 | Generative Map Overlays |
 
-## Algorithm
-1. Create a sector-shaped bounding region centered on user position.
-2. Query buildings within radius (e.g., 100m) from Supabase PostGIS.
-3. Filter buildings by heading alignment with cone angle.
-4. Pass candidates to CLIP pipeline.
+## Creator Ethics
+- All public contributions undergo peer moderation.
+- XP and credibility jointly determine creative trust.
 
-## Parameters
-- radius: 75–150m (adaptive to density)
-- cone angle: 50°–70° depending on device
-- refresh interval: 2s for scanning UI
-
-> *Space narrows the world into focus.*
-""",
-
-    "systems/scanning/xp_integration.md": """# Scanning: XP Integration
-
-## Summary
-Each scan event yields XP according to recognition confidence, novelty, and context (standalone or during derive).
-
-## XP Rules
-| Condition | XP | Notes |
-|------------|----|-------|
-| First-time scan | 25 | New stamp added |
-| Repeat scan | 5 | reinforcement bonus |
-| During derive | ×1.2 multiplier | context bonus |
-
-## Implementation
-- XP write handled via `/xp/update`
-- Transaction recorded in `xp_transactions`
-- Orb pulse triggered with color mapping to archetype drift
-
-> *Recognition becomes growth.*
-""",
-
-    "systems/scanning/orb_signals.md": """# Scanning: Orb Signals
-
-## Summary
-The orb translates system events into kinetic and chromatic responses. It acts as emotional feedback for scanning outcomes.
-
-## Input Signals
-| Event | Signal |
-|--------|---------|
-| Successful scan | Pulse scale ↑1.05, color → dominant archetype |
-| New stamp | Burst ripple + XP color accent |
-| XP gain | Glow intensity modulated by delta |
-| Profile drift | Subtle hue transition over 2s |
-
-## Implementation
-- Controlled via `orb/pulse` hook
-- Rendered with Three.js shaders in @react-three/fiber
-
-> *The orb is your second eye.*
-""",
-
-    "systems/xp_system/xp_core_mechanics.md": """# XP System: Core Mechanics
-
-## Summary
-Defines the underlying rules of XP gain, persistence, and synchronization.
-
-## XP Events
-- Building scans
-- Walk completions
-- Quest completions
-- Memory creations
-
-## Storage
-- Supabase `xp_transactions` (immutable ledger)
-- `profiles.total_xp` and `profiles.level` for quick reads
-
-## Sync
-XP updates emitted as real-time events to refresh UI instantly.
-
-> *Progress should always feel immediate.*
-""",
-
-    "systems/xp_system/leveling_curve.md": """# XP System: Leveling Curve
-
-## Summary
-Defines mathematical curve mapping XP to level progression.
-
-## Formula
-XP_required(level) = base * level^1.5
-
-Example (base = 200):
-| Level | XP | Cumulative |
-|--------|----|------------|
-| 1 | 0 | 0 |
-| 2 | 200 | 200 |
-| 3 | 600 | 800 |
-| 4 | 1200 | 2000 |
-| 5 | 2000 | 4000 |
-| 6 | 3200 | 7200 |
-
-## Notes
-- Early progression fast to encourage scanning
-- Linear boost plateaus to maintain curiosity
-
-> *Leveling is rhythm, not race.*
-""",
-
-    "systems/xp_system/transactions_and_rewards.md": """# XP System: Transactions & Rewards
-
-## Summary
-Tracks granular XP events and triggers related rewards or achievements.
-
-## Transaction Schema
-| Field | Description |
-|--------|-------------|
-| id | unique identifier |
-| user_id | player reference |
-| amount | XP gained |
-| reason | e.g. scan, quest, derive_complete |
-| source_id | related building, quest, or walk |
-| timestamp | ISO UTC |
-
-## Rewards
-- Level-up animation
-- New stamp unlock
-- Orb scale ripple
-- Achievement check
-
-> *Every entry a memory of discovery.*
-""",
-
-    "systems/xp_system/economy_tuning.md": """# XP System: Economy Tuning
-
-## Summary
-Defines how XP, time, and reward pacing balance to sustain long-term engagement.
-
-## Principles
-1. Keep 80% of XP accessible via scanning.
-2. Avoid exponential grind; prioritize steady curiosity.\n3. Weekly XP goal: 300–500 average for active users.
-4. Orb feedback tuned to prevent habituation.
-
-## Calibration Variables
-- Base XP: 25
-- Walk multiplier: 1.2
-- Quest multiplier: 2.0
-
-## Monitoring
-Use Supabase analytics to detect flattening engagement curves and rebalance.
-
-> *Good economies reward attention, not obsession.*
 """,
 }
 
-def write_docs(base: str, docs: dict):
-    for rel_path, content in docs.items():
-        full_path = os.path.join(base, rel_path)
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        with open(full_path, "w", encoding="utf-8") as f:
-            f.write(content)
-    print(f"✅ Wrote {len(docs)} missing documentation files to {base}")
+def append_or_create(base, docs):
+    os.makedirs(base, exist_ok=True)
+    for name, content in docs.items():
+        path = os.path.join(base, name)
+        if os.path.exists(path):
+            with open(path, "a", encoding="utf-8") as f:
+                f.write("\n\n" + content)
+        else:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+    print(f"✅ Appended or created {len(docs)} XP documentation files at {base}")
 
 if __name__ == "__main__":
-    write_docs(BASE, DOCS)
+    append_or_create(BASE, DOCS)
