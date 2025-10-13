@@ -2,374 +2,323 @@ import os
 
 BASE = "/Users/lucienmount/Arch_App_V2/architecture-app/docs/docs2"
 
-# ---------- helpers ----------
-def ensure_dir(path: str):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-
-def write_new(rel_path: str, content: str):
-    path = os.path.join(BASE, rel_path)
-    ensure_dir(path)
-    with open(path, "w", encoding="utf-8") as f:
+def write(path, content):
+    full = os.path.join(BASE, path)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    with open(full, "w", encoding="utf-8") as f:
         f.write(content)
 
-def append_section(rel_path: str, content: str):
-    path = os.path.join(BASE, rel_path)
-    ensure_dir(path)
-    mode = "a" if os.path.exists(path) else "w"
-    with open(path, mode, encoding="utf-8") as f:
-        f.write("\n\n" + content)
+DOCS = {
+# ---------- SECURITY / RISK ----------
+"security/threat_model.md": """# Threat Model (v1)
 
-# ---------- new, missing docs (full files) ----------
-NEW_DOCS = {
-"backend/api_endpoints.md": """# Backend API Endpoints (v1)
+## Scope
+Mobile client, edge functions, Supabase (RLS), vector store, 3P AI services.
 
-## Summary
-Canonical contract for mobile↔edge↔db. Request/response envelopes are stable; add fields with backwards-compatible defaults.
+## Assets
+- PII-lite: email, coarse location buckets, user-generated memories.
+- Sensitive-ish: raw photos (if user opts in), contribution text before moderation.
+- Secrets: API keys (edge only), service-role keys (never on client).
 
-## Endpoints
-### POST /scan/identify
-- Body: { image_base64, gps:{lat,lng,hdop}, heading, pitch }
-- Returns: { building_id, confidence, style_vector[9], xp_delta, profile_delta, stamp_issued:bool }
-- SLAs: p95 ≤ 900 ms
+## Actors
+- Honest but curious user
+- Over-eager scraper
+- Malicious spammer
+- Compromised device
 
-### POST /xp/update
-- Body: { user_id, amount, reason, source_id? }
-- Returns: { total_xp, level, orb_pulse:{scale,hue,energy} }
+## Risks & Mitigations
+| Risk | Vector | Mitigation |
+|------|--------|------------|
+| API scraping | unauth GET search | rate limits per IP+user, cache, require auth for heavy endpoints |
+| Location leakage | raw lat/lng in analytics | tile buckets; never log raw lat/lng |
+| Spam contributions | scripted posts | per-user rate limit, similarity checks, quarantine low-cred |
+| Token theft | jailbroken device | short token TTL, refresh flow, device-bound salts |
+| Key exfiltration | client bundle | no secrets in app, edge-only keys, rotate quarterly |
 
-### POST /route/derive
-- Body: { user_id, start_geo, duration_minutes, mode: "personal"|"random" }
-- Returns: { stops:[{building_id,eta_m}], route_polyline, rationale }
+## RLS Must-haves
+Self-only reads for scans/xp/entries; public buildings read-only; contributions read if verified or own.
 
-### POST /quests/generate
-- Body: { user_id }
-- Returns: { quests:[{id,name,type,reward,expires_at}] }
-
-### POST /contributions/submit
-- Body: { building_id, text, media_urls?, sources?[] }
-- Returns: { contribution_id, credibility_init, xp_delta }
-
-### POST /contributions/verify
-- Body: { contribution_id, vote:+1|-1 }
-- Returns: { credibility, status }
-
-### GET /entitlements/refresh
-- Returns: { plan:"Free"|"Pro", entitlements:{...}, credits:{deep_dive:int} }
-
-### GET /search/buildings
-- Query: q, lat?, lng?, limit?
-- Returns: { results:[{building_id, reason, score, distance_m?}] }
-
-### GET /search/autocomplete
-- Query: q
-- Returns: { suggestions:[{text, type}] }
-
-## Errors
-- { error_code, message, hint? }  See error_states.md for UI.
+## Incident Flow
+Detect → Triage (severity) → Contain (revoke keys, disable endpoints) → Postmortem (blameless, 48h).
 """,
 
-"meta/implementation_checklist.md": """# Implementation Readiness Checklist
+"backend/rate_limits.md": """# Rate Limits (v1)
 
-## Mobile (Client)
-- [ ] Camera pipeline calls /scan/identify with debounce
-- [ ] Offline queue for scans, derives, contributions
-- [ ] Orb FSM wired (idle→press→processing→resolve)
-- [ ] XP store and transaction toasts
-- [ ] Passport: stamps list, detail, memory composer
-- [ ] Derive: setup, live step UI, summary sheet
-- [ ] Search modal: autocomplete + results + handoff
+## Policy
+- Identify users by auth uid and coarse IP hash.
+- Return 429 with Retry-After; never hard drop.
 
-## Backend (Edge/Supabase)
-- [ ] RLS policies enforced (see auth_permissions.md)
-- [ ] All endpoints from api_endpoints.md implemented
-- [ ] Vector + FTS indexes created (search_indexing.md)
-- [ ] Subscriptions webhooks wired; entitlements cached
-- [ ] Event bus topics broadcast + consumed
-- [ ] Analytics events emitted with privacy guard
+## Limits
+| Endpoint | Free | Pro | Window |
+|----------|------|-----|--------|
+| /scan/identify | 30/min | 60/min | 60s |
+| /search/buildings | 60/min | 120/min | 60s |
+| /quests/generate | 10/day | 30/day | 24h |
+| /contributions/submit | 3/hour | 6/hour | 60m |
 
-## Tooling
-- [ ] CI pipeline (testing_implementation.md)
-- [ ] Sentry DSN + release tags
-- [ ] Feature flags for exa.ai fallback and orb shaders
-
-## Launch
-- [ ] .env templates committed
-- [ ] App store privacy answers drafted (privacy_data_policy.md)
-- [ ] Crash-free session and scan-success KPIs monitored
+## Implementation
+- Edge middleware counter (Redis or Postgres advisory locks)
+- Token bucket with leaky refill; attach headers: X-RateLimit-*
 """,
 
-"meta/performance_budgets.md": """# Performance Budgets
+"backend/cost_controls.md": """# Cost Controls (AI + Vector + Egress)
 
-## App
-- Cold start: ≤ 2.5s (dev), ≤ 1.5s (release)
-- First interactive: ≤ 1.2s after splash
-- Memory steady-state: ≤ 300 MB typical
+## AI
+- Exa/LLM calls gated behind feature flags; batched for nightly enrichment.
+- Per-user monthly ceiling, per-session ceiling; degrade to cached summaries.
 
-## Camera/Scan
-- Preview FPS: ≥ 28 on mid devices
-- Scan p95: ≤ 900 ms, timeout 2.5s with graceful UI
-- GC spikes: < 8 ms during capture
+## Vector
+- Batch re-embeds at off-peak; ivfflat lists=100; cap k=20 on searches.
 
-## Map/Derive
-- Map interaction latency: < 16 ms
-- Route generation p95: ≤ 1.2s
+## Maps/Tile Egress
+- Tile cache (512 squarish) with 7d TTL; limit high-zoom fetching.
 
-## Rendering
-- One live shader scene at a time
-- Avoid more than 2 concurrent animated props per node
+## Alerts
+- Budgets per service; Slack alert at 70/90/100%.
 """,
 
-"meta/privacy_data_policy.md": """# Privacy & Data Policy (Product Spec)
+# ---------- DATA DEFINITIONS / ENV ----------
+"backend/data_dictionary.md": """# Data Dictionary (compact v1)
 
-## Principles
-- Collect the least; protect the most.
-- User control: export + delete.
-- Anonymize location aggressively.
+## profiles
+- user_id (uuid, pk)
+- archetype_vector (jsonb[9 floats])
+- total_xp (int)
+- level (int)
+- confidence (float 0..1)
+- plan (text: Free|Pro)
+- updated_at (timestamptz)
 
-## Data Handling
-- GPS rounding to 3-decimal degrees for analytics (≈110m)
-- No raw images stored by default; keep only fingerprint/embedding unless user opts into library
-- Contributions are public after verification; redact PII
+## scans
+- id (uuid, pk)
+- user_id (uuid)
+- building_id (int)
+- confidence (float)
+- gps (geog point)
+- heading (float deg)
+- created_at (timestamptz)
 
-## Rights
-- Export: email link with JSON/CSV bundles
-- Delete: 7-day grace, then full purge (soft delete window for undo)
+## buildings
+- id (int, pk)
+- name (text)
+- coords (geog point)
+- style_vector (vector(512) + jsonb[9])
+- metadata (jsonb)
+- model_id (text)
+- updated_at (timestamptz)
 
-## Retention
-- XP ledger: indefinitely (pseudonymized)
-- Analytics events: 12 months rolling
-- Crash logs: 30 days
+## xp_transactions
+- id (uuid)
+- user_id (uuid)
+- amount (int)
+- reason (text)
+- source_id (uuid|int|null)
+- created_at (timestamptz)
+
+## passport_entries
+- id (uuid)
+- user_id (uuid)
+- building_id (int)
+- acquired_at (timestamptz)
+- source (text: scan|derive|quest)
+
+## contributions
+- id (uuid)
+- user_id (uuid)
+- building_id (int)
+- text (text)
+- media_urls (text[])
+- sources (text[])
+- credibility (float)
+- status (text: submitted|verified|rejected)
+- created_at (timestamptz)
 """,
 
-"frontend/accessibility.md": """# Accessibility Guidelines
+"backend/env_config.md": """# Environment & Config
 
-## Touch
-- Targets ≥ 44×44 dp
-- Gestures supplemented with buttons
-- Haptics optional; respect device disabled state
+## Files
+- .env.development – local dev
+- .env.preview – staging
+- .env.production – prod
 
-## Text & Contrast
-- Dynamic type supported on all content
-- Min contrast 4.5:1 for interactive text
+## Keys
+- SUPABASE_URL, SUPABASE_ANON_KEY (client)
+- SUPABASE_SERVICE_ROLE (edge only)
+- EXA_API_KEY (edge)
+- MAPS_TOKEN (client ok)
+- SENTRY_DSN (client + edge)
 
-## VoiceOver
-- Orb states have spoken labels: “Ready,” “Scanning,” “Matched: {name},” “Try again”
-- Focus order: content-first, chrome second
-
-## Motion Sensitivity
-- Reduce motion flag collapses transitions to fades; disables parallax
+## Flags
+- FEATURE_SEMANTIC_SEARCH
+- FEATURE_ORB_SHADER_HEAVY
+- FEATURE_PRO_MULTIPLIERS
+- PROVIDER_EMBEDDINGS = clip|open-clip|local
 """,
 
-"frontend/ar_overlay_confirm.md": """# AR Overlay Confirmation
+"backend/seeding_content_pipeline.md": """# Seeding & Content Pipeline
 
-## Summary
-When user reaches a stop, show a subtle AR frame that snaps when the correct facade aligns.
+## Input
+- CSV: buildings (id,name,lat,lng,year,style tags)
+- Assets: stamps (SVG/PNG), copy blocks
+- Curator notes
 
-## Behavior
-- Edge detection + horizon check; tolerance ±8°
-- When match plausible, outline highlights and capture prompt shows
-- If mismatch persists: show “Step back 2m” hint with arrow
+## Steps
+1) Validate CSV schema
+2) Geocode sanity check and dedupe
+3) Embed images → vector column
+4) Generate short summaries (batch)
+5) Stamp art mapping table
+6) QA list; push to staging; spot-check derives
+7) Promote to prod with version tag
 
-## Performance
-- Run at 15 Hz; throttle to 8 Hz on low battery
-- Disable on older devices; fall back to 2D overlay
+## Rollback
+Keep last 2 seeds; revert by version id.
 """,
 
-"backend/ai_prompts_enrichment.md": """# AI Enrichment Prompts (exa + LLM)
+# ---------- OPS ----------
+"ops/release_process.md": """# Release Process
 
-## Building Card Enrichment
-- Input: name, year, architect, style, 2–3 facts, city district
-- Prompt goals: 3-sentence summary, one quirky detail, one cross-link
-- Guardrails: no speculation; cite if confidence < 0.6
+## Branching
+- main protected, release/* branches, hotfix/* for critical regressions.
 
-## Deep Dive Report (Pro)
-- Sections: Origins, Materials, Context, Anecdotes, Nearby Related
-- Style: calm, precise, concrete examples
-- Length: 300–500 words, bulleted where helpful
+## Train
+- Weekly release train; feature flags for risky modules.
 
-## Safety
-- Never fabricate dates; prefer “unknown”
-- Strip PII from contributions before summarizing
+## Build
+- Bump version; tag; build artifacts; store in releases/
+- Generate changelog from PR titles
+
+## Approvals
+- Design and QA sign-off gates
+
+## Post-Release
+- Monitor KPIs for 24h; fast rollback if p95 scan latency > 1.5s or crash-free < 98.5%
 """,
 
-"backend/search_eval.md": """# Search Relevance Evaluation Plan
+"ops/rollback_plan.md": """# Rollback Plan
 
-## Metrics
-- NDCG@5, Recall@10 on a labeled set of 300 queries
-- Click-through rate on top suggestion
-- Time-to-first-correct (TTFC)
+## Triggers
+- Crash-free sessions < 98.5%
+- Scan p95 > 1.5s for 30m
+- RLS misconfig impacts write paths
 
-## Offline Set
-- 200 direct-name queries (exact + fuzzy)
-- 100 descriptive queries (e.g., “brick art deco corner tower”)
+## Steps
+1) Flip feature flags off (heavy shaders, semantic search)
+2) Revert to previous app build on stores (phased)
+3) Database rollback of last migration (if schema change)
+4) Announce in-app banner if user-visible
 
-## Experiment Toggles
-- fts_weight_name, fts_weight_alt, vec_weight, distance_decay
-- exa_backfill_threshold
-
-## Procedure
-- Nightly job: run fixed query set; log metrics
-- Weekly auto-report; flag regressions > 5%
-""",
-}
-
-# ---------- expansions: append addendums to existing docs ----------
-ADDENDUMS = {
-"frontend/orb_camera_ui.md": """## Implementation Addendum v1.1 (Oct 2025)
-
-### Finite State Machine
-| State | Enter From | Exit To | Guard | Side Effects |
-|------|------------|---------|-------|--------------|
-| ORB_IDLE | — | ORB_PRESS | onPress | startBreath() |
-| ORB_PRESS | ORB_IDLE | ORB_PROCESSING | onRelease | capture(), hapticTap() |
-| ORB_PROCESSING | ORB_PRESS | ORB_SUCCESS/ORB_FAIL | scanDone | swirl(), setPulse(rate) |
-| ORB_SUCCESS | ORB_PROCESSING | ORB_IDLE | after 300ms | ripple(), setHue(target) |
-| ORB_FAIL | ORB_PROCESSING | ORB_IDLE | after 240ms | shakeSmall(), showRetry() |
-
-### Gesture Tolerances
-- Debounce: 350 ms after capture
-- Move threshold: 12 dp before cancel
-- Multi-touch cancels capture
-
-### Accessibility
-- Long-press alternative menu: “Scan,” “Import,” “Help”
-- VoiceOver reads scan confidence as “Likely, Possible, Uncertain”
-
-### Telemetry (per scan)
-- { t_start, p95_estimate, device_perf_bucket, shader_fallback:bool }
+## Postmortem
+48h blameless write-up; action items with owners and due dates.
 """,
 
-"systems/aesthetic_profile/affinity_engine.md": """## Implementation Addendum v1.1 (Oct 2025)
+"ops/observability.md": """# Observability (Logs, Metrics, Traces)
 
-### Explicit Math
-Let V_raw ∈ R^9, V_norm = softmax(V_raw/τ).
-Given action a with normalized style S, learning rate α:
-1) d = α · S
-2) d' = d + A·d − O·d    where A is affinity matrix (sym), O is opposition matrix (diag or sparse)
-3) V_raw = (1−β)·V_raw + β·(V_raw + d')
-4) V_norm = softmax(V_raw/τ), τ = clamp(1−c·0.2, 0.8, 1.2)
+## Client
+- Sentry: crashes, breadcrumbs, release tags
+- Custom: scan timings, derive timings, GPU fallback events
 
-### Surprise
-If V_norm[i] < τ_u and S[i] > 0: V_raw[i] += ε, ε=0.02 decays with weekly diversity.
+## Edge
+- Structured logs (json): request_id, endpoint, latency_ms, err
+- Metrics: p50/p95 latency, RPS, error rate
+- Traces: scan pipeline spans: prefilter → clip → write
 
-### Pseudocode
-update(V_raw, S, a, ctx):
-    α = base_alpha * w_action[a] * w_ctx(ctx)
-    d = α * normalize(S)
-    d_coupled = d + A@d - O@d
-    β = clamp(α*0.6, 0.05, 0.35)
-    V_raw = (1-β)*V_raw + β*(V_raw + d_coupled)
-    apply_surprise(V_raw, V_norm, S)
-    V_norm = softmax(V_raw/τ(c))
-    c = update_confidence(c, S, V_norm)
-    return V_raw, V_norm, c
-
-### Versioning
-- Store model_id and params hash per update for reproducibility.
+## Dashboards
+- Red routes: scan, derive, search
+- Error budget burn-down per endpoint
 """,
 
-"systems/contribution_logic.md": """## Implementation Addendum v1.1 (Oct 2025)
+"ops/slo_error_budgets.md": """# SLOs & Error Budgets
 
-### Roles
-- Contributor, Peer, Verifier (staff/curator)
-- Verifier actions service-role only
+## SLOs
+- Scan success ≥ 95%
+- Scan p95 ≤ 900 ms
+- Derive p95 ≤ 1.2 s
+- Crash-free sessions ≥ 99.2%
 
-### Anti-spam
-- Rate limit: 3 submissions/hour/user
-- Similarity check (Levenshtein) against recent submissions
-- Auto-quarantine low-cred accounts with bursty posts
+## Budgets
+- Monthly 2.5% error budget per SLO
+- Freeze risky deploys when burn rate > 2x
 
-### State Machine
-draft → submitted → under_review → verified | rejected
-SLA: first review < 24h; auto-nudge peers at 12h.
-
-### Exposure
-- Unverified shows as “Community Note” collapsed by default.
+## Reviews
+- Weekly SLO check-in; rollback or invest based on burn
 """,
 
-"backend/auth_permissions.md": """## RLS Policy Examples (SQL Sketch)
+"ops/feature_flags_ab_testing.md": """# Feature Flags & A/B Testing
 
--- profiles: self-read/write subset
-create policy sel_profiles_self on profiles for select
-  using (user_id = auth.uid());
+## Flags
+- Boolean gates for risky modules; stickiness by user_id
+- Remote config via signed JSON endpoint
 
-create policy upd_profiles_self on profiles for update
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
-
--- scans: insert by owner, read own
-create policy ins_scans_self on scans for insert
-  with check (user_id = auth.uid());
-
-create policy sel_scans_self on scans for select
-  using (user_id = auth.uid());
+## Experiments
+- Small, time-bounded, pre-registered hypothesis
+- Metrics: TTFC, scan_success, session length, DAU retention proxy
 """,
 
-"backend/subscriptions.md": """## Webhooks & Entitlements Addendum
+# ---------- FRONTEND UX SUPPORT ----------
+"frontend/i18n.md": """# Internationalization (i18n) & Locale
 
-### Webhooks
-- /webhooks/stripe
-  - events: checkout.session.completed, invoice.payment_succeeded, customer.subscription.deleted
-  - action: upsert subscriptions row, recompute entitlements
+## Strategy
+- One code path; string keys only; no concatenated sentences.
 
-### Entitlement Map (Pro)
-- deep_dive_credits: +1 / 1000 XP
-- xp_multipliers: { scan:1.2, derive:1.25, quest:1.3, contrib:1.4 }
-- create_public_quests: true
-- orb_modulation: true
+## Files
+- /i18n/en.json initial; later add fr/es/ja
+
+## Dates/Numbers
+- Use Intl APIs; 24h clocks by locale; metric/imperial toggles.
+
+## RTL
+- Audit all screens for RTL mirroring; avoid directional icons hard-coded.
 """,
 
-"backend/search_indexing.md": """## DDL & Rebuild
+# ---------- PRODUCT / LEGAL ----------
+"product/content_policy.md": """# User Content Policy (Draft)
 
-### FTS
-CREATE INDEX idx_buildings_fts ON buildings
-USING GIN (to_tsvector('simple', coalesce(name,'') || ' ' || coalesce(alt_names,'') || ' ' || coalesce(neighborhood,'')));
+## Allowed
+- Building photos, style notes, historical facts with sources.
 
-### Vectors
-ALTER TABLE buildings ADD COLUMN IF NOT EXISTS emb vector(512);
-CREATE INDEX IF NOT EXISTS idx_buildings_emb ON buildings USING ivfflat (emb vector_cosine_ops) WITH (lists = 100);
+## Disallowed
+- Faces/license plates (blur or abstain), private residences interior shots, hate/harassment, spam.
 
-### Rebuild Procedure
-1) Backfill emb for new/updated rows
-2) ANALYZE buildings
-3) Verify recall with nightly search_eval
+## Moderation
+- Auto-filters: profanity list; image detection for faces/plates if feasible
+- Peer verification; staff override
+- Escalation SLA < 48h
 """,
 
-"backend/analytics_events.md": """## Event Catalog v1.1
+"product/app_store_checklist.md": """# App Store Submission Checklist
 
-### scan_success
-- payload: { building_id, confidence, hdop, latency_ms, source:"camera"|"gallery" }
+## Privacy & Permissions
+- Camera usage description: “Identify buildings and create stamps”
+- Location usage: “Improve recognition and derive routes”
+- Data collection summary matches privacy_data_policy.md
 
-### xp_gain
-- payload: { amount, reason, source_id?, total_xp }
+## Assets
+- Screenshots: Home, Camera (orb), Result, Derive, Passport
+- App icon & splash with brand consistency
 
-### derive_finish
-- payload: { stops:int, duration_m, route_len_km }
+## Accounts
+- Test account: Free
+- Test account: Pro with sample entitlements
 
-### privacy_guard
-- coarse_geo tile id, no raw lat/lng
-- user_id hashed with stable salt
+## Review Notes
+- Explain offline mode behavior and limited functionality
 """,
 
-"frontend/error_states.md": """## State Mappings v1.1
+"legal/licenses_attribution.md": """# Licenses & Attribution
 
-| error_code | Banner | Primary Action | Secondary |
-|------------|--------|----------------|-----------|
-| CAMERA_PERMISSION_DENIED | Camera access needed | Open Settings | Demo Mode |
-| LOCATION_PERMISSION_DENIED | Location helps recognition | Enable | Proceed anyway |
-| SCAN_CONFIDENCE_LOW | Not sure yet | Pick from matches | Retry |
-| NETWORK_OFFLINE | You’re offline | Save for later | Learn more |
+## Third-party
+- CLIP model license summary
+- Map tiles provider attribution rules
+- Fonts and icon sets licenses
+- Datasets (if any) and their terms
+
+## Notices
+- Include at Settings → About → Licenses
 """,
 }
-
-# ---------- run ----------
-def main():
-    # new docs
-    for rel, txt in NEW_DOCS.items():
-        write_new(rel, txt)
-    # addendums
-    for rel, txt in ADDENDUMS.items():
-        append_section(rel, txt)
-    print(f"✅ Wrote {len(NEW_DOCS)} new docs and appended {len(ADDENDUMS)} addendums into {BASE}")
 
 if __name__ == "__main__":
-    main()
+    for rel, txt in DOCS.items():
+        write(rel, txt)
+    print(f"✅ Wrote {len(DOCS)} final gap-filling docs into {BASE}")
