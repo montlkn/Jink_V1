@@ -4,9 +4,18 @@
   Its only job is to render the main navigator.
 */
 import React from "react";
+// Minimal RAF polyfill for R3F on devices that throttle rAF in RN
+if (typeof global !== 'undefined') {
+  if (!global.performance) global.performance = { now: Date.now };
+  if (!global.requestAnimationFrame) {
+    global.requestAnimationFrame = (cb) => setTimeout(() => cb(global.performance.now()), 16);
+  }
+  if (!global.cancelAnimationFrame) {
+    global.cancelAnimationFrame = (id) => clearTimeout(id);
+  }
+}
 import { AuthProvider } from "./src/auth/authProvider";
 import AppNavigator from "./src/navigation/AppNavigator";
-import { installExpoGLGuards } from "./src/utils/expoGLGuards";
 // This is our global color and theme configuration
 
 const AppTheme = {
@@ -20,8 +29,6 @@ const AppTheme = {
     notification: "rgb(255, 69, 58)",
   },
 };
-
-installExpoGLGuards({ verbose: __DEV__ });
 
 export default function App() {
   return (

@@ -24,7 +24,8 @@
       "bundleIdentifier": "com.lucienmount.architectureapp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "appleTeamId": "5JRD794HZ9"
     },
     "android": {
       "permissions": [

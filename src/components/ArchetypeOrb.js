@@ -1,17 +1,10 @@
-import React from 'react'
-import { Pressable } from 'react-native'
-import ArchetypeOrbR3F from './three/ArchetypeOrbR3F'
+import React from 'react';
+import ArchetypeOrbR3F from './three/ArchetypeOrbR3F';
+import ArchetypeOrbScene from './three/ArchetypeOrbScene';
 
-export default function ArchetypeOrb({ onPress, style, ...rest }) {
-  const orb = <ArchetypeOrbR3F {...rest} style={style} />
-
-  if (!onPress) {
-    return orb
+export default function ArchetypeOrb({ mode = 'clouds', style, ...rest }) {
+  if (mode === 'shader') {
+    return <ArchetypeOrbR3F {...rest} style={style} />;
   }
-
-  return (
-    <Pressable onPress={onPress} hitSlop={12}>
-      {orb}
-    </Pressable>
-  )
+  return <ArchetypeOrbScene {...rest} style={style} />;
 }

@@ -1,16 +1,16 @@
 // Centralized archetype color mapping derived from services
 
 export const ARCHETYPE_COLORS = {
-  Classicist: '#8B4513',
+  Classicist: '#FF0000',
   Romantic: '#8B008B',
   Stylist: '#FFD700',
   Modernist: '#2F4F4F',
-  Industrialist: '#A0522D',
+  Industrialist: '#008080',
   Visionary: '#FF6347',
   'Pop Culturalist': '#FF69B4',
   Vernacularist: '#228B22',
   Austerist: '#696969',
-  Infrastructuralist: '#4682B4',
+  Infrastructuralist: '#008091',
   Naturalist: '#8FBC8F',
 };
 

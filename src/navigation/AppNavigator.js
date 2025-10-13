@@ -12,6 +12,7 @@ import BuildingInfoScreen from "../screens/Scan/BuildingInfoScreen";
 import NotFoundScreen from "../screens/Scan/NotFoundScreen";
 import { userNeedsOnboarding } from "../api/quizApi";
 import BottomTabNavigator from "./BottomTabNavigator";
+// Test screens removed
 
 const Stack = createNativeStackNavigator();
 
@@ -117,6 +118,9 @@ export default function AppNavigator() {
               component={NotFoundScreen}
               options={{ headerShown: true, title: "Scan Result" }}
             />
+            
+            
+            
           </>
         )}
       </Stack.Navigator>

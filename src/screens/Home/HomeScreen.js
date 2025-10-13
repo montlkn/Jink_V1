@@ -6,8 +6,11 @@ import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
+import { useAuth } from '../../auth/authProvider';
+import { getUserAestheticProfile } from '../../api/quizApi';
 
 const HomeScreen = ({ navigation }) => {
+  const { session } = useAuth();
   const [selectedQuest, setSelectedQuest] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [dailyTimeRemaining, setDailyTimeRemaining] = useState('');
@@ -18,11 +21,39 @@ const HomeScreen = ({ navigation }) => {
   const [userXP, setUserXP] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [xpForNextLevel, setXpForNextLevel] = useState(100);
+  const [archetypeData, setArchetypeData] = useState(null);
 
   // Load quests from Supabase
   useEffect(() => {
     loadQuests();
   }, []);
+
+  // Load user's aesthetic profile and prepare orb data
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!session?.user?.id) {
+        setArchetypeData(null);
+        return;
+      }
+      try {
+        const profile = await getUserAestheticProfile(session.user.id);
+        if (profile?.archetype_scores) {
+          // Transform map -> array for orb util
+          const arr = Object.entries(profile.archetype_scores).map(([key, score]) => ({
+            name: key, // util maps ids to display names/colors
+            score: typeof score === 'number' ? score : 0,
+          }));
+          setArchetypeData(arr);
+        } else {
+          setArchetypeData(null);
+        }
+      } catch (e) {
+        console.warn('Home: failed to load aesthetic profile', e);
+        setArchetypeData(null);
+      }
+    };
+    loadProfile();
+  }, [session?.user?.id]);
 
   const loadQuests = async () => {
     setLoading(true);
@@ -112,7 +143,7 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} removeClippedSubviews={false}>
         <View style={styles.homeContainer}>
 
           {/* Aesthetic Profile Section */}
@@ -120,6 +151,7 @@ const HomeScreen = ({ navigation }) => {
             <AestheticProfile
               navigation={navigation}
               onNavigate={() => navigation.navigate('ProfileDetail')}
+              archetypeData={archetypeData}
             />
           </View>
           

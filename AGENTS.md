@@ -1,19 +1,36 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-App code lives in `src/`, grouped by feature (`navigation`, `screens`, `components`, `state`) so changes stay localized. API wrappers in `src/api` own all Supabase and HTTP calls; keep new network logic there. Shared styles and tokens sit under `src/config` and `src/constants`. Platform shells remain in `ios/` and `android/`, static media in `assets/`, and supporting docs in `docs/`. Utility scripts, including the cache reset helper, belong in `scripts/`.
+- Source lives in `src/` organized by feature: `components/`, `screens/`, `navigation/`, `api/`, `utils/`, `state/`, `services/`, `config/`, `constants/`.
+- Native shells: `ios/`, `android/`; assets: `assets/`; documentation: `docs/` (see `docs/ArchetypeOrb_Plan.md`).
+- Three/R3F code: `src/components/three/`; Supabase access: `src/api/` and `src/services/`.
+- Mobile app native never to use web components
 
 ## Build, Test, and Development Commands
-Use `npm run start` for the Expo dev client and QR code workflow. Platform builds run via `npm run ios`, `npm run android`, and the browser preview with `npm run web`. When caches drift, execute `npm run reset-project` to call `scripts/reset-project.js` (clears Expo, Metro, and node_modules). Keep code quality in check with `npm run lint`, which applies Expo’s ESLint preset for React Native + TypeScript.
+- `npm run start` — Start Expo (Dev Client).  
+- `npm run ios` / `npm run android` — Run on simulator/device.  
+- `npm run web` — Web preview (for debugging only; app is mobile-first).  
+- `npm run lint` — Lint using Expo ESLint config.  
+- `npm run reset-project` — Clean caches via `scripts/reset-project.js` (fixes Metro/Expo drift).
 
 ## Coding Style & Naming Conventions
-Follow two-space indentation and double quotes, matching files like `src/navigation/AppNavigator.js`. Components and screens use PascalCase, hooks and utilities use camelCase, and constants reserve SCREAMING_SNAKE_CASE. Prefer TypeScript for new modules where practical (`auth/` already uses `.tsx`); otherwise annotate complex JS with JSDoc for editor support. Import paths should stay relative to the feature folder to avoid Metro resolution issues. Run linting before every push.
+- Indentation: 2 spaces; strings: double quotes; trailing commas where allowed.
+- Components/screens: PascalCase (`HomeScreen.tsx`), hooks/utils: camelCase, constants: SCREAMING_SNAKE_CASE.
+- Use TypeScript for new modules when feasible; otherwise JSDoc complex JS.
+- React Three on native: import `@react-three/fiber/native` and `@react-three/drei/native`. Keep a single `three` instance (avoid multiple versions). No web-only APIs.
+- Modular, not over engineered, simplest solutions
+- Senior dev though patterns
 
 ## Testing Guidelines
-No automated suite exists yet; add Jest unit tests under `src/__tests__/` or alongside features using a `.test.ts` suffix. Mock Supabase interactions to keep tests offline and deterministic. For UI flows, document manual steps in PRs (e.g., “Start derive flow → finish onboarding → confirm BottomTabNavigator renders profile”). Design new modules with injectable dependencies to simplify future E2E coverage.
+- Jest is not yet configured. If adding tests, place them alongside code with `.test.ts(x)` and mock Supabase calls.
+- Manual checks for rendering changes: open Home → verify Archetype Orb animates and reflects Supabase profile data (top 3 archetypes). See `docs/ArchetypeOrb_Plan.md` for expected visuals/behavior.
 
 ## Commit & Pull Request Guidelines
-Git history shows short status messages; tighten them into imperative, present-tense subject lines (`Add onboarding poll`, `Fix derive timer`). Group related work per commit and mention issue IDs when relevant. PRs should include a concise summary, screenshots or recordings for UI changes, lint/test evidence, and links to Supabase schema updates if touched. Flag breaking changes in the title and request review from the platform owner before merge.
+- Commits: imperative, present tense, short scope-first subjects (e.g., `Fix orb render loop on iOS`).
+- PRs must include: purpose, before/after screenshots (UI), steps to validate, linked issues, and any Supabase schema/doc changes.
+- If touching orb code, reference `docs/ArchetypeOrb_Plan.md` and note device(s) tested.
 
-## Environment & Configuration
-Keep secrets in `.env` as documented in the README; never commit them. When adding config keys, note them in `docs/` and the PR checklist. After editing environment values, run `npm run reset-project` so Expo reloads the updated configuration.
+## Security & Configuration
+- Never commit secrets. Store keys in `.env` (see `README.md`); after changes run `npm run reset-project`.
+- Supabase: use service functions in `src/api/`/`src/services/`—do not query inside components.
+- Mobile only: avoid introducing web-specific code paths; prefer native-safe R3F/Drei primitives.
