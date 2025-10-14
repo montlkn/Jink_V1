@@ -14,17 +14,20 @@ A React Native mobile application designed to help users explore architectural l
 
 ### 🏠 **Home Screen**
 
-* Personalized greeting based on user mood & time of day
-* Quick-start button for new Dérive (architectural walk)
-* Display of recent and favorite architectural styles
+* Orb animation shown 
+* Quick-start button for new Jink (architectural walk)
+* Daily / Weekly Quest 
 * Featured landmarks with cultural notes and 3D visual previews
 
-### 🧭 **Dérive (Walk Experience)**
+### 🧭 **Jink (Walk Experience)**
 
 * Customizable walk duration (5–120 minutes)
+* Paid or free walks
 * **Personalized Dérive** – guided by the user's **Aura Profile** aesthetic data
-* Optional audio guidance with architectural commentary (Later to come)
-* Progress visualization and mood journaling
+* Optional audio guidance with architectural commentary (much later to come)
+* Can share lists as derives -- kind of like listening to someone elses playlist, user can choose a persoanlised walk or a "playlist walk"
+* Progress visualization
+* After walk summaries
 
 ### 📷 **Scan & Identify**
 
@@ -32,6 +35,7 @@ A React Native mobile application designed to help users explore architectural l
 * Historical and stylistic metadata returned instantly
 * User contributions enhance community database
 * Offline caching of common landmarks for low-data scenarios
+* Filters personalised information for you based on the building and your profile (exa.ai integration)
 
 ### 🌈 **Aura Profile (New)**
 
@@ -42,16 +46,17 @@ A React Native mobile application designed to help users explore architectural l
 
 ### 👤 **Passport**
 
-* Full user profile and exploration history
+* Full user profile and exploration history through a past walk section-- this is the map with fog of war view
 * Custom achievements and walk badges
 * Style evolution graph (tracks how user taste changes over time)
-* Shareable journey summaries with photos and data overlays
+* Shareable journey summaries with photos and data overlays (Pro Users Only)
 
 ### 🔍 **Search**
 
 * Location, period, and architectural style filters
 * Supports fuzzy queries and aesthetic categories (e.g. *Brutalist calm*, *Organic flow*)
 * Context-aware search: learns from recent activity
+* Results shown on map near you
 
 ---
 
@@ -150,15 +155,6 @@ AR overlay displaying building data, style labels, and historical snippets in re
 * **Performance** – caching, lazy-loading, and optimized ML requests
 * **Accessibility** – large touch areas, dark/light mode support
 * **Immersion** – blur effects, motion-based transitions, and subtle haptics
-
----
-
-## 🤝 Contributing
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/new-feature`)
-3. Commit your work (`git commit -m 'Add: new feature'`)
-4. Push and open a Pull Request
 
 ---
 

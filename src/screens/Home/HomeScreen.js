@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { getUserAestheticProfile } from '../../api/quizApi';
+import { useAuth } from '../../auth/authProvider';
 import AestheticProfile from '../../components/home/AestheticProfile';
 import XPMeter from '../../components/passport/XPMeter';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
-import { useAuth } from '../../auth/authProvider';
-import { getUserAestheticProfile } from '../../api/quizApi';
 
 const HomeScreen = ({ navigation }) => {
   const { session } = useAuth();

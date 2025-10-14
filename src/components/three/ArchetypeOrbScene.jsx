@@ -1,24 +1,31 @@
-import { Instance, Instances } from '@react-three/drei/native';
+// Using raw instancedMesh for deterministic updates
+// (avoid drei <Instances> auto-updaters overriding our matrices)
+// import { Instance, Instances } from '@react-three/drei/native';
 import { Canvas, useFrame } from '@react-three/fiber/native';
 import React, { useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import * as THREE from "three";
 import { processArchetypeData } from "../../utils/archetypeDataTransformer";
+import { getArchetypeColor } from "../../constants/archetypeColors";
 
 function OrbShell({ quality = "high" }) {
   const seg = quality === "high" ? 96 : 64;
   return (
-    <mesh renderOrder={3}>
+    <mesh renderOrder={100}>
       <sphereGeometry args={[1, seg, seg]} />
       <meshPhysicalMaterial
+        transmission={0.92}
+        thickness={0.5}
+        ior={1.45}
+        roughness={0.08}
+        metalness={0.02}
+        clearcoat={0.95}
+        clearcoatRoughness={0.2}
         transparent
-        opacity={0.25}
-        roughness={0.12}
-        metalness={0.05}
-        clearcoat={0.9}
-        clearcoatRoughness={0.25}
-        reflectivity={0.8}
+        opacity={0.9}
+        depthWrite={false}
         side={THREE.DoubleSide}
+        color={0xffffff}
       />
     </mesh>
   );
@@ -34,18 +41,22 @@ function OrbDepthPrepass({ quality = "high" }) {
   );
 }
 
-function SmokeBillboards({ configs, maxCount = 400 }) {
-  const ref = useRef();
+function SmokeBillboards({ configs, maxCount = 240 }) {
+  const ref = useRef(); // instancedMesh
   const materialRef = useRef();
+  const dummy = React.useMemo(() => new THREE.Object3D(), []);
+  const tmp = React.useMemo(() => new THREE.Vector3(), []);
   const instances = useMemo(() => {
     const arr = [];
     configs.forEach((cfg) => {
-      // Target ~250–300 sprites per archetype at high quality
-      const count = Math.max(150, Math.floor(200 + (cfg.percentage ?? 0.33) * 120));
-      for (let i = 0; i < count; i++) {
+      // Safer counts on mobile; distribute by percentage
+      const pct = Math.max(0, Math.min(1, cfg.percentage ?? 0.33));
+      const perCfg = Math.floor(60 + pct * 80); // 60–140 per layer
+      for (let i = 0; i < perCfg; i++) {
         arr.push({
           cfg,
           seed: Math.random() * Math.PI * 2,
+          stretch: 1.2 + Math.random() * 1.0,
           offset: new THREE.Vector3(
             (Math.random() - 0.5) * 1.4,
             (Math.random() - 0.5) * 1.4,
@@ -54,41 +65,61 @@ function SmokeBillboards({ configs, maxCount = 400 }) {
         });
       }
     });
+    // Global cap honoring maxCount
+    if (arr.length > maxCount) return arr.slice(0, maxCount);
     return arr;
   }, [configs, maxCount]);
+
+  // Build custom per-instance color attribute to avoid reliance on instanceColor
+  React.useEffect(() => {
+    if (!ref.current) return;
+    const mesh = ref.current;
+    mesh.count = instances.length;
+    const geometry = mesh.geometry;
+    if (!geometry) return;
+    const colors = new Float32Array(instances.length * 3);
+    for (let i = 0; i < instances.length; i++) {
+      const base = new THREE.Color(instances[i].cfg.color || "#8BFF2F");
+      colors[i * 3 + 0] = base.r;
+      colors[i * 3 + 1] = base.g;
+      colors[i * 3 + 2] = base.b;
+    }
+    geometry.setAttribute("aColor", new THREE.InstancedBufferAttribute(colors, 3));
+    geometry.attributes.aColor.needsUpdate = true;
+  }, [instances]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     if (!ref.current) return;
-    const dummy = new THREE.Object3D();
-    instances.forEach((inst, i) => {
+    const baseRadius = 0.78;
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i];
       const { offset, seed, cfg } = inst;
-      const swirl = 0.18 + 0.05 * Math.sin(t * 0.2 + seed);
-      let y = offset.y + 0.08 * Math.sin(t * 0.12 + seed);
-      const x = offset.x * Math.cos(t * swirl) - offset.z * Math.sin(t * swirl);
-      const z = offset.z * Math.cos(t * swirl) + offset.x * Math.sin(t * swirl);
-      const radius = 0.78;
-      const vec = new THREE.Vector3(x, y, z);
-      if (vec.length() > radius) vec.setLength(radius);
-      dummy.position.copy(vec);
-      // Stable scale primarily driven by archetype dominance; tiny breathing
-      const baseScale = 0.5 + 0.35 * (cfg.percentage ?? 0.33);
-      const breathe = 0.02 * Math.sin(t * 0.2 + seed);
-      dummy.scale.setScalar(baseScale + breathe);
+
+      const pct = Math.max(0, Math.min(1, cfg.percentage ?? 0.33));
+      const baseScale = 0.32 + 0.3 * pct;
+      const breathe = 0.02 * Math.sin(t * 0.22 + seed * 0.7);
+      const scalar = baseScale + breathe;
+      const stretch = inst.stretch;
+      dummy.scale.set(scalar * stretch, scalar, 1);
+
+      const swirl = (cfg.rotationSpeed ?? 0.2) * 0.9;
+      const phase = t * swirl + seed;
+      let y = offset.y + 0.05 * Math.sin(t * 0.36 + seed * 1.3);
+      const x = offset.x * Math.cos(phase) - offset.z * Math.sin(phase);
+      const z = offset.z * Math.cos(phase) + offset.x * Math.sin(phase);
+
+      tmp.set(x, y, z);
+      const halfWidth = 0.13 * dummy.scale.x;
+      const halfHeight = 0.13 * dummy.scale.y;
+      const halfDiag = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
+      const radius = Math.max(0.0, baseRadius - halfDiag);
+      if (tmp.length() > radius) tmp.setLength(radius);
+
+      dummy.position.copy(tmp);
       dummy.updateMatrix();
       ref.current.setMatrixAt(i, dummy.matrix);
-    });
-    instances.forEach((inst, i) => {
-      const { seed, cfg } = inst;
-      const c1 = new THREE.Color(cfg.color || '#00ff00');
-      const c2 = new THREE.Color(cfg.secondaryColor || '#00ffff');
-      const c3 = new THREE.Color(cfg.tertiaryColor || '#ffffff');
-      const mixColor = c1.clone()
-        .lerp(c2, (Math.sin(seed + t * 0.35) + 1.0) * 0.5)
-        .lerp(c3, (Math.cos(seed + t * 0.42) + 1.0) * 0.5);
-      ref.current.setColorAt(i, mixColor);
-    });
-    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
+    }
     ref.current.instanceMatrix.needsUpdate = true;
     if (materialRef.current) {
       const u = materialRef.current.uniforms;
@@ -97,115 +128,137 @@ function SmokeBillboards({ configs, maxCount = 400 }) {
   });
 
   return (
-    <Instances ref={ref} limit={instances.length} color={"white"}>
-      <planeGeometry args={[0.25, 0.25]} />
-      <shaderMaterial
-        ref={materialRef}
-        transparent
-        // Use normal blending with depth test for layered volume feel
-        blending={THREE.NormalBlending}
-        depthWrite={false}
-        depthTest={true}
-        toneMapped={false}
-        uniforms={{
-          uOpacity: { value: 0.6 },
-          uSpriteScale: { value: 2.3 },
-          uTime: { value: 0 },
-          uClipCenter: { value: new THREE.Vector3(0, 0, 0) },
-          uClipRadius: { value: 0.98 },
-        }}
-        vertexShader={`
-          uniform float uSpriteScale;
-          varying vec2 vUv;
-          varying vec3 vColor;
-          varying vec3 vWorldCenter;
+    <group renderOrder={2}>
+      <instancedMesh ref={ref} args={[undefined, undefined, instances.length]} renderOrder={2} frustumCulled={false}>
+        <planeGeometry args={[0.26, 0.26]} />
+        <shaderMaterial
+          ref={materialRef}
+          transparent
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          depthTest={true}
+          toneMapped={false}
+          alphaTest={0}
+          uniforms={{
+            uOpacity: { value: 0.24 },
+            uSpriteScale: { value: 1.0 },
+            uTime: { value: 0 },
+            uSpin: { value: 0.4 },
+            uClipCenter: { value: new THREE.Vector3(0, 0, 0) },
+            uClipRadius: { value: 0.78 },
+          }}
+          vertexShader={`
+            precision highp float;
+            precision highp int;
 
-          void main(){
-            vUv = uv;
-            vColor = instanceColor;
+            uniform float uSpriteScale;
+            uniform float uSpin;
+            uniform float uTime;
+            uniform vec3 uClipCenter;
 
-            // Instance center in world space
-            vec4 worldCenter = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-            vWorldCenter = worldCenter.xyz;
+            varying vec2 vUv;
+            varying vec3 vColor;
+            varying vec3 vViewPos;
+            varying vec3 vViewCenter;
 
-            // Camera right/up vectors in world space
-            vec3 right = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
-            vec3 up    = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+            attribute vec3 aColor;
 
-            // Extract uniform scale from instanceMatrix (we set scalar scale in JS)
-            float s = length(vec3(instanceMatrix[0][0], instanceMatrix[1][0], instanceMatrix[2][0])) * uSpriteScale;
-            vec3 worldPos = worldCenter.xyz + (right * position.x + up * position.y) * s;
+            void main(){
+              vUv = uv;
+              vColor = aColor;
 
-            gl_Position = projectionMatrix * viewMatrix * vec4(worldPos, 1.0);
-          }
-        `}
-        fragmentShader={`
-          precision highp float;
-          uniform float uOpacity;
-          uniform float uTime;
-          uniform vec3  uClipCenter;
-          uniform float uClipRadius;
-          varying vec2 vUv;
-          varying vec3 vColor;
-          varying vec3 vWorldCenter;
+              vec4 worldCenter = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+              vec4 mvCenter = viewMatrix * worldCenter;
+              vec3 clipCenterView = (viewMatrix * vec4(uClipCenter, 1.0)).xyz;
 
-          // 2D value noise + fbm for wispy alpha
-          float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
-          float noise(vec2 p){
-            vec2 i = floor(p), f = fract(p);
-            float a = hash(i);
-            float b = hash(i + vec2(1.0, 0.0));
-            float c = hash(i + vec2(0.0, 1.0));
-            float d = hash(i + vec2(1.0, 1.0));
-            vec2 u = f * f * (3.0 - 2.0 * f);
-            return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-          }
-          float fbm(vec2 p){
-            float v = 0.0; float a = 0.55; mat2 m = mat2(1.6,1.2,-1.2,1.6);
-            for(int i=0;i<4;i++){ v += a * noise(p); p = m * p; a *= 0.55; }
-            return v;
-          }
-          void main(){
-            // Clip near orb boundary to keep smoke inside the shell
-            float dWorld = length(vWorldCenter - uClipCenter);
-            float clipAlpha = smoothstep(uClipRadius, uClipRadius - 0.16, dWorld);
+              float sx = length(vec3(instanceMatrix[0][0], instanceMatrix[1][0], instanceMatrix[2][0])) * uSpriteScale;
+              float sy = length(vec3(instanceMatrix[0][1], instanceMatrix[1][1], instanceMatrix[2][1])) * uSpriteScale;
 
-            // Radial alpha mask for a soft round sprite
-            vec2 uv = vUv - 0.5;
-            float r = length(uv);
-            float radial = smoothstep(0.52, 0.0, r);
+              float ang = uSpin * uTime;
+              float cs = cos(ang);
+              float sn = sin(ang);
+              vec2 local = (uv - 0.5) * vec2(sx, sy);
+              vec2 rot = vec2(cs * local.x - sn * local.y, sn * local.x + cs * local.y);
 
-            // Swirled fbm field in sprite space for filaments
-            float theta = atan(uv.y, uv.x);
-            vec2 flow = uv * 2.3;
-            flow += 0.25 * vec2(cos(theta*3.0 + uTime*0.25), sin(theta*3.0 - uTime*0.22));
-            float f = fbm(flow + vec2(uTime*0.08, -uTime*0.05));
-            float wispy = smoothstep(0.35, 0.85, f);
+              vec4 mvPos = mvCenter + vec4(rot, 0.0, 0.0);
+              vViewPos = mvPos.xyz;
+              vViewCenter = clipCenterView;
 
-            float alpha = radial * wispy * clipAlpha * uOpacity;
-            if (alpha < 0.02) discard;
+              gl_Position = projectionMatrix * mvPos;
+            }
+          `}
+          fragmentShader={`
+            precision highp float;
+            uniform float uOpacity;
+            uniform float uTime;
+            uniform vec3  uClipCenter;
+            uniform float uClipRadius;
+            varying vec2 vUv;
+            varying vec3 vColor;
+            varying vec3 vViewPos;
+            varying vec3 vViewCenter;
 
-            vec3 col = vColor;
-            if (length(col) < 0.001) { col = vec3(0.8, 0.8, 0.8); }
-            gl_FragColor = vec4(col, alpha);
-          }
-        `}
-      />
-      {instances.map((inst, i) => (
-        <Instance key={i} />
-      ))}
-    </Instances>
+            float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
+            float noise(vec2 p){
+              vec2 i = floor(p), f = fract(p);
+              f = f*f*(3.0 - 2.0*f);
+              float a = hash(i);
+              float b = hash(i + vec2(1.0, 0.0));
+              float c = hash(i + vec2(0.0, 1.0));
+              float d = hash(i + vec2(1.0, 1.0));
+              return mix(a, b, f.x) + (c - a) * f.y * (1.0 - f.x) + (d - b) * f.x * f.y;
+            }
+            float fbm(vec2 p){
+              float v = 0.0; float a = 0.55; mat2 m = mat2(1.6,1.2,-1.2,1.6);
+              for(int i=0;i<4;i++){ v += a * noise(p); p = m * p; a *= 0.5; }
+              return v;
+            }
+            void main(){
+              float dView = length(vViewPos - vViewCenter);
+              float clipAlpha = smoothstep(uClipRadius, uClipRadius - 0.06, dView);
+              float jitter = fract(sin(dot(vViewPos.xy, vec2(12.9898,78.233))) * 43758.5453);
+              clipAlpha *= (0.95 + 0.05 * jitter);
+
+              vec2 uv = vUv - 0.5;
+              float r = length(uv);
+              float disk = smoothstep(0.52, 0.0, r);
+
+              vec2 flow = uv * 3.2;
+              flow += 0.35 * vec2(sin(uTime * 0.2), cos(uTime * 0.22));
+              float f = fbm(flow);
+              float ridge = pow(1.0 - abs(2.0 * f - 1.0), 3.0);
+
+              float fres = pow(1.0 - clamp(r, 0.0, 1.0), 3.5);
+
+              float a = disk * ridge * fres * clipAlpha * uOpacity;
+              if (a < 0.001) discard;
+              a = clamp(a, 0.05, 0.45);
+
+              vec3 col = mix(vColor, vec3(1.0), 0.1 * ridge);
+              gl_FragColor = vec4(col, a);
+            }
+          `}
+        />
+      </instancedMesh>
+    </group>
   );
 }
+
+const DEBUG_SMOKE = false; // disable debug visuals for performance and occlusion sanity
 
 function OrbScene({ configs, quality = "high" }) {
   return (
     <group>
+      {/* TEST D: restore full scene now that pipeline checks passed */}
       <ambientLight intensity={0.6} />
       <hemisphereLight skyColor={"#fff"} groundColor={"#888"} intensity={0.7} />
-      {/* Depth pre-pass disabled so smoke inside the orb isn't depth-killed */}
-      {/* <OrbDepthPrepass quality={quality} /> */}
       <SmokeBillboards configs={configs} maxCount={quality === "high" ? 900 : 240} />
+      {DEBUG_SMOKE && (
+        <mesh position={[0, 0, 0]} renderOrder={-10}>
+          <sphereGeometry args={[0.5, 16, 16]} />
+          <meshBasicMaterial color="hotpink" depthTest={false} depthWrite={false} transparent opacity={0.9} />
+        </mesh>
+      )}
       <OrbShell quality={quality} />
     </group>
   );
@@ -217,13 +270,27 @@ export function ArchetypeOrbScene({
   quality = "high",
   style,
 }) {
-  const configs = React.useMemo(
-    () => processArchetypeData(archetypeData, { allowFallback: true }),
-    [archetypeData]
-  );
+  const configs = React.useMemo(() => {
+    const list = processArchetypeData(archetypeData, { allowFallback: false }) || [];
+    if (list.length) {
+      return list.map((c) => ({
+        ...c,
+        color: c.color || getArchetypeColor(c.name || c.id),
+      }));
+    }
+    // Friendly fallback: render a neutral, single-hue smoke while data loads
+    const fallbackColor = "#8BFF2F"; // luminous green placeholder
+    const placeholder = [
+      { name: "Placeholder", percentage: 0.46, color: fallbackColor },
+      { name: "Placeholder", percentage: 0.32, color: fallbackColor },
+      { name: "Placeholder", percentage: 0.22, color: fallbackColor },
+    ];
+    return placeholder;
+  }, [archetypeData]);
+  try { console.log("Scene configs", configs); } catch (_) {}
 
   if (typeof global !== "undefined" && !global.THREE) global.THREE = THREE;
-  const dpr = quality === "high" ? [1, 1.3] : [1, 1.0];
+  const dpr = [1, 1];
 
   return (
     <View
@@ -242,6 +309,14 @@ export function ArchetypeOrbScene({
           depth: true,
         }}
         onCreated={(state) => {
+          try { console.log('ArchetypeOrbScene loaded'); } catch {}
+          try {
+            const renderer = state.gl;
+            const ctx = renderer?.getContext?.();
+            const rendererName = renderer?.constructor?.name || 'UnknownRenderer';
+            const glRenderer = ctx?.getParameter ? ctx.getParameter(ctx.RENDERER) : 'n/a';
+            console.log('GL renderer', rendererName, glRenderer);
+          } catch {}
           state.scene.toneMapping = THREE.NoToneMapping;
           try {
             state.gl.setClearColor(0x000000, 0);

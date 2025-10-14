@@ -1,5 +1,5 @@
 const SAFE_MODE = false; // Enable shader-based smoke sprites by default
-const USE_VOL_SMOKE = true; // Feature flag: layered volumetric ray-marched smoke
+const USE_VOL_SMOKE = false; // Disable volumetric on mobile; use sprites everywhere
 
 function SafeSmoke({ config, count = 180, renderOrder = 1 }) {
   const groupRef = useRef();
@@ -55,7 +55,8 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import * as THREE from "three";
 import { processArchetypeData } from "../../utils/archetypeDataTransformer";
-import VolSmoke from "./VolSmoke";
+import { getArchetypeColor } from "../../constants/archetypeColors";
+// Volumetric path removed for performance
 
 /**
  * Perf changes vs your original:
@@ -85,12 +86,12 @@ function SmokeSprites({ config, renderOrder = 10 }) {
 
   const uniforms = useRef({
     uTime:       { value: 0 },
-    uColor:      { value: new THREE.Color(config.color || '#aaaaaa') },
-    uOpacity:    { value: config.opacity ?? 0.5 },
+    uColor:      { value: new THREE.Color(config.color || "#8BFF2F") },
+    uOpacity:    { value: Math.min(0.6, Math.max(0.2, config.opacity ?? 0.45)) },
     uClipCenter: { value: new THREE.Vector3(0, 0, 0) },
-    uClipRadius: { value: 0.995 },
-    uSizeScale:  { value: 12.0 },            // slightly smaller sprites
-    uSpin:       { value: 0.4 },             // swirl speed
+    uClipRadius: { value: 0.78 },
+    uSizeScale:  { value: 11.0 },
+    uSpin:       { value: 0.35 },
   });
 
   const geometry = useMemo(() => {
@@ -157,6 +158,7 @@ function SmokeSprites({ config, renderOrder = 10 }) {
         uniform float uTime;
         uniform float uSizeScale;
         uniform float uSpin;
+        uniform vec3 uClipCenter;
 
         attribute vec3 aSeed;
         attribute float aSize;
@@ -165,7 +167,8 @@ function SmokeSprites({ config, renderOrder = 10 }) {
         attribute vec2 aCylRA; // [radius, baseAngle]
 
         varying float vAlpha;
-        varying vec3  vWorldCenter;
+        varying vec3  vViewPos;
+        varying vec3  vViewCenter;
         varying vec2  vUv;
 
         // light wobble using seeds; avoids heavy trig combos
@@ -191,13 +194,16 @@ function SmokeSprites({ config, renderOrder = 10 }) {
           vec3 center = wobble(vec3(cx, cy, cz), aSeed, uTime);
 
           vec4 worldCenter = modelMatrix * vec4(center, 1.0);
-          vWorldCenter = worldCenter.xyz;
 
           // Billboard quad in view space
           vec4 mvCenter = viewMatrix * worldCenter;
+          vec3 globeCenterView = (viewMatrix * vec4(uClipCenter, 1.0)).xyz;
           float s = clamp(aSize * uSizeScale, 4.0, 36.0);
           vec2 quad = position.xy * s;
           vec4 mvPos = mvCenter + vec4(quad, 0.0, 0.0);
+
+          vViewPos = mvPos.xyz;
+          vViewCenter = globeCenterView;
 
           gl_Position = projectionMatrix * mvPos;
           vAlpha = aAlpha;
@@ -212,13 +218,14 @@ function SmokeSprites({ config, renderOrder = 10 }) {
         uniform float uClipRadius;
 
         varying float vAlpha;
-        varying vec3  vWorldCenter;
+        varying vec3  vViewPos;
+        varying vec3  vViewCenter;
         varying vec2  vUv;
 
         void main(){
-          // Soft spherical clip near orb shell
-          float dWorld = length(vWorldCenter - uClipCenter);
-          float clipAlpha = smoothstep(uClipRadius, uClipRadius - 0.16, dWorld);
+          // Soft spherical clip near orb shell using view-space distance
+          float dView = length(vViewPos - vViewCenter);
+          float clipAlpha = smoothstep(uClipRadius, uClipRadius - 0.08, dView);
 
           // Soft round sprite using UV
           vec2 uv = vUv - 0.5;
@@ -231,23 +238,27 @@ function SmokeSprites({ config, renderOrder = 10 }) {
 
           float alpha = radial * n * clipAlpha * uOpacity * vAlpha;
           if (alpha < 0.02) discard;
+          alpha = clamp(alpha, 0.05, 0.5);
 
-          gl_FragColor = vec4(uColor, alpha);
+          gl_FragColor = vec4(uColor * alpha, alpha);
         }
       `,
       transparent: true,
       // Enable depth test so nearer smoke attenuates far smoke naturally
       depthTest: true,
       depthWrite: false,
-      blending: THREE.NormalBlending,
+      blending: THREE.AdditiveBlending,
     });
   }, []);
 
   useEffect(() => {
-    // Sync uniforms on prop changes
-    if (uniforms.current?.uColor) uniforms.current.uColor.value.set(config.color || '#aaaaaa');
-    if (uniforms.current?.uOpacity) uniforms.current.uOpacity.value = config.opacity ?? 0.5;
-  }, [config.color, config.opacity]);
+    if (uniforms.current?.uColor) {
+      uniforms.current.uColor.value.set(config.color || getArchetypeColor(config.name || config.id));
+    }
+    if (uniforms.current?.uOpacity) {
+      uniforms.current.uOpacity.value = Math.min(0.6, Math.max(0.2, config.opacity ?? 0.45));
+    }
+  }, [config.color, config.name, config.id, config.opacity]);
 
   useFrame((_, delta) => {
     // Drive global time and slow spin; keep it cheap
@@ -330,32 +341,8 @@ function OrbScene({ configs, quality, groupRef, refraction }) {
       {/* Lighting simplified for Safe Mode */}
       <ambientLight intensity={0.4} />
       <hemisphereLight skyColor={'#ffffff'} groundColor={'#909090'} intensity={0.35} />
-
-      {/* Skip depth prepass for volumetric to avoid over-constraining depth */}
-      {!USE_VOL_SMOKE && <OrbDepthPrepass quality={quality} />}
-      {USE_VOL_SMOKE && !SAFE_MODE
-        ? configs.map((cfg, idx) => {
-            const pct = Math.max(0, Math.min(1, cfg.percentage ?? 0.33));
-            const density = 0.3 + pct * 0.6; // mapping per plan
-            const scale = 0.9 + pct * 0.35;  // inner smaller, outer larger
-            const steps = 22 - idx * 2;      // inner highest quality
-            const noiseScale = 1.4 + idx * 0.15;
-            const opacity = Math.min(0.55, 0.38 + pct * 0.22);
-            return (
-              <VolSmoke
-                key={cfg.id || cfg.name || idx}
-                color={cfg.color}
-                opacity={opacity}
-                density={density}
-                scale={scale}
-                rotationSpeed={cfg.rotationSpeed || 0.12}
-                steps={steps}
-                noiseScale={noiseScale}
-                renderOrder={1 + idx}
-              />
-            );
-          })
-        : SAFE_MODE
+      {/* Depth prepass disabled: it occludes sprite smoke */}
+      {SAFE_MODE
           ? configs.map((cfg, idx) => (
               <SafeSmoke key={cfg.id || cfg.name || idx} config={cfg} renderOrder={1 + idx} />
             ))
@@ -374,10 +361,14 @@ export default function ArchetypeOrbR3F({
   refraction = false,
   style,
 }) {
-  const configs = useMemo(
-    () => processArchetypeData(archetypeData, { allowFallback: true }),
-    [archetypeData]
-  );
+  const configs = useMemo(() => {
+    const list = processArchetypeData(archetypeData, { allowFallback: true }) || [];
+    return list.map((cfg) => ({
+      ...cfg,
+      color: cfg.color || getArchetypeColor(cfg.name || cfg.id),
+    }));
+  }, [archetypeData]);
+  try { console.log("R3F configs", configs); } catch (_) {}
 
   // Avoid multiple-three warnings on native
   if (typeof global !== "undefined") {

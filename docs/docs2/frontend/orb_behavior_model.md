@@ -1,4 +1,4 @@
-The **Orb** is the emotional core of JINK — your silent UI narrator. It reflects the *state* of the user (their aesthetic profile, XP growth, and momentary mood) through light, movement, and responsiveness.
+The **Orb** is the emotional core of JINK — your silent UI narrator. It reflects the *state* of the user (their aesthetic profile, XP growth) through light, movement, and responsiveness.
 Here’s exactly what it displays and how it does it, without any of the poetic hand-waving:
 
 ---
