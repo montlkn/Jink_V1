@@ -1,4 +1,4 @@
-# Architecture App V2 (Aura Profile Update)
+# Jink V2 (Aura Profile Update)
 
 A React Native mobile application designed to help users explore architectural landmarks through guided walks, building identification, and personalized aesthetic experiences. This version integrates the **Aura Profile** system and expanded personalization features from the `docs/docs2` branch.
 
@@ -6,7 +6,7 @@ A React Native mobile application designed to help users explore architectural l
 
 ## 🌆 Overview
 
-**Architecture App V2** merges urban exploration with architectural intelligence. The app enables users to discover buildings, learn architectural history, and build a visual "aesthetic profile" that evolves as they explore. With the **Aura Profile**, users now receive dynamic recommendations based on their design sensibilities and past interactions.
+**Jink** merges urban exploration with architectural intelligence. The app enables users to discover buildings, learn architectural history, and build a visual "aesthetic profile" that evolves as they explore. With the **Aura Profile**, users now receive dynamic recommendations based on their design sensibilities and past interactions.
 
 ---
 
