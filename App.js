@@ -16,6 +16,7 @@ if (typeof global !== 'undefined') {
 }
 import { AuthProvider } from "./src/auth/authProvider";
 import AppNavigator from "./src/navigation/AppNavigator";
+import { OrbTransitionProvider } from "./src/state/orbTransitionContext";
 // This is our global color and theme configuration
 
 const AppTheme = {
@@ -33,7 +34,9 @@ const AppTheme = {
 export default function App() {
   return (
     <AuthProvider>
-      <AppNavigator />
+      <OrbTransitionProvider>
+        <AppNavigator />
+      </OrbTransitionProvider>
     </AuthProvider>
   );
 }

@@ -68,7 +68,7 @@
     "@babel/core": "^7.25.2",
     "@expo/config-plugins": "~9.0.0",
     "@types/react": "~18.3.12",
-    "eslint": "^9.25.0",
+    "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.1",
     "supabase": "^2.33.7",
     "typescript": "~5.9.2"

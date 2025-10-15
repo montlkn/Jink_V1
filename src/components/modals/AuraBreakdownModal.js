@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   Modal,
@@ -6,81 +8,89 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 const AuraBreakdownModal = ({
   visible,
   segments = [],
   onClose,
-  onSelectSegment,
-  onViewProfile,
 }) => {
-  if (!visible) {
-    return null;
-  }
+  const navigation = useNavigation();
+  if (!visible) return null;
 
   const handleViewProfile = () => {
-    if (onClose) {
-      onClose();
-    }
-    if (onViewProfile) {
-      setTimeout(onViewProfile, 150);
-    }
+    if (onClose) onClose();
+    setTimeout(() => {
+      // Navigate to ProfileDetail in the root stack navigator
+      navigation.getParent()?.navigate('ProfileDetail');
+    }, 150);
+  };
+
+  const formatPercent = (num) => {
+    if (typeof num !== 'number') return num;
+    return `${Math.round(num * 10) / 10}%`;
+  };
+
+  const formatPoints = (num) => {
+    if (typeof num !== 'number') return num;
+    return `${Math.round(num)} pts`;
   };
 
   return (
-    <Modal
-      animationType="fade"
-      transparent
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <TouchableOpacity
-        style={styles.overlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={styles.modalContainer}>
+    <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.closeXButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#666" />
           </TouchableOpacity>
 
-          <Text style={styles.title}>Your Aesthetic Field</Text>
+          <Text style={styles.title}>Your Aesthetic Aura</Text>
           <Text style={styles.subtitle}>
-            These are the strongest energies shaping your aura right now.
+            These are the top aesthetic energies shaping your aura.
           </Text>
 
           <View style={styles.segmentList}>
-            {segments.length === 0 && (
+            {segments.length === 0 ? (
               <Text style={styles.emptyText}>
                 Take the quiz to reveal your aesthetic makeup.
               </Text>
-            )}
-
-            {segments.map((segment) => (
-              <TouchableOpacity
-                key={segment.archetype}
-                style={styles.segmentRow}
-                activeOpacity={0.75}
-                onPress={() => onSelectSegment && onSelectSegment(segment)}
-              >
-                <View style={styles.segmentLeft}>
-                  <View
-                    style={[
-                      styles.colorDot,
-                      { backgroundColor: segment.color || '#666' },
-                    ]}
-                  />
-                  <View>
-                    <Text style={styles.segmentName}>{segment.name}</Text>
-                    <Text style={styles.segmentMeta}>
-                      {segment.percentage}% • {segment.score} pts
-                    </Text>
+            ) : (
+              segments.map((segment, idx) => (
+                <TouchableOpacity
+                  key={`${segment.name}-${idx}`}
+                  style={styles.segmentRow}
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    if (onClose) onClose();
+                    const archetypeName = segment?.name;
+                    if (!archetypeName) return;
+                    // Small delay so the modal close animation feels natural
+                    setTimeout(() => {
+                      navigation
+                        .getParent()
+                        ?.navigate('ProfileDetail', { initialArchetype: archetypeName });
+                    }, 150);
+                  }}
+                >
+                  <View style={styles.segmentLeft}>
+                    <View
+                      style={[styles.colorDot, { backgroundColor: segment.color || '#666' }]}
+                    />
+                    <View>
+                      <Text style={styles.segmentName}>
+                        {segment.name?.charAt(0).toUpperCase() + segment.name?.slice(1)}
+                      </Text>
+                      <Text style={styles.segmentMeta}>
+                        {formatPercent(segment.percentage)} • {formatPoints(segment.score)}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#999" />
-              </TouchableOpacity>
-            ))}
+                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+              ))
+            )}
           </View>
 
           <TouchableOpacity
@@ -90,7 +100,8 @@ const AuraBreakdownModal = ({
           >
             <Text style={styles.viewProfileText}>View Full Profile</Text>
           </TouchableOpacity>
-        </View>
+          </View>
+        </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
   );
@@ -171,6 +182,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#111',
+    textTransform: 'capitalize',
   },
   segmentMeta: {
     fontSize: 13,

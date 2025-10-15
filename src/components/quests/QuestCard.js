@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 
 const QuestCard = ({
   type = 'daily', // 'daily' or 'weekly'
   title,
   description,
-  xpReward,
+  epReward,
+  xpReward, // backwards compatibility
   additionalRewards = [],
   progress = 0,
   total = 1,
   onPress,
   completed = false,
 }) => {
+  const reward = epReward || xpReward;
   const [timeRemaining, setTimeRemaining] = useState('');
 
   useEffect(() => {
@@ -31,6 +34,11 @@ const QuestCard = ({
   const isDaily = type === 'daily';
   const progressPercent = (progress / total) * 100;
 
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onPress) onPress();
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -38,7 +46,7 @@ const QuestCard = ({
         isDaily ? styles.dailyCard : styles.weeklyCard,
         completed && styles.completedCard,
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.8}
     >
       {/* Header */}
@@ -85,7 +93,7 @@ const QuestCard = ({
       <View style={styles.rewardsContainer}>
         <View style={styles.rewardBadge}>
           <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.rewardText}>{xpReward} XP</Text>
+          <Text style={styles.rewardText}>{reward} EP</Text>
         </View>
 
         {additionalRewards.map((reward, index) => (

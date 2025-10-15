@@ -1,5 +1,6 @@
 
 import { Ionicons } from '@expo/vector-icons';
+import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -30,6 +31,8 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [segmentModalVisible, setSegmentModalVisible] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState(null);
   const scrollViewRef = useRef();
+  const initialArchetypeRef = useRef(null);
+  const route = useRoute();
 
   useEffect(() => {
     loadUserProfile();
@@ -90,6 +93,20 @@ const ProfileDetailScreen = ({ navigation }) => {
       setSelectedSegment(null);
     }, 100);
   };
+
+  useEffect(() => {
+    const targetArchetype = route?.params?.initialArchetype;
+    if (!profile || !targetArchetype) return;
+    if (initialArchetypeRef.current === targetArchetype) return;
+
+    const detailedInfo = getDetailedArchetypeInfo(targetArchetype);
+    if (detailedInfo) {
+      setSelectedArchetype(detailedInfo);
+      setModalVisible(true);
+      initialArchetypeRef.current = targetArchetype;
+      navigation.setParams?.({ initialArchetype: null });
+    }
+  }, [profile, route?.params?.initialArchetype, navigation]);
 
   if (loading) {
     return (

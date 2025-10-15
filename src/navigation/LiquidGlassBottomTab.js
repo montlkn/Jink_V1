@@ -4,17 +4,18 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Easing,
-    Keyboard,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Easing,
+  Keyboard,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { useOrbTransition } from "../state/orbTransitionContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -39,6 +40,7 @@ const KEYBOARD_HIDE_DURATION = 110;
 export default function LiquidGlassBottomTab({ state, descriptors, navigation }) {
   const routes = state.routes.slice(0, TAB_COUNT);
   const focusIndex = Math.min(state.index, TAB_COUNT - 1);
+  const { startHomeToJinkTransition } = useOrbTransition();
 
   const pillWidth = Math.min(SCREEN_WIDTH * 0.8, SCREEN_WIDTH - 120);
   const pillLeft = EDGE;
@@ -278,8 +280,11 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
                     label={label}
                     icon={icon}
                     focused={focused}
-                    onPress={() => {
+                    onPress={async () => {
                       Haptics.selectionAsync();
+                      if (route.name === "Jink") {
+                        await startHomeToJinkTransition();
+                      }
                       navigation.navigate(route.name);
                     }}
                   />

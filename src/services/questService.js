@@ -2,7 +2,7 @@ import { supabase } from '../api/supabaseClient';
 
 /**
  * Quest Service
- * Handles all quest and XP related operations
+ * Handles all quest and EP related operations
  */
 
 // ============================================
@@ -173,13 +173,13 @@ export const updateQuestProgress = async (questType, increment = 1) => {
 };
 
 // ============================================
-// XP OPERATIONS
+// EP OPERATIONS
 // ============================================
 
 /**
- * Get user's XP and level
+ * Get user's EP and level
  */
-export const getUserXP = async () => {
+export const getUserEP = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user logged in');
@@ -193,20 +193,23 @@ export const getUserXP = async () => {
     if (error) throw error;
 
     return {
-      xp: profile.xp || 0,
+      ep: profile.xp || 0,
       level: profile.level || 1,
-      xpSpent: profile.xp_spent || 0
+      epSpent: profile.xp_spent || 0
     };
   } catch (error) {
-    console.error('Error getting user XP:', error);
-    return { xp: 0, level: 1, xpSpent: 0 };
+    console.error('Error getting user EP:', error);
+    return { ep: 0, level: 1, epSpent: 0 };
   }
 };
 
+// Keep old function name for backwards compatibility
+export const getUserXP = getUserEP;
+
 /**
- * Award XP to user (called when building scanned, quest completed, etc.)
+ * Award EP to user (called when building scanned, quest completed, etc.)
  */
-export const awardXP = async (amount, source = 'building_scan') => {
+export const awardEP = async (amount, source = 'building_scan') => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user logged in');
@@ -234,19 +237,25 @@ export const awardXP = async (amount, source = 'building_scan') => {
 
     return true;
   } catch (error) {
-    console.error('Error awarding XP:', error);
+    console.error('Error awarding EP:', error);
     return false;
   }
 };
 
+// Keep old function name for backwards compatibility
+export const awardXP = awardEP;
+
 /**
- * Calculate XP needed for next level
- * Formula: Level = floor(sqrt(XP / 100)) + 1
- * Reversed: XP for level N = ((N - 1) ^ 2) * 100
+ * Calculate EP needed for next level
+ * Formula: Level = floor(sqrt(EP / 100)) + 1
+ * Reversed: EP for level N = ((N - 1) ^ 2) * 100
  */
-export const getXPForNextLevel = (currentLevel) => {
+export const getEPForNextLevel = (currentLevel) => {
   return Math.pow(currentLevel, 2) * 100;
 };
+
+// Keep old function name for backwards compatibility
+export const getXPForNextLevel = getEPForNextLevel;
 
 // ============================================
 // STAMP & ACHIEVEMENT OPERATIONS
