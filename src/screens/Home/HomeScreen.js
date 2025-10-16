@@ -9,16 +9,16 @@ import {
 } from 'react-native';
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { supabase } from '../../api/supabaseClient';
+import ArchetypeOrb from '../../components/ArchetypeOrb';
 import AuraBreakdownModal from '../../components/modals/AuraBreakdownModal';
 import XPDetailModal from '../../components/modals/XPDetailModal';
 import XPCircleBadge from '../../components/passport/XPCircleBadge';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
-import ArchetypeOrbScene from '../../components/three/ArchetypeOrbScene';
 import { getArchetypeColor } from '../../constants/archetypeColors';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
-import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 import { useOrbTransition } from '../../state/orbTransitionContext';
+import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 
 export default function HomeScreen({ navigation }) {
   const [archetypeData, setArchetypeData] = useState([]);
@@ -228,10 +228,14 @@ export default function HomeScreen({ navigation }) {
           onLayout={handleOrbLayout}
           style={[styles.orbSection, { opacity: orbOpacity }]}
         >
-          <ArchetypeOrbScene
+          <ArchetypeOrb
             archetypeData={archetypeData}
+            xpLevel={userLevel}
+            xpProgress={userXP / xpForNextLevel}
             size={360}
             onPress={handleOrbPress}
+            interactive={true}
+            lod="standard"
           />
         </Animated.View>
 
@@ -326,7 +330,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 12,
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
