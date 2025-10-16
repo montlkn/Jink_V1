@@ -235,7 +235,7 @@ export default function HomeScreen({ navigation }) {
             size={360}
             onPress={handleOrbPress}
             interactive={true}
-            lod="low"
+            lod="standard"
           />
         </Animated.View>
 

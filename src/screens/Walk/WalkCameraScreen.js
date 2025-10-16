@@ -96,7 +96,8 @@ const styles = StyleSheet.create({
   camera: { flex: 1 },
   controls: {
     position: "absolute",
-    bottom: 32,
+    // Position shutter above the tab bar with ~20px padding
+    bottom: 102,
     width: "100%",
     alignItems: "center",
   },

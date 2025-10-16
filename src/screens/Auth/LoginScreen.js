@@ -40,6 +40,8 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
       setError("");
+      // Navigate to callback handler before opening browser so it can catch the deep link
+      navigation.navigate("AuthCallback");
       await signInWithProvider(provider);
       // OAuth will redirect to browser, then callback to app
     } catch (err) {
@@ -116,7 +118,7 @@ export default function LoginScreen({ navigation }) {
   // Render SSO view
   const renderSSO = () => (
     <>
-      <Text style={styles.title}>Welcome to Jink</Text>
+      <Text style={styles.title}>time to jink</Text>
       <Text style={styles.subtitle}>Sign in to continue</Text>
 
       <View style={styles.ssoContainer}>

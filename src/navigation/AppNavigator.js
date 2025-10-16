@@ -1,4 +1,5 @@
 import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
+import * as Linking from "expo-linking";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useEffect, useState, useCallback } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -78,8 +79,18 @@ export default function AppNavigator() {
     );
   }
 
+  // Configure deep linking so jink://auth/callback routes to AuthCallback
+  const linking = {
+    prefixes: [Linking.createURL("/"), "jink://"],
+    config: {
+      screens: {
+        AuthCallback: "auth/callback",
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator id="RootNav" screenOptions={{ headerShown: false }}>
         {!session ? (
           // No session, show login screen

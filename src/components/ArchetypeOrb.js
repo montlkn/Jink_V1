@@ -1,20 +1,29 @@
 import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import ArchetypeOrbR3F from './three/ArchetypeOrbR3F';
 import ArchetypeOrbScene from './three/ArchetypeOrbScene';
 import ArchetypeOrbV2 from './three/orb/ArchetypeOrbV2';
 
-// Feature flag for volumetric orb
-// Set to true to enable new volumetric smoke implementation
-const ENABLE_VOLUMETRIC = true; // Re-enabled with optimized shader
+// Kill switch: hard-disable any orb rendering (stability hotfix)
+const DISABLE_ORB = true;
 
-export default function ArchetypeOrb({ mode = 'clouds', style, ...rest }) {
+// Feature flag for volumetric orb
+// Default OFF for stability/perf on low-end devices; enable explicitly when safe
+const ENABLE_VOLUMETRIC = false;
+
+export default function ArchetypeOrb({ mode = 'clouds', style, lod = 'low', ...rest }) {
+  // Global pause: render a lightweight placeholder to preserve layout
+  if (DISABLE_ORB) {
+    return <View style={[styles.placeholder, style]} pointerEvents="none" />;
+  }
   try {
     console.log('ArchetypeOrb mode', mode);
   } catch (_) {}
 
   // Volumetric mode (Orb V2)
   if (mode === 'volumetric' || (ENABLE_VOLUMETRIC && mode === 'clouds')) {
-    return <ArchetypeOrbV2 {...rest} style={style} />;
+    // Pass a conservative default LOD for safety unless caller overrides
+    return <ArchetypeOrbV2 {...rest} lod={lod} style={style} />;
   }
 
   // Legacy shader mode
@@ -23,5 +32,16 @@ export default function ArchetypeOrb({ mode = 'clouds', style, ...rest }) {
   }
 
   // Default: billboard clouds mode
-  return <ArchetypeOrbScene {...rest} style={style} />;
+  // Prefer sprite-based implementation for clouds by default (safe + efficient)
+  return <ArchetypeOrbR3F {...rest} quality={lod === 'ultra' ? 'high' : 'high'} style={style} />;
 }
+
+const styles = StyleSheet.create({
+  placeholder: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 9999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+});

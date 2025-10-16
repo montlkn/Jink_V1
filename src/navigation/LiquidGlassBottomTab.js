@@ -295,6 +295,8 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
         </View>
       </View>
 
+      
+
       {/* FLOATING SEARCH BUTTON / BAR */}
       <Animated.View
         style={[
@@ -380,8 +382,8 @@ const styles = StyleSheet.create({
     width: BUBBLE_SIZE,
     height: BUBBLE_SIZE,
     borderRadius: BUBBLE_SIZE / 2,
-    backgroundColor: "rgba(0,122,255,0.14)",
-    borderWidth: 0.75,
+    backgroundColor: "rgba(236, 245, 255, 0.13)",
+    borderWidth: 0.15,
     borderColor: "rgba(255,255,255,0.85)",
   },
   tabRow: {
@@ -445,4 +447,5 @@ const styles = StyleSheet.create({
     color: "#111",
     backgroundColor: "transparent",
   },
+  
 });
