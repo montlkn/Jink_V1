@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "jink",
     "plugins": [
       [
         "expo-location",

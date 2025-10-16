@@ -28,6 +28,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="jink"/>
         <data android:scheme="com.lucienmount.architectureapp"/>
         <data android:scheme="exp+jink"/>
       </intent-filter>

@@ -7,6 +7,7 @@ import { useAuth } from "../auth/authProvider";
 import WalkCameraScreen from "../screens/Walk/WalkCameraScreen";
 import OnboardingQuizScreen from "../screens/Quiz/OnboardingQuizScreen";
 import LoginScreen from "../screens/Auth/LoginScreen";
+import AuthCallbackScreen from "../screens/Auth/AuthCallbackScreen";
 import ProfileDetailScreen from "../screens/Profile/ProfileDetailScreen";
 import BuildingInfoScreen from "../screens/Scan/BuildingInfoScreen";
 import NotFoundScreen from "../screens/Scan/NotFoundScreen";
@@ -82,18 +83,32 @@ export default function AppNavigator() {
       <Stack.Navigator id="RootNav" screenOptions={{ headerShown: false }}>
         {!session ? (
           // No session, show login screen
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
+          <>
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="AuthCallback"
+              component={AuthCallbackScreen}
+              options={{ headerShown: false }}
+            />
+          </>
         ) : needsOnboarding ? (
           // User needs to complete onboarding quiz
-          <Stack.Screen 
-            name="OnboardingQuiz" 
-            component={OnboardingQuizScreen}
-            options={{ headerShown: false }}
-          />
+          <>
+            <Stack.Screen
+              name="OnboardingQuiz"
+              component={OnboardingQuizScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="AuthCallback"
+              component={AuthCallbackScreen}
+              options={{ headerShown: false }}
+            />
+          </>
         ) : (
           // User has completed onboarding, show main app
           <>
@@ -118,9 +133,11 @@ export default function AppNavigator() {
               component={NotFoundScreen}
               options={{ headerShown: true, title: "Scan Result" }}
             />
-            
-            
-            
+            <Stack.Screen
+              name="AuthCallback"
+              component={AuthCallbackScreen}
+              options={{ headerShown: false }}
+            />
           </>
         )}
       </Stack.Navigator>
