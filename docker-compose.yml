@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    container_name: architecture-app-api
+    env_file:
+      - ./apps/server/.env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      - worker
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/healthz', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  worker:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile.worker
+    container_name: architecture-app-worker
+    env_file:
+      - ./apps/server/.env
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    # Optional: scale with `docker compose up -d --scale worker=3`

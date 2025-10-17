@@ -1,0 +1,16 @@
+# Fly.io configuration for AI Profile Summary Worker
+app = "architecture-app-worker"
+primary_region = "ord"
+
+[build]
+  dockerfile = "apps/server/Dockerfile.worker"
+
+[env]
+  NODE_ENV = "production"
+  AI_GENERATION_ENABLED = "true"
+  AI_PRIMARY_MODEL = "gemini-2.0-flash-lite"
+  AI_FALLBACK_MODEL = "gemini-2.0-flash"
+
+[[vm]]
+  memory = "512mb"
+  cpus = 1

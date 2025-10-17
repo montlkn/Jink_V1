@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy source
+COPY . .
+
+# Environment
+ENV NODE_ENV=production
+
+CMD ["node", "bin/start-worker.js"]

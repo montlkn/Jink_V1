@@ -59,6 +59,10 @@ export const submitQuizResponse = async (userId, questionId, selectedOptionId, r
 
 /**
  * Calculate and update user's aesthetic profile
+ *
+ * NOTE: Divergence checking and queue triggering now happens server-side
+ * (via Supabase RPC or backend webhook), not in the mobile app.
+ * This keeps BullMQ, Redis, and queue logic out of the mobile bundle.
  */
 export const calculateAestheticProfile = async (userId) => {
   try {
@@ -67,6 +71,10 @@ export const calculateAestheticProfile = async (userId) => {
     });
 
     if (error) throw error;
+
+    // Backend handles divergence check and queue trigger asynchronously
+    // Mobile app does NOT manage job queue
+
     return true;
   } catch (error) {
     console.error('Error calculating aesthetic profile:', error);

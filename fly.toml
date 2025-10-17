@@ -1,0 +1,54 @@
+# Fly.io configuration for AI Profile Summary API
+app = "architecture-app-api"
+primary_region = "ord"
+
+[build]
+  dockerfile = "apps/server/Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+  AI_GENERATION_ENABLED = "true"
+  AI_PRIMARY_MODEL = "gemini-2.0-flash-lite"
+  AI_FALLBACK_MODEL = "gemini-2.0-flash"
+  DIVERGENCE_THRESHOLD_PCT = "6"
+  BREAKER_THRESHOLD_PCT = "15"
+  DAILY_CAP = "5"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.tcp_checks]]
+    grace_period = "10s"
+    interval = "15s"
+    timeout = "5s"
+
+[metrics]
+  port = 9090

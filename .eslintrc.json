@@ -1,0 +1,79 @@
+{
+  "root": true,
+  "extends": ["expo"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "name": "bullmq",
+        "message": "❌ BullMQ is server-only. Import not allowed in React Native. Use HTTP API instead."
+      },
+      {
+        "name": "ioredis",
+        "message": "❌ Redis client is server-only. Import not allowed in React Native. Use HTTP API instead."
+      },
+      {
+        "name": "redis",
+        "message": "❌ Redis client is server-only. Import not allowed in React Native. Use HTTP API instead."
+      },
+      {
+        "name": "bull",
+        "message": "❌ Bull queue library is server-only. Use HTTP API instead."
+      },
+      {
+        "name": "fs",
+        "message": "❌ Node.js 'fs' module not available in React Native. Use Supabase storage or HTTP API."
+      },
+      {
+        "name": "net",
+        "message": "❌ Node.js 'net' module not available in React Native."
+      },
+      {
+        "name": "child_process",
+        "message": "❌ Node.js 'child_process' not available in React Native."
+      },
+      {
+        "name": "cluster",
+        "message": "❌ Node.js 'cluster' module not available in React Native."
+      },
+      {
+        "name": "dgram",
+        "message": "❌ Node.js 'dgram' module not available in React Native."
+      }
+    ],
+    "no-restricted-modules": [
+      "error",
+      {
+        "name": "bullmq",
+        "message": "❌ BullMQ is server-only. Not allowed in React Native. Use HTTP API instead."
+      },
+      {
+        "name": "ioredis",
+        "message": "❌ Redis client is server-only. Not allowed in React Native. Use HTTP API instead."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "*/workers/*",
+              "*/middleware/rateLimitBreaker*",
+              "*/lib/queue*",
+              "*/api/routes/*",
+              "*/services/summary/generate*",
+              "@myorg/server*",
+              "../server/*",
+              "../../backend/*"
+            ],
+            "message": "❌ Server-only code detected. Do not import backend modules from mobile app. Call HTTP API instead."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { getUserAestheticProfile } from '../../api/quizApi';
+import { fetchSummary } from '../../api/summaryApi';
 import { useAuth } from '../../auth/authProvider';
 import DonutChart from '../../components/charts/DonutChart';
 import { getArchetypeColor } from '../../constants/archetypeColors';
@@ -20,9 +21,32 @@ import SegmentModal from '../../components/modals/SegmentModal';
 import { generateProfileSummary, getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
 
+/**
+ * Format relative time (e.g., "2 hours ago")
+ */
+const formatRelativeTime = (isoDateString) => {
+  try {
+    const date = new Date(isoDateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  } catch {
+    return 'recently';
+  }
+};
+
 const ProfileDetailScreen = ({ navigation }) => {
   const { session } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [aiSummary, setAiSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [highlightedArchetype, setHighlightedArchetype] = useState(null);
@@ -47,6 +71,18 @@ const ProfileDetailScreen = ({ navigation }) => {
     try {
       const userProfile = await getUserAestheticProfile(session.user.id);
       setProfile(userProfile);
+
+      // Fetch AI-generated summary
+      try {
+        const summaryData = await fetchSummary(true); // autogen=true
+        if (summaryData?.summary) {
+          setAiSummary(summaryData.summary);
+        }
+      } catch (summaryErr) {
+        console.warn('Could not fetch AI summary:', summaryErr.message);
+        // Non-critical: continue without AI summary
+      }
+
       setError(null);
     } catch (err) {
       console.error('Error loading profile detail:', err);
@@ -178,8 +214,23 @@ const ProfileDetailScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Profile Summary Section */}
-        {summary && (
+        {/* AI-Generated Profile Summary Section */}
+        {aiSummary && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Aesthetic Profile</Text>
+            <View style={styles.summaryCard}>
+              <Text style={styles.aiSummaryText}>{aiSummary.text}</Text>
+              {aiSummary.generatedAt && (
+                <Text style={styles.generatedAtText}>
+                  Generated {formatRelativeTime(aiSummary.generatedAt)}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Fallback Summary Section (if no AI summary) */}
+        {!aiSummary && summary && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Profile Summary</Text>
             <View style={styles.summaryCard}>
@@ -597,6 +648,19 @@ const styles = StyleSheet.create({
   subtypePoints: {
     fontSize: 11,
     color: '#888',
+  },
+  aiSummaryText: {
+    fontSize: 16,
+    color: '#000',
+    lineHeight: 24,
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  generatedAtText: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
 });
 
