@@ -6,8 +6,8 @@ import { supabase } from './supabaseClient';
 
 // Use environment variable API_URL if available, otherwise use relative path
 const API_BASE = process.env.EXPO_PUBLIC_API_URL
-  ? `${process.env.EXPO_PUBLIC_API_URL}/api/profile`
-  : '/api/profile';
+  ? `${process.env.EXPO_PUBLIC_API_URL}/v1/profile`
+  : '/v1/profile';
 
 /**
  * Fetch current summary with optional auto-generation
