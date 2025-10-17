@@ -6,20 +6,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  SafeAreaView,
 } from 'react-native';
-import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import { Ionicons } from '@expo/vector-icons';
 
 const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
   if (!archetype) return null;
-
-  const onGestureEvent = (event) => {
-    const { translationY, velocityY } = event.nativeEvent;
-    
-    // Close modal if swiped down significantly or with high velocity
-    if (translationY > 100 || (velocityY > 500 && translationY > 50)) {
-      onClose();
-    }
-  };
 
   return (
     <Modal
@@ -29,15 +21,11 @@ const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
       onRequestClose={onClose}
       presentationStyle="pageSheet"
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <PanGestureHandler onGestureEvent={onGestureEvent}>
-          <View style={styles.container}>
-            <View style={styles.header}>
-              {/* Swipe indicator tab */}
-              <View style={styles.swipeIndicator} />
-              <View style={[styles.colorBar, { backgroundColor: archetype.color }]} />
-              <Text style={styles.title}>{archetype.name}</Text>
-            </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <View style={[styles.colorBar, { backgroundColor: archetype.color }]} />
+          <Text style={styles.title}>{archetype.name}</Text>
+        </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Core Concept */}
@@ -86,10 +74,8 @@ const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
               ))}
             </View>
           </View>
-            </ScrollView>
-          </View>
-        </PanGestureHandler>
-      </GestureHandlerRootView>
+        </ScrollView>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -107,17 +93,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
     position: 'relative',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  swipeIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#C0C0C0',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-    marginTop: 8,
   },
   colorBar: {
     height: 4,

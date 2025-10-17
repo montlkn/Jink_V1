@@ -1,3 +1,5 @@
+import { getArchetypeColor } from '../constants/archetypeColors';
+
 export const getDetailedArchetypeInfo = (archetypeName) => {
   const archetypeData = {
     'classicist': {
@@ -13,7 +15,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Renaissance & Palladianism', 'Baroque', 'Rococo', 'Neoclassicism', 'Beaux-Arts', 'Georgian & Federal Styles'],
       urbanExpression: 'Grand boulevards, formal squares, monumental civic buildings, hierarchical street networks',
-      color: '#8B4513'
     },
     'romantic': {
       name: 'The Romantic',
@@ -28,7 +29,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Gothic Revival', 'Victorian Eclecticism', 'Art Nouveau', 'Bohemian & Maximalist Styles', 'Dark Academia', 'Cottagecore'],
       urbanExpression: 'Winding medieval streets, hidden courtyards, Gothic cathedrals, picturesque neighborhoods',
-      color: '#8B008B'
     },
     'stylist': {
       name: 'The Stylist',
@@ -43,7 +43,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Art Deco', 'Streamline Moderne', 'Hollywood Regency', 'Contemporary Luxury Design'],
       urbanExpression: 'Luxury shopping districts, boutique hotels, high-end residential towers, designed nightlife districts',
-      color: '#FFD700'
     },
     'modernist': {
       name: 'The Modernist',
@@ -58,7 +57,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Bauhaus', 'International Style', 'De Stijl', 'Minimalism', 'Super Normal Design', 'Contemporary Minimalism'],
       urbanExpression: 'Glass office towers, modernist housing estates, clean transit systems, rational street grids',
-      color: '#708090'
     },
     'industrialist': {
       name: 'The Industrialist',
@@ -73,7 +71,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Industrial Heritage', 'Loft Living', 'Adaptive Reuse', 'Warehouse Conversion'],
       urbanExpression: 'Converted warehouses, exposed infrastructure, industrial districts, working waterfronts, power plants, bridges, transit hubs',
-      color: '#A0522D'
     },
     'infrastructuralist': {
       name: 'The Infrastructuralist',
@@ -89,7 +86,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['High-Tech Architecture', 'Structural Expressionism', 'Infrastructure Tourism', 'Megastructure Movement'],
       urbanExpression: 'Converted warehouses, exposed infrastructure, industrial districts, working waterfronts, power plants, bridges, transit hubs',
-      color: '#4682B4'
     },
     'visionary': {
       name: 'The Visionary',
@@ -104,7 +100,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Deconstructivism', 'Parametricism', 'Postmodernism', 'Blob Architecture', 'Digital Architecture', 'Critical Architecture'],
       urbanExpression: 'Iconic cultural buildings, experimental housing, tech campuses, futuristic transit hubs',
-      color: '#FF6347'
     },
     'pop_culturalist': {
       name: 'The Pop Culturalist',
@@ -119,7 +114,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Pop Art Architecture', 'Postmodern Classicism', 'Googie Architecture', 'Entertainment Architecture', 'Branded Environments'],
       urbanExpression: 'Times Square, Las Vegas Strip, theme parks, shopping malls, entertainment districts',
-      color: '#FF69B4'
     },
     'vernacularist': {
       name: 'The Vernacularist',
@@ -134,7 +128,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Indigenous Architectures', 'Critical Regionalism', 'Tropical Modernism', 'Mud/Adobe/Rammed Earth Traditions', 'Sustainable Design'],
       urbanExpression: 'Historic neighborhoods, local markets, craft districts, sustainable communities, cultural quarters',
-      color: '#8FBC8F'
     },
     'naturalist': {
       name: 'The Naturalist',
@@ -150,7 +143,6 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Arts & Crafts Movement', 'Prairie School', 'Scandinavian Design', 'Japandi', 'Biophilic Design'],
       urbanExpression: 'Historic neighborhoods, local markets, craft districts, sustainable communities, cultural quarters',
-      color: '#228B22'
     },
     'austerist': {
       name: 'The Austerist',
@@ -166,11 +158,14 @@ export const getDetailedArchetypeInfo = (archetypeName) => {
       ],
       umbrellaMovements: ['Corporate Architecture', 'Big-Box Retail', 'Institutional Design', 'Public Housing', 'Standard Office Buildings'],
       urbanExpression: 'Business parks, strip malls, apartment complexes, institutional buildings, suburban office parks',
-      color: '#696969'
     }
   };
 
-  return archetypeData[archetypeName.toLowerCase()] || null;
+  const key = String(archetypeName || '').toLowerCase();
+  const info = archetypeData[key] || null;
+  if (!info) return null;
+  const display = info.name?.replace(/^The\s+/, '') || archetypeName;
+  return { ...info, color: getArchetypeColor(display) };
 };
 
 // Helper function to get archetype by display name

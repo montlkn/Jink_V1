@@ -1,28 +1,50 @@
-import React from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useRef } from "react";
 import {
-  Image,
+  Animated,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import ArchetypeOrbScene from "../../components/three/ArchetypeOrbScene";
+import { useOrbTransition } from "../../state/orbTransitionContext";
 
 const WalkStartScreen = ({ navigation }) => {
+  const { orbData } = useOrbTransition();
+  const entryScale = useRef(new Animated.Value(0.85)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      entryScale.setValue(0.85);
+      Animated.spring(entryScale, {
+        toValue: 1,
+        speed: 14,
+        bounciness: 6,
+        useNativeDriver: true,
+      }).start();
+
+      return () => {
+        entryScale.stopAnimation();
+      };
+    }, [entryScale])
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text>PRESS ME AND</Text>
-
+        <Animated.View style={{ transform: [{ scale: entryScale }] }}>
+          <ArchetypeOrbScene archetypeData={orbData} size={320} />
+        </Animated.View>
         <Pressable
+          style={styles.startButton}
           onPress={() => {
-            console.log("Starting Walk Setup");
             navigation.navigate("WalkSetupScreen");
           }}
         >
-          <Image source={require("../../../assets/images/ellipse.png")} />
+          <Text style={styles.startText}>Start Jink...</Text>
         </Pressable>
-        <Text>LETS TAKE A WALK</Text>
       </View>
     </SafeAreaView>
   );
@@ -39,6 +61,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 20,
+  },
+  startButton: {
+    marginTop: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 28,
+    backgroundColor: "#111",
+  },
+  startText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.4,
   },
 });
 

@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 
 const XPMeter = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000 }) => {
   const progressPercent = (currentXP / xpForNextLevel) * 100;
@@ -17,7 +17,7 @@ const XPMeter = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000 }) => {
       {/* XP Info */}
       <View style={styles.xpInfo}>
         <View style={styles.xpHeader}>
-          <Text style={styles.xpLabel}>Experience Points</Text>
+          <Text style={styles.xpLabel}>Xperience Points</Text>
           <Text style={styles.xpValue}>{currentXP.toLocaleString()} XP</Text>
         </View>
 

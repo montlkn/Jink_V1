@@ -1,15 +1,15 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import React from 'react';
+import {
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -124,8 +124,8 @@ const QuestDetailModal = ({
                   <Ionicons name="star" size={24} color="#FFD700" />
                 </View>
                 <View style={styles.rewardInfo}>
-                  <Text style={styles.rewardLabel}>Experience Points</Text>
-                  <Text style={styles.rewardValue}>{quest.xpReward} XP</Text>
+                  <Text style={styles.rewardLabel}>Experience</Text>
+                  <Text style={styles.rewardValue}>{quest.xpReward || quest.epReward} XP</Text>
                   <Text style={styles.rewardDescription}>
                     Unlock premium features like detailed building info
                   </Text>

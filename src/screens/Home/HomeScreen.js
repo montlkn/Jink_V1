@@ -1,23 +1,93 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import AestheticProfile from '../../components/home/AestheticProfile';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View
+} from 'react-native';
+import { getUserAestheticProfile } from '../../api/quizApi';
+import { supabase } from '../../api/supabaseClient';
+import ArchetypeOrb from '../../components/ArchetypeOrb';
+import AuraBreakdownModal from '../../components/modals/AuraBreakdownModal';
+import XPDetailModal from '../../components/modals/XPDetailModal';
+import XPCircleBadge from '../../components/passport/XPCircleBadge';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
-import XPMeter from '../../components/passport/XPMeter';
-import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
+import { getArchetypeColor } from '../../constants/archetypeColors';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
+import { useOrbTransition } from '../../state/orbTransitionContext';
+import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 
-const HomeScreen = ({ navigation }) => {
+export default function HomeScreen({ navigation }) {
+  const [archetypeData, setArchetypeData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [auraVisible, setAuraVisible] = useState(false);
+  const [xpModalVisible, setXpModalVisible] = useState(false);
   const [selectedQuest, setSelectedQuest] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [dailyTimeRemaining, setDailyTimeRemaining] = useState('');
   const [weeklyTimeRemaining, setWeeklyTimeRemaining] = useState('');
   const [dailyQuest, setDailyQuest] = useState(null);
   const [weeklyQuest, setWeeklyQuest] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [userXP, setUserXP] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [xpForNextLevel, setXpForNextLevel] = useState(100);
+
+  const {
+    registerHomeOrbLayout,
+    setOrbData,
+    transitionProgress,
+    isTransitioning,
+  } = useOrbTransition();
+  const orbContainerRef = useRef(null);
+
+  // Load aesthetic profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        // Get session directly from Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+          console.error('No session found');
+          setLoading(false);
+          return;
+        }
+
+        const profile = await getUserAestheticProfile(session.user.id);
+        if (profile?.archetype_scores) {
+          const total = Object.values(profile.archetype_scores).reduce(
+            (sum, val) => sum + Math.max(0, val),
+            0
+          );
+          const sorted = Object.entries(profile.archetype_scores)
+            .map(([name, score]) => ({
+              name,
+              archetype: name,
+              percentage: (score / total) * 100,
+              score,
+              color: getArchetypeColor(name),
+            }))
+            .sort((a, b) => b.percentage - a.percentage)
+            .slice(0, 3);
+          setArchetypeData(sorted);
+        }
+      } catch (err) {
+        console.error('Error fetching archetypes:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  useEffect(() => {
+    if (archetypeData.length) {
+      setOrbData(archetypeData);
+    }
+  }, [archetypeData, setOrbData]);
 
   // Load quests from Supabase
   useEffect(() => {
@@ -25,18 +95,17 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   const loadQuests = async () => {
-    setLoading(true);
     try {
-      const [daily, weekly, xpData] = await Promise.all([
+      const [daily, weekly, epData] = await Promise.all([
         getActiveDailyQuest(),
         getActiveWeeklyQuest(),
         getUserXP()
       ]);
 
       // Set XP data
-      setUserXP(xpData.xp);
-      setUserLevel(xpData.level);
-      setXpForNextLevel(getXPForNextLevel(xpData.level));
+      setUserXP(epData.ep || epData.xp || 0);
+      setUserLevel(epData.level || 1);
+      setXpForNextLevel(getXPForNextLevel(epData.level || 1));
 
       if (daily) {
         setDailyQuest({
@@ -83,8 +152,6 @@ const HomeScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Error loading quests:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -101,6 +168,8 @@ const HomeScreen = ({ navigation }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleOrbPress = () => setAuraVisible(true);
+
   const handleQuestPress = (quest) => {
     setSelectedQuest(quest);
     setModalVisible(true);
@@ -110,44 +179,73 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate(screen);
   };
 
+  const contentFade = transitionProgress.interpolate({
+    inputRange: [0, 0.6, 1],
+    outputRange: [1, 0.35, 0],
+    extrapolate: 'clamp',
+  });
+
+  const orbOpacity = isTransitioning ? 0 : 1;
+
+  const handleOrbLayout = () => {
+    if (!orbContainerRef.current) return;
+    const node =
+      typeof orbContainerRef.current.measureInWindow === 'function'
+        ? orbContainerRef.current
+        : orbContainerRef.current.getNode?.();
+    if (!node || typeof node.measureInWindow !== 'function') {
+      return;
+    }
+    node.measureInWindow((x, y, width, height) => {
+      registerHomeOrbLayout({ x, y, width, height });
+    });
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <ActivityIndicator size="large" color="#999" />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.homeContainer}>
-          {/* Header */}
-          <Text style={styles.headerTitle}>HI LUCIEN!</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* XP Circle Badge - Top Left */}
+        <Animated.View style={[styles.xpBadgeContainer, { opacity: contentFade }]}>
+          <XPCircleBadge
+            currentXP={userXP}
+            level={userLevel}
+            xpForNextLevel={xpForNextLevel}
+            onPress={() => setXpModalVisible(true)}
+          />
+        </Animated.View>
+        <Animated.View
+          ref={orbContainerRef}
+          onLayout={handleOrbLayout}
+          style={[styles.orbSection, { opacity: orbOpacity }]}
+        >
+          <ArchetypeOrb
+            archetypeData={archetypeData}
+            xpLevel={userLevel}
+            xpProgress={userXP / xpForNextLevel}
+            size={360}
+            onPress={handleOrbPress}
+            interactive={true}
+            lod="standard"
+          />
+        </Animated.View>
 
-          {/* Begin Derive CTA */}
-          <TouchableOpacity onPress={() => navigation.navigate('Derive')}>
-            <Text style={styles.linkText}>BEGIN YOUR DERIVE NOW &gt;</Text>
-          </TouchableOpacity>
-
-          {/* XP Meter */}
-          <View style={styles.xpSection}>
-            <XPMeter
-              currentXP={userXP}
-              level={userLevel}
-              xpForNextLevel={xpForNextLevel}
-            />
-          </View>
-
-          {/* Aesthetic Profile Section */}
-          <View style={styles.section}>
-            <AestheticProfile
-              navigation={navigation}
-              onNavigate={() => navigation.navigate('ProfileDetail')}
-            />
-          </View>
-
+        <Animated.View style={{ opacity: contentFade }}>
           {/* Daily Quest Section */}
           {dailyQuest && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>TODAY'S QUEST</Text>
               <QuestCard
                 type="daily"
                 title={dailyQuest.title}
                 description={dailyQuest.description}
-                xpReward={dailyQuest.xpReward}
+                epReward={dailyQuest.xpReward}
                 additionalRewards={dailyQuest.additionalRewards}
                 progress={dailyQuest.progress}
                 total={dailyQuest.total}
@@ -160,12 +258,11 @@ const HomeScreen = ({ navigation }) => {
           {/* Weekly Quest Section */}
           {weeklyQuest && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>THIS WEEK'S CHALLENGE</Text>
               <QuestCard
                 type="weekly"
                 title={weeklyQuest.title}
                 description={weeklyQuest.description}
-                xpReward={weeklyQuest.xpReward}
+                epReward={weeklyQuest.xpReward}
                 additionalRewards={weeklyQuest.additionalRewards}
                 progress={weeklyQuest.progress}
                 total={weeklyQuest.total}
@@ -174,20 +271,23 @@ const HomeScreen = ({ navigation }) => {
               />
             </View>
           )}
-
-          {/* Past Walks Section */}
-          <TouchableOpacity style={styles.section}>
-            <Text style={styles.sectionTitle}>PAST WALKS &gt;</Text>
-            <View style={styles.listItem}>
-              <Text style={styles.listItemText}>A Walk Through SoHo's Cast-Iron District</Text>
-            </View>
-            <View style={styles.listItem}>
-              <Text style={styles.listItemText}>Midtown's Modernist Marvels</Text>
-            </View>
-          </TouchableOpacity>
-
-        </View>
+        </Animated.View>
       </ScrollView>
+
+      <AuraBreakdownModal
+        visible={auraVisible}
+        onClose={() => setAuraVisible(false)}
+        segments={archetypeData}
+      />
+
+      {/* XP Detail Modal */}
+      <XPDetailModal
+        visible={xpModalVisible}
+        onClose={() => setXpModalVisible(false)}
+        currentXP={userXP}
+        level={userLevel}
+        xpForNextLevel={xpForNextLevel}
+      />
 
       {/* Quest Detail Modal */}
       <QuestDetailModal
@@ -197,21 +297,38 @@ const HomeScreen = ({ navigation }) => {
         onStartQuest={handleStartQuest}
         timeRemaining={selectedQuest?.type === 'daily' ? dailyTimeRemaining : weeklyTimeRemaining}
       />
-    </SafeAreaView>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8F8F8' },
-  scrollView: { flex: 1 },
-  homeContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 }, // paddingBottom to avoid overlap with tab bar
-  headerTitle: { color: '#000', fontSize: 28, fontWeight: 'bold', letterSpacing: 1 },
-  linkText: { color: '#000', fontSize: 16, fontWeight: 'bold', marginTop: 8, letterSpacing: 0.5 },
-  section: { marginTop: 40 },
-  sectionTitle: { color: '#888', fontSize: 14, fontWeight: 'bold', letterSpacing: 1, marginBottom: 12, textTransform: 'uppercase' },
-  listItem: { paddingVertical: 15, borderTopWidth: 1, borderColor: '#e0e0e0' },
-  listItemText: { color: '#000', fontSize: 16 },
-  xpSection: { marginTop: 24, marginBottom: -16 },
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
+  scrollContent: { paddingBottom: 100, paddingTop: 60 },
+  xpBadgeContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  orbSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  orbLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111',
+    marginTop: 12,
+  },
+  section: {
+    marginHorizontal: 20,
+    marginTop: 12,
+  },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
-
-export default HomeScreen; 

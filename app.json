@@ -1,10 +1,11 @@
 {
   "expo": {
+    "scheme": "jink",
     "plugins": [
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "We use your location to guide your walk."
+          "locationWhenInUsePermission": "We use your location to guide your walk. Don't worry, we won't share your location with anyone."
         }
       ],
       [
@@ -12,7 +13,8 @@
         {
           "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to scan buildings."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "eas": {
@@ -21,10 +23,19 @@
     },
     "ios": {
       "bundleIdentifier": "com.lucienmount.architectureapp",
-      "usesSwiftUI": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "appleTeamId": "5JRD794HZ9"
+    },
+    "android": {
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.lucienmount.architectureapp"
     }
   }
 }

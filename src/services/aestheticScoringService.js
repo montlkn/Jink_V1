@@ -130,6 +130,8 @@ export const calculateClientSideProfile = (responses, questions) => {
 /**
  * Get archetype display information
  */
+import { getArchetypeColor } from '../constants/archetypeColors';
+
 export const getArchetypeInfo = (archetype) => {
   const archetypeData = {
     classicist: {
@@ -145,7 +147,6 @@ export const getArchetypeInfo = (archetype) => {
       ],
       urbanExpression: 'Classical architecture in cities emphasizes civic grandeur through monuments, columns, and formal spatial arrangements that convey authority and permanence.',
       umbrellaMovements: ['Neoclassicism', 'Beaux-Arts', 'Classical Revival'],
-      color: '#8B4513'
     },
     romantic: {
       name: 'The Romantic',
@@ -160,65 +161,58 @@ export const getArchetypeInfo = (archetype) => {
       ],
       urbanExpression: 'Romantic urban environments feature eclectic neighborhoods with varied building styles, intimate public spaces, and architecture that tells stories of different eras and cultures.',
       umbrellaMovements: ['Gothic Revival', 'Art Nouveau', 'Victorian Architecture'],
-      color: '#8B008B'
     },
     stylist: {
       name: 'The Stylist',
       description: 'Defined by appreciation for glamour, surface, and visual rhythm.',
       vibe: ['Glamorous', 'Geometric', 'Luxurious', 'Polished', 'Confident', 'Sophisticated'],
-      color: '#FFD700'
     },
     modernist: {
       name: 'The Modernist',
       description: 'Driven by belief in universal principles, functionalism, and rejection of unnecessary ornament.',
       vibe: ['Clean', 'Intentional', 'Minimal', 'Universal', 'Functional', 'Sleek', 'Systematic'],
-      color: '#2F4F4F'
     },
     industrialist: {
       name: 'The Industrialist',
       description: 'Finds beauty in the raw, utilitarian, and exposed. Values honesty and durability.',
       vibe: ['Raw', 'Utilitarian', 'Edgy', 'Exposed', 'Functional', 'Urban', 'Authentic'],
-      color: '#A0522D'
     },
     visionary: {
       name: 'The Visionary',
       description: 'Defined by relentless drive to push boundaries and experiment with form.',
       vibe: ['Sculptural', 'Unconventional', 'Dynamic', 'Bold', 'Innovative', 'Playful', 'Experimental'],
-      color: '#FF6347'
     },
     pop_culturalist: {
       name: 'The Pop Culturalist',
       description: 'Engages with aesthetics of commercialism, mass media, and spectacle.',
       vibe: ['Thematic', 'Iconic', 'Commercial', 'Ironic', 'Spectacular', 'Theatrical', 'Accessible'],
-      color: '#FF69B4'
     },
     vernacularist: {
       name: 'The Vernacularist',
       description: 'Champions localized, indigenous, and community-born design traditions.',
       vibe: ['Rooted', 'Climatic', 'Communal', 'Tactile', 'Intuitive', 'Regional', 'Sustainable'],
-      color: '#228B22'
     },
     austerist: {
       name: 'The Austerist',
       description: 'Efficiency-driven design optimized for function, cost, and standardization.',
       vibe: ['Efficient', 'Systematic', 'Practical', 'Standardized', 'Functional', 'Universal', 'Cost-Conscious'],
-      color: '#696969'
     },
     infrastructuralist: {
       name: 'The Infrastructuralist',
       description: 'Celebrates the monumental scale and systematic complexity of large-scale infrastructure.',
       vibe: ['Megascale', 'Systematic', 'Technological', 'Engineering', 'Monumental'],
-      color: '#4682B4'
     },
     naturalist: {
       name: 'The Naturalist',
       description: 'Values inherent beauty of natural materials and creation of serene, grounded environments.',
       vibe: ['Material Honest', 'Craft', 'Organic', 'Serene', 'Grounded'],
-      color: '#8FBC8F'
     }
   };
-
-  return archetypeData[archetype] || null;
+  const info = archetypeData[archetype] || null;
+  if (!info) return null;
+  // Derive color from central constants
+  const display = info.name?.replace(/^The\s+/, '') || archetype;
+  return { ...info, color: getArchetypeColor(display || archetype) };
 };
 
 /**

@@ -1,19 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 
 const QuestCard = ({
   type = 'daily', // 'daily' or 'weekly'
   title,
   description,
-  xpReward,
+  epReward,
+  xpReward, // backwards compatibility
   additionalRewards = [],
   progress = 0,
   total = 1,
   onPress,
   completed = false,
 }) => {
+  const reward = epReward || xpReward;
   const [timeRemaining, setTimeRemaining] = useState('');
 
   useEffect(() => {
@@ -31,6 +34,11 @@ const QuestCard = ({
   const isDaily = type === 'daily';
   const progressPercent = (progress / total) * 100;
 
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onPress) onPress();
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -38,7 +46,7 @@ const QuestCard = ({
         isDaily ? styles.dailyCard : styles.weeklyCard,
         completed && styles.completedCard,
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.8}
     >
       {/* Header */}
@@ -46,7 +54,7 @@ const QuestCard = ({
         <View style={styles.headerLeft}>
           <Ionicons
             name={isDaily ? 'sunny' : 'calendar'}
-            size={24}
+            size={20}
             color={isDaily ? '#FF6B35' : '#4ECDC4'}
           />
           <Text style={[styles.questType, isDaily ? styles.dailyText : styles.weeklyText]}>
@@ -54,7 +62,7 @@ const QuestCard = ({
           </Text>
         </View>
         <View style={styles.timerBadge}>
-          <Ionicons name="time-outline" size={14} color="#666" />
+          <Ionicons name="time-outline" size={12} color="#666" />
           <Text style={styles.timerText}>{timeRemaining}</Text>
         </View>
       </View>
@@ -84,13 +92,13 @@ const QuestCard = ({
       {/* Rewards Section */}
       <View style={styles.rewardsContainer}>
         <View style={styles.rewardBadge}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.rewardText}>{xpReward} XP</Text>
+          <Ionicons name="star" size={14} color="#FFD700" />
+          <Text style={styles.rewardText}>{reward} XP</Text>
         </View>
 
         {additionalRewards.map((reward, index) => (
           <View key={index} style={styles.rewardBadge}>
-            <Ionicons name={reward.icon || 'gift'} size={16} color="#8E44AD" />
+            <Ionicons name={reward.icon || 'gift'} size={14} color="#8E44AD" />
             <Text style={styles.rewardText}>{reward.label}</Text>
           </View>
         ))}
@@ -99,7 +107,7 @@ const QuestCard = ({
       {/* Completed Badge */}
       {completed && (
         <View style={styles.completedBadge}>
-          <Ionicons name="checkmark-circle" size={20} color="#2ECC71" />
+          <Ionicons name="checkmark-circle" size={18} color="#2ECC71" />
           <Text style={styles.completedText}>COMPLETED</Text>
         </View>
       )}
@@ -110,15 +118,15 @@ const QuestCard = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowRadius: 8,
     elevation: 5,
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   dailyCard: {
     borderColor: '#FF6B35',
@@ -134,7 +142,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -156,8 +164,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F0F0F0',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 12,
   },
   timerText: {
@@ -167,26 +175,26 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   title: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#000',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   description: {
     fontSize: 14,
     color: '#555',
-    lineHeight: 20,
-    marginBottom: 16,
+    lineHeight: 18,
+    marginBottom: 12,
   },
   progressContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   progressBar: {
-    height: 8,
+    height: 6,
     backgroundColor: '#E0E0E0',
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   progressFill: {
     height: '100%',
@@ -206,14 +214,14 @@ const styles = StyleSheet.create({
   rewardsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   rewardBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF9E6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#FFD700',
@@ -228,8 +236,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    paddingVertical: 8,
+    marginTop: 10,
+    paddingVertical: 6,
     backgroundColor: '#E8F8F5',
     borderRadius: 8,
   },

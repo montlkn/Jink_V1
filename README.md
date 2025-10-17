@@ -1,188 +1,167 @@
-# Architecture App V2 🏛️
+# Jink V2 (Aura Profile Update)
 
-A React Native mobile application that helps users explore and discover architectural landmarks through guided walks and building identification.
+A React Native mobile application designed to help users explore architectural landmarks through guided walks, building identification, and personalized aesthetic experiences. This version integrates the **Aura Profile** system and expanded personalization features from the `docs/docs2` branch.
 
-## Features
+---
+
+## 🌆 Overview
+
+**Jink** merges urban exploration with architectural intelligence. The app enables users to discover buildings, learn architectural history, and build a visual "aesthetic profile" that evolves as they explore. With the **Aura Profile**, users now receive dynamic recommendations based on their design sensibilities and past interactions.
+
+---
+
+## 🚀 Features
 
 ### 🏠 **Home Screen**
-- Personalized greeting and aesthetic profile
-- Quick access to start a new "Dérive" (architectural walk)
-- View past walks and architectural styles
-- Featured landmarks with detailed information
 
-### 🗺️ **Walk Setup (Dérive)**
-- Customizable walk duration (5-90 minutes)
-- Two walk types:
-  - **Random**: Algorithm-generated routes
-  - **Personalized**: Based on user's aesthetic preferences
-- Interactive time slider with visual feedback
+* Orb animation shown 
+* Quick-start button for new Jink (architectural walk)
+* Daily / Weekly Quest 
+* Featured landmarks with cultural notes and 3D visual previews
+
+### 🧭 **Jink (Walk Experience)**
+
+* Customizable walk duration (5–120 minutes)
+* Paid or free walks
+* **Personalized Dérive** – guided by the user's **Aura Profile** aesthetic data
+* Optional audio guidance with architectural commentary (much later to come)
+* Can share lists as derives -- kind of like listening to someone elses playlist, user can choose a persoanlised walk or a "playlist walk"
+* Progress visualization
+* After walk summaries
 
 ### 📷 **Scan & Identify**
-- Camera integration for building identification
-- Real-time architectural analysis
-- Building information and historical context
-- Contribution system for community data
+
+* Real-time building recognition powered by Vision Camera and Supabase ML endpoints
+* Historical and stylistic metadata returned instantly
+* User contributions enhance community database
+* Offline caching of common landmarks for low-data scenarios
+* Filters personalised information for you based on the building and your profile (exa.ai integration)
+
+### 🌈 **Aura Profile (New)**
+
+* **Aesthetic fingerprint** generated from user interactions (styles, walks, scans)
+* Dynamic personality visualization through color gradients and motion graphics
+* Integration with walk recommendations and search suggestions
+* Syncs seamlessly with user account via Supabase Auth
 
 ### 👤 **Passport**
-- User profile and preferences
-- Walk history and achievements
-- Aesthetic profile tracking
-- Personal architectural journey
+
+* Full user profile and exploration history through a past walk section-- this is the map with fog of war view
+* Custom achievements and walk badges
+* Style evolution graph (tracks how user taste changes over time)
+* Shareable journey summaries with photos and data overlays (Pro Users Only)
 
 ### 🔍 **Search**
-- Find specific buildings or architectural styles
-- Filter by location, period, or style
-- Advanced search capabilities
 
-## Tech Stack
+* Location, period, and architectural style filters
+* Supports fuzzy queries and aesthetic categories (e.g. *Brutalist calm*, *Organic flow*)
+* Context-aware search: learns from recent activity
+* Results shown on map near you
 
-- **React Native** - Cross-platform mobile development
-- **Expo** - Development platform and tools
-- **React Navigation** - Navigation and routing
-- **Supabase** - Backend database and authentication
-- **Expo Blur** - Custom UI effects
-- **React Native Vision Camera** - Camera functionality
+---
 
-## Project Structure
+## 🧠 Architecture & Tech Stack
+
+* **React Native + Expo** – core mobile framework
+* **React Navigation** – custom navigation with glassmorphism transitions
+* **Supabase** – backend database, authentication, and ML integration
+* **Vision Camera** – high-performance image recognition
+* **Zustand** – global state management
+* **Expo Blur & Reanimated** – advanced UI/UX effects
+
+---
+
+## 📁 Project Structure
 
 ```
 architecture-app/
 ├── src/
-│   ├── api/                    # API integrations
-│   │   ├── supabaseClient.js   # Supabase configuration
-│   │   ├── buildingsApi.js     # Building data API
-│   │   ├── userApi.js          # User management API
-│   │   └── walkApi.js          # Walk generation API
-│   ├── components/             # Reusable UI components
-│   │   ├── common/            # Shared components
-│   │   ├── home/              # Home screen components
-│   │   └── walk/              # Walk-related components
-│   ├── screens/               # Main app screens
-│   │   ├── Auth/              # Authentication screens
-│   │   ├── Home/              # Home screen
-│   │   ├── Scan/              # Camera and scanning
-│   │   ├── Walk/              # Walk setup and navigation
-│   │   ├── Passport/          # User profile
-│   │   └── Search/            # Search functionality
-│   ├── navigation/            # Navigation configuration
-│   ├── config/                # App configuration
-│   ├── hooks/                 # Custom React hooks
-│   ├── services/              # Business logic
-│   └── state/                 # State management
-├── assets/                    # Images, fonts, icons
-├── android/                   # Android native files
-├── ios/                       # iOS native files
-└── App.js                     # Main app entry point
+│   ├── api/                    # Supabase & API services
+│   ├── components/             # Modular UI components
+│   │   ├── aura/               # Aura Profile visual components
+│   │   ├── home/               # Home interface modules
+│   │   └── walk/               # Walk setup and controls
+│   ├── hooks/                  # Custom React hooks
+│   ├── screens/                # Screen-level views
+│   │   ├── Aura/               # Aura Profile screen
+│   │   ├── Passport/           # User passport and stats
+│   │   ├── Walk/               # Walk interface
+│   │   ├── Scan/               # Camera and ML scanning
+│   │   ├── Home/               # Entry dashboard
+│   │   └── Search/             # Advanced search
+│   ├── navigation/             # Stack and tab navigation
+│   ├── services/               # Business logic, ML integration
+│   ├── state/                  # Global state stores (Zustand)
+│   └── utils/                  # Helper functions
+├── assets/                     # Fonts, images, icons
+├── android/                    # Android native config
+├── ios/                        # iOS native config
+└── App.js                      # App entry point
 ```
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- Expo CLI
-- iOS Simulator (for iOS development)
-- Android Studio (for Android development)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/montlkn/Swervo_V1.git
-   cd architecture-app
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   Create a `.env` file in the root directory:
-   ```env
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-4. **Start the development server**
-   ```bash
-   # For Expo Go (recommended for development)
-   npx expo start
-   
-   # For native development build
-   npx expo run:ios
-   npx expo run:android
-   ```
-
-## Development
-
-### Running the App
-
-- **Expo Go**: Scan QR code with Expo Go app
-- **iOS Simulator**: Press `i` in terminal or use `npx expo run:ios`
-- **Android Emulator**: Press `a` in terminal or use `npx expo run:android`
-- **Web**: Press `w` in terminal
-
-### Key Components
-
-#### WalkTypeButton
-```javascript
-<WalkTypeButton 
-  title="RANDOM"
-  color="rgba(100, 255, 150, 0.3)"
-  onPress={() => console.log('Start Random Walk')}
-/>
-```
-
-#### TimeSlider
-```javascript
-<TimeSlider 
-  min={5}
-  max={90}
-  initialValue={45}
-/>
-```
-
-### Custom Navigation
-The app features a custom "liquid glass" tab bar with blur effects and smooth animations.
-
-## Architecture Decisions
-
-### Modular Design
-- **Separate concerns**: Each component has a single responsibility
-- **Reusable components**: Components can be used across different screens
-- **Clean imports**: Clear dependency structure
-
-### State Management
-- **Local state**: React hooks for component-level state
-- **Global state**: Zustand for app-wide state management
-- **API state**: Supabase for persistent data
-
-### UI/UX
-- **Custom tab bar**: Blur effects and smooth animations
-- **Responsive design**: Works on different screen sizes
-- **Accessibility**: Proper contrast and touch targets
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- **Expo** for the amazing development platform
-- **React Navigation** for smooth navigation
-- **Supabase** for the backend infrastructure
-- **Architectural community** for inspiration and feedback
 
 ---
 
-Built with ❤️ for architecture enthusiasts everywhere.
+## ⚙️ Installation & Setup
+
+### Prerequisites
+
+* Node.js (v18+)
+* Expo CLI
+* Supabase project credentials
+* Android Studio / Xcode simulators for local testing
+
+### Steps
+
+```bash
+git clone https://github.com/montlkn/Jink_V1.git
+cd architecture-app
+npm install
+```
+
+Create `.env` in the root directory:
+
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+Run the app:
+
+```bash
+npx expo start
+```
+
+---
+
+## 🧩 Key Components
+
+### `AuraProfileCard`
+
+Visual representation of the user's aesthetic identity. Animated gradient background reflects style preferences and exploration diversity.
+
+### `WalkTypeSelector`
+
+Compact control for selecting between Random and Personalized Dérive modes.
+
+### `ScanOverlay`
+
+AR overlay displaying building data, style labels, and historical snippets in real time.
+
+---
+
+## 🧭 Design Principles
+
+* **Modularity** – components and services are decoupled
+* **Performance** – caching, lazy-loading, and optimized ML requests
+* **Accessibility** – large touch areas, dark/light mode support
+* **Immersion** – blur effects, motion-based transitions, and subtle haptics
+
+---
+
+## 📜 License
+
+Licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+### 🏛️ Built with purpose — for those who see cities as living museums.

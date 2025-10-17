@@ -1,5 +1,6 @@
 
 import { Ionicons } from '@expo/vector-icons';
+import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import {
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { useAuth } from '../../auth/authProvider';
 import DonutChart from '../../components/charts/DonutChart';
+import { getArchetypeColor } from '../../constants/archetypeColors';
 import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
 import SegmentModal from '../../components/modals/SegmentModal';
 import { generateProfileSummary, getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
@@ -29,6 +31,8 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [segmentModalVisible, setSegmentModalVisible] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState(null);
   const scrollViewRef = useRef();
+  const initialArchetypeRef = useRef(null);
+  const route = useRoute();
 
   useEffect(() => {
     loadUserProfile();
@@ -89,6 +93,20 @@ const ProfileDetailScreen = ({ navigation }) => {
       setSelectedSegment(null);
     }, 100);
   };
+
+  useEffect(() => {
+    const targetArchetype = route?.params?.initialArchetype;
+    if (!profile || !targetArchetype) return;
+    if (initialArchetypeRef.current === targetArchetype) return;
+
+    const detailedInfo = getDetailedArchetypeInfo(targetArchetype);
+    if (detailedInfo) {
+      setSelectedArchetype(detailedInfo);
+      setModalVisible(true);
+      initialArchetypeRef.current = targetArchetype;
+      navigation.setParams?.({ initialArchetype: null });
+    }
+  }, [profile, route?.params?.initialArchetype, navigation]);
 
   if (loading) {
     return (
@@ -268,7 +286,7 @@ const ProfileDetailScreen = ({ navigation }) => {
                     >
                       <View style={styles.scoreInfo}>
                         <View style={styles.subtypeIndent} />
-                        <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: '#4682B4' }]} />
+                        <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: getArchetypeColor('Infrastructuralist') }]} />
                         <Text style={[styles.scoreName, styles.subtypeName]}>The Infrastructuralist</Text>
                       </View>
                       <View style={styles.scoreValues}>
@@ -289,7 +307,7 @@ const ProfileDetailScreen = ({ navigation }) => {
                     >
                       <View style={styles.scoreInfo}>
                         <View style={styles.subtypeIndent} />
-                        <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: '#8FBC8F' }]} />
+                        <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: getArchetypeColor('Naturalist') }]} />
                         <Text style={[styles.scoreName, styles.subtypeName]}>The Naturalist</Text>
                       </View>
                       <View style={styles.scoreValues}>

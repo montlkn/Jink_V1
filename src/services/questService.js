@@ -25,7 +25,7 @@ export const getActiveDailyQuest = async () => {
       .single();
 
     if (profileError) throw profileError;
-
+    console
     // If no quest assigned or completed, get a new one
     if (!profile.daily_quest_id || profile.daily_quest_completed) {
       const { data: newQuest } = await supabase
@@ -193,15 +193,18 @@ export const getUserXP = async () => {
     if (error) throw error;
 
     return {
-      xp: profile.xp || 0,
+      ep: profile.xp || 0,
       level: profile.level || 1,
-      xpSpent: profile.xp_spent || 0
+      epSpent: profile.xp_spent || 0
     };
   } catch (error) {
     console.error('Error getting user XP:', error);
-    return { xp: 0, level: 1, xpSpent: 0 };
+    return { ep: 0, level: 1, epSpent: 0 };
   }
 };
+
+// Keep getUserEP for backwards compatibility
+export const getUserEP = getUserXP;
 
 /**
  * Award XP to user (called when building scanned, quest completed, etc.)
@@ -239,6 +242,9 @@ export const awardXP = async (amount, source = 'building_scan') => {
   }
 };
 
+// Keep awardEP for backwards compatibility
+export const awardEP = awardXP;
+
 /**
  * Calculate XP needed for next level
  * Formula: Level = floor(sqrt(XP / 100)) + 1
@@ -247,6 +253,10 @@ export const awardXP = async (amount, source = 'building_scan') => {
 export const getXPForNextLevel = (currentLevel) => {
   return Math.pow(currentLevel, 2) * 100;
 };
+
+// Keep old function name for backwards compatibility
+// Keep getEPForNextLevel for backwards compatibility
+export const getEPForNextLevel = getXPForNextLevel;
 
 // ============================================
 // STAMP & ACHIEVEMENT OPERATIONS
