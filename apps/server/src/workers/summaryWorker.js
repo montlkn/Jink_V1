@@ -7,6 +7,7 @@ import { Worker } from 'bullmq';
 import Redis from 'ioredis';
 import { supabase } from '../supabaseClient.js';
 import { generateAndPersistSummary, markNeedsUpdate } from '../summary/generate.js';
+import { summaryQueue } from '../lib/queue.js';
 
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null, // Required for BullMQ
@@ -113,9 +114,7 @@ export async function startSummaryWorker() {
  */
 export async function enqueueSummaryGeneration(userId, options = {}) {
   try {
-    const queue = require('../lib/queue').summaryQueue;
-
-    const job = await queue.add(
+    const job = await summaryQueue.add(
       'generate',
       { userId },
       {
@@ -154,8 +153,7 @@ export async function enqueueSummaryGeneration(userId, options = {}) {
  */
 export async function isJobInFlight(userId) {
   try {
-    const queue = require('../lib/queue').summaryQueue;
-    const job = await queue.getJob(`summary:user:${userId}`);
+    const job = await summaryQueue.getJob(`summary:user:${userId}`);
     return job !== null;
   } catch (error) {
     console.error('[in-flight] Error:', error.message);
@@ -168,8 +166,7 @@ export async function isJobInFlight(userId) {
  */
 export async function getJobStatus(userId) {
   try {
-    const queue = require('../lib/queue').summaryQueue;
-    const job = await queue.getJob(`summary:user:${userId}`);
+    const job = await summaryQueue.getJob(`summary:user:${userId}`);
 
     if (!job) {
       return null;
