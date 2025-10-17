@@ -4,7 +4,7 @@
 */
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
-import { Alert, SafeAreaView, StyleSheet, View } from "react-native";
+import { Alert, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { getNearbyPlaces } from "../../api/buildingsApi.js";
 import TimeSlider from "../../components/walk/TimeSlider";
 import WalkTypeButton from "../../components/walk/WalkTypeButton";
@@ -57,18 +57,14 @@ const WalkSetupScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TimeSlider min={5} max={90} initialValue={time} />
+        <TimeSlider min={0} max={90} initialValue={time} setValue={SetTime} />
         <View style={styles.buttonsContainer}>
           <WalkTypeButton
-            title="RANDOM"
+            title="WALK"
             color="rgba(100, 255, 150, 0.3)"
             onPress={() => handleClick()}
           />
-          <WalkTypeButton
-            title="PERSONALISED"
-            color="rgba(150, 100, 255, 0.3)"
-            onPress={() => console.log("Start Personalised Walk")}
-          />
+          <Text>{time}</Text>
         </View>
       </View>
     </SafeAreaView>
@@ -82,13 +78,13 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "space-around",
+    justifyContent: "center",
     paddingHorizontal: 20,
   },
   buttonsContainer: {
-    height: "50%",
+    height: "20%",
     justifyContent: "space-around",
   },
 });
