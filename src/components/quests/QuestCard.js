@@ -93,7 +93,7 @@ const QuestCard = ({
       <View style={styles.rewardsContainer}>
         <View style={styles.rewardBadge}>
           <Ionicons name="star" size={14} color="#FFD700" />
-          <Text style={styles.rewardText}>{reward} EP</Text>
+          <Text style={styles.rewardText}>{reward} XP</Text>
         </View>
 
         {additionalRewards.map((reward, index) => (

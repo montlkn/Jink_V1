@@ -1,6 +1,6 @@
 # Orb V2: Volumetric Smoke + Refractive Glass (Full Spec)
 
-> Purpose: deliver a realistic, semi-3D/3D glass orb with true refraction and layered volumetric smoke that responds to user archetypes and XP/EP, runs on mobile with LODs, and ships behind a feature flag with graceful fallbacks.
+> Purpose: deliver a realistic, semi-3D/3D glass orb with true refraction and layered volumetric smoke that responds to user archetypes and XP, runs on mobile with LODs, and ships behind a feature flag with graceful fallbacks.
 
 ---
 
@@ -8,7 +8,7 @@
 
 * Replace sprite/billboard smoke with a **ray-marched volumetric stack** (3 layers).
 * Add a **refractive glass shell** with Fresnel and highlights.
-* Drive color/energy/turbulence from **archetype data** and **XP/EP**; expose **FSM states**.
+* Drive color/energy/turbulence from **archetype data** and **XP**; expose **FSM states**.
 * Hit **30+ fps** on mid-tier devices via **LOD presets**, **downscaled render target**, **early exit** march, and **snapshot** fallback.
 * Ship behind a **feature flag**, keep legacy paths as **fallback tiers** until stable.
 
@@ -96,7 +96,7 @@ type Props = {
 
 * **Top 3 archetypes** drive 3 smoke layers.
 * **Hue** from a table; **density/scale/rotationSpeed** from strength.
-* **Brightness** scales with **XP/EP**; **FSM** adds transient pulses or turbulence spikes.
+* **Brightness** scales with **XP**; **FSM** adds transient pulses or turbulence spikes.
 
 Example mapping:
 
@@ -239,7 +239,7 @@ Gate rules:
 
 * Wisps **evolve at rest**; no “spinning texture” artifacts.
 * Shell shows **believable refraction** and a **Fresnel rim** under the light rig.
-* **Top 3 archetypes** clearly inform color/scale/density; **XP/EP** increases brightness; **FSM** events drive turbulence/pulses.
+* **Top 3 archetypes** clearly inform color/scale/density; **XP** increases brightness; **FSM** events drive turbulence/pulses.
 * **Standard LOD** ≥ 30 fps on mid-tier phones; **Safe Mode/Snapshot** look coherent.
 
 ---

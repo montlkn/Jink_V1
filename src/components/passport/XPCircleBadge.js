@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import React, { useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-const EPCircleBadge = ({ currentEP = 1250, level = 5, epForNextLevel = 2000, onPress }) => {
+const XPCircleBadge = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000, onPress }) => {
   const [scale] = useState(new Animated.Value(1));
-  const progressPercent = (currentEP / epForNextLevel) * 100;
+  const progressPercent = (currentXP / xpForNextLevel) * 100;
 
   // Circle SVG properties
   const size = 70;
@@ -102,6 +102,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EPCircleBadge;
-// Keep old export name for backwards compatibility
-export { EPCircleBadge as XPCircleBadge };
+export default XPCircleBadge;

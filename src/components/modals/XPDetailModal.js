@@ -53,7 +53,7 @@ const XPDetailModal = ({
           </TouchableOpacity>
 
           {/* Header */}
-          <Text style={styles.title}>Experience</Text>
+          <Text style={styles.title}>Xperience</Text>
 
           {/* Expanded XP Circle */}
           <View style={styles.circleContainer}>
@@ -98,19 +98,19 @@ const XPDetailModal = ({
             </View>
 
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Total EP</Text>
-              <Text style={styles.statValue}>{currentXP.toLocaleString()} EP</Text>
+              <Text style={styles.statLabel}>Total XP</Text>
+              <Text style={styles.statValue}>{currentXP.toLocaleString()} XP</Text>
             </View>
 
             <View style={styles.statRow}>
               <Text style={styles.statLabel}>Next Level</Text>
-              <Text style={styles.statValue}>{xpForNextLevel.toLocaleString()} EP</Text>
+              <Text style={styles.statValue}>{xpForNextLevel.toLocaleString()} XP</Text>
             </View>
 
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>EP Needed</Text>
+              <Text style={styles.statLabel}>XP Needed</Text>
               <Text style={styles.statValueHighlight}>
-                {remainingXP.toLocaleString()} EP
+                {remainingXP.toLocaleString()} XP
               </Text>
             </View>
           </View>
@@ -134,7 +134,7 @@ const XPDetailModal = ({
           <View style={styles.infoBox}>
             <Ionicons name="information-circle" size={20} color="#3498DB" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>How to earn EP</Text>
+              <Text style={styles.infoTitle}>How to earn XP</Text>
               <Text style={styles.infoText}>
                 • Scan buildings and complete quests{'\n'}
                 • Complete daily and weekly challenges{'\n'}

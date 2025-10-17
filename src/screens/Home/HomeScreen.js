@@ -102,7 +102,7 @@ export default function HomeScreen({ navigation }) {
         getUserXP()
       ]);
 
-      // Set EP data
+      // Set XP data
       setUserXP(epData.ep || epData.xp || 0);
       setUserLevel(epData.level || 1);
       setXpForNextLevel(getXPForNextLevel(epData.level || 1));
@@ -215,10 +215,8 @@ export default function HomeScreen({ navigation }) {
         {/* XP Circle Badge - Top Left */}
         <Animated.View style={[styles.xpBadgeContainer, { opacity: contentFade }]}>
           <XPCircleBadge
-            currentEP={userXP}
             currentXP={userXP}
             level={userLevel}
-            epForNextLevel={xpForNextLevel}
             xpForNextLevel={xpForNextLevel}
             onPress={() => setXpModalVisible(true)}
           />

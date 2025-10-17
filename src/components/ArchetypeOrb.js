@@ -5,11 +5,11 @@ import ArchetypeOrbScene from './three/ArchetypeOrbScene';
 import ArchetypeOrbV2 from './three/orb/ArchetypeOrbV2';
 
 // Kill switch: hard-disable any orb rendering (stability hotfix)
-const DISABLE_ORB = true;
+const DISABLE_ORB = false;
 
 // Feature flag for volumetric orb
-// Default OFF for stability/perf on low-end devices; enable explicitly when safe
-const ENABLE_VOLUMETRIC = false;
+// Enable by default to surface the new analytic orb
+const ENABLE_VOLUMETRIC = true;
 
 export default function ArchetypeOrb({ mode = 'clouds', style, lod = 'low', ...rest }) {
   // Global pause: render a lightweight placeholder to preserve layout

@@ -1,15 +1,15 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  TouchableOpacity,
-  ScrollView,
-  Dimensions,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import React from 'react';
+import {
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -118,14 +118,14 @@ const QuestDetailModal = ({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>REWARDS</Text>
 
-              {/* EP Reward */}
+              {/* XP Reward */}
               <View style={styles.rewardItem}>
                 <View style={styles.rewardIcon}>
                   <Ionicons name="star" size={24} color="#FFD700" />
                 </View>
                 <View style={styles.rewardInfo}>
                   <Text style={styles.rewardLabel}>Experience</Text>
-                  <Text style={styles.rewardValue}>{quest.xpReward || quest.epReward} EP</Text>
+                  <Text style={styles.rewardValue}>{quest.xpReward || quest.epReward} XP</Text>
                   <Text style={styles.rewardDescription}>
                     Unlock premium features like detailed building info
                   </Text>
@@ -162,12 +162,12 @@ const QuestDetailModal = ({
               ))}
             </View>
 
-            {/* EP Benefits Explainer */}
-            <View style={[styles.section, styles.epBenefitsSection]}>
+            {/* XP Benefits Explainer */}
+            <View style={[styles.section, styles.xpBenefitsSection]}>
               <View style={styles.infoBox}>
                 <Ionicons name="information-circle" size={20} color="#3498DB" />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoTitle}>What can you do with EP?</Text>
+                  <Text style={styles.infoTitle}>What can you do with XP?</Text>
                   <Text style={styles.infoText}>
                     • Unlock detailed building histories (Free tier){'\n'}
                     • Access expert architectural analysis{'\n'}
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 16,
   },
-  epBenefitsSection: {
+  xpBenefitsSection: {
     marginBottom: 100,
   },
   infoBox: {

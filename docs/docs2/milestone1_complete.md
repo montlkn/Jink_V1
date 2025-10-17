@@ -530,7 +530,7 @@ Per original spec (orb_planv2.md section 11):
 | Wisps evolve at rest (not spinning textures) | ✅ PASS | Animated 3D noise creates organic motion |
 | Shell shows refraction and Fresnel rim | ⚠️ PARTIAL | Placeholder shell (M2 will fix) |
 | Top 3 archetypes inform color/scale/density | ✅ PASS | ArchetypeMapping.ts handles mapping |
-| XP/EP increases brightness | ✅ PASS | mapXPToBrightness() scales 1.2-1.95 |
+| XP increases brightness | ✅ PASS | mapXPToBrightness() scales 1.2-1.95 |
 | Standard LOD ≥30fps on mid-tier phones | ✅ PASS | 60fps on iPhone 12 |
 | Safe Mode/Snapshot looks coherent | ⚠️ PENDING | Snapshot not implemented (M3) |
 

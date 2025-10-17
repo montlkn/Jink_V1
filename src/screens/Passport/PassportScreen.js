@@ -67,7 +67,7 @@ const PassportScreen = ({ navigation }) => {
         getUserXP()
       ]);
 
-      // Set EP data
+      // Set XP data
       setUserXP(epData.ep || epData.xp || 0);
       setUserLevel(epData.level || 1);
       setXpForNextLevel(getXPForNextLevel(epData.level || 1));
@@ -120,10 +120,8 @@ const PassportScreen = ({ navigation }) => {
         >
           <View style={styles.epCardLeft}>
             <XPCircleBadge
-              currentEP={userXP}
               currentXP={userXP}
               level={userLevel}
-              epForNextLevel={xpForNextLevel}
               xpForNextLevel={xpForNextLevel}
               onPress={() => setXpModalVisible(true)}
             />
@@ -135,9 +133,9 @@ const PassportScreen = ({ navigation }) => {
             </View>
             <Text style={styles.epCardTitle}>Explorer · Level {userLevel}</Text>
             <View style={styles.bearerInfo}>
-              <Text style={styles.bearerLabel}>EXPERIENCE POINTS:</Text>
+              <Text style={styles.bearerLabel}>XPERIENCE POINTS:</Text>
               <Text style={styles.bearerValue}>
-                {userXP.toLocaleString()} / {xpForNextLevel.toLocaleString()} EP
+                {userXP.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP
               </Text>
             </View>
             <View style={styles.progressBar}>
@@ -322,7 +320,7 @@ const styles = StyleSheet.create({
     paddingTop: 160,
     paddingBottom: 20,
   },
-  // EP Card Styles
+  // XP Card Styles
   epCard: {
     backgroundColor: '#fff',
     borderRadius: 16,

@@ -1,10 +1,11 @@
-import { Canvas } from "@react-three/fiber/native";
+import { Canvas, useFrame, useThree } from "@react-three/fiber/native";
 import React, { useMemo, useState } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
 import * as Haptics from 'expo-haptics';
 import * as THREE from "three";
 import { archetypeDataToLayers, getDefaultLayers } from "./ArchetypeMapping";
-import VolSmoke from "./VolSmoke";
+import VolSmoke from "./VolSmokeAnalytic";
+import VolSmokeUnifiedAnalytic from "./VolSmokeUnifiedAnalytic";
 
 // Smoke layer wrapper - no rotation, motion comes from noise animation
 function SmokeLayer({ layer, index, shellRadius }) {
@@ -44,13 +45,15 @@ function SmokeLayer({ layer, index, shellRadius }) {
  */
 
 const LOD_PRESETS = {
-  ultra:   { dpr: [1, 1.25], steps: 16, warpAmp: 0.12, useLite: false },
-  standard:{ dpr: [1, 1],    steps: 14, warpAmp: 0.10, useLite: false },
-  low:     { dpr: [1, 1],    steps: 12, warpAmp: 0.08, useLite: true  },
-  safe:    { dpr: [1, 1],    steps: 10, warpAmp: 0.07, useLite: true  },
+  ultra:   { dpr: [1, 1.15], steps: 16, warpAmp: 0.12, useLite: false },
+  standard:{ dpr: [0.9, 1],  steps: 14, warpAmp: 0.10, useLite: false },
+  low:     { dpr: [0.75, 1], steps: 12, warpAmp: 0.08, useLite: true  },
+  safe:    { dpr: [0.75, 0.9], steps: 10, warpAmp: 0.07, useLite: true  },
 };
 
-function OrbScene({ layers, shellRadius, animateOrbMotion, lodSettings }) {
+function OrbScene({ layers, shellRadius, animateOrbMotion, lodSettings, densityBoost = 1.7, motionBoost = 1.3, blendMode = "add" }) {
+  const groupRef = React.useRef();
+  const { invalidate } = useThree();
   // Modify layer configs - center all, vary noise params not position
   const overlappingLayers = useMemo(() => {
     return layers.map((layer, index) => ({
@@ -72,26 +75,44 @@ function OrbScene({ layers, shellRadius, animateOrbMotion, lodSettings }) {
     }));
   }, [layers, lodSettings]);
 
+  // Build unified inputs
+  const top3 = overlappingLayers.slice(0, 3);
+  const colors = top3.map(l => l.color);
+  const densities = top3.map(l => l.density);
+  const avgBrightness = top3.reduce((a,l)=>a + (l.brightness ?? 1), 0) / Math.max(1, top3.length || 1);
+  const avgTimeScale = top3.reduce((a,l)=>a + (l.timeScale ?? 0.4), 0) / Math.max(1, top3.length || 1);
+
+  // Drive render at ~30fps on demand-based loop
+  React.useEffect(() => {
+    const id = setInterval(() => invalidate(), 33);
+    return () => clearInterval(id);
+  }, [invalidate]);
+
   return (
-    <group>
+    <group ref={groupRef}>
       {/* Basic lighting for Milestone 1 - will enhance in Milestone 2 */}
       <ambientLight intensity={0.4} />
-      <hemisphereLight skyColor="#ffffff" groundColor="#666666" intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={0.6} />
+      {/* Minimal lighting; volume self-colors */}
+      <hemisphereLight skyColor="#ffffff" groundColor="#666666" intensity={0.3} />
 
-      {/* Render 3 centered smoke layers with varied noise params */}
-      {overlappingLayers.map((layer, index) => (
-        <SmokeLayer
-          key={`smoke-layer-${index}`}
-          layer={layer}
-          index={index}
-          shellRadius={shellRadius}
-        />
-      ))}
+      {/* Unified single-pass analytic volume blending 3 archetype colors */}
+      <VolSmokeUnifiedAnalytic
+        colors={colors}
+        densities={densities}
+        brightness={avgBrightness}
+        noiseScale={3.2}
+        timeScale={avgTimeScale * 1.2}
+        warpAmp={lodSettings?.warpAmp}
+        densityBoost={densityBoost}
+        motionBoost={motionBoost}
+        blend={blendMode}
+        shellRadius={shellRadius}
+        renderOrder={12}
+      />
 
       {/* Glass shell */}
       <mesh renderOrder={100}>
-        <sphereGeometry args={[1, 48, 48]} />
+        <sphereGeometry args={[1, 32, 32]} />
         <meshPhysicalMaterial
           transparent
           opacity={0.18}
@@ -120,6 +141,10 @@ export default function ArchetypeOrbV2({
   style,
   onPress,
   interactive = false,
+  densityBoost,
+  motionBoost,
+  blendMode = "add",
+  frameloop = "demand",
 }) {
   // Get LOD settings
   const lodSettings = LOD_PRESETS[lod] || LOD_PRESETS.standard;
@@ -192,7 +217,7 @@ export default function ArchetypeOrbV2({
         <Canvas
         dpr={lodSettings.dpr}
         camera={{ position: [0, 0, 3.5], fov: 42, near: 0.1, far: 100 }}
-        frameloop="always"
+        frameloop={frameloop}
         gl={{
           powerPreference: "high-performance",
           alpha: true,
@@ -218,6 +243,9 @@ export default function ArchetypeOrbV2({
           shellRadius={shellRadius}
           animateOrbMotion={animateOrbMotion}
           lodSettings={lodSettings}
+          densityBoost={densityBoost}
+          motionBoost={motionBoost}
+          blendMode={blendMode}
         />
       </Canvas>
 
