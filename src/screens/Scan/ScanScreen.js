@@ -1,15 +1,21 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as Location from 'expo-location';
-import { Accelerometer, Magnetometer } from 'expo-sensors';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Location from "expo-location";
+import { Accelerometer, Magnetometer } from "expo-sensors";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import SimpleLoadingOrb from "../../components/SimpleLoadingOrb";
+import { awardXP } from "../../services/questService";
 import {
   PositionFusion,
   calculatePositionConfidence,
   detectMovementType,
-} from '../../utils/sensorFusion';
-import SimpleLoadingOrb from '../../components/SimpleLoadingOrb';
-import { awardXP } from '../../services/questService';
+} from "../../utils/sensorFusion";
 
 export default function ScanScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -18,7 +24,7 @@ export default function ScanScreen({ navigation }) {
   const [altitude, setAltitude] = useState(null);
   const [floor, setFloor] = useState(0);
   const [confidence, setConfidence] = useState(0);
-  const [movementType, setMovementType] = useState('stationary');
+  const [movementType, setMovementType] = useState("stationary");
   const [isScanning, setIsScanning] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -26,14 +32,15 @@ export default function ScanScreen({ navigation }) {
   const lastGPSTime = useRef(Date.now());
   const cameraRef = useRef(null);
 
-  const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+  const BACKEND_URL =
+    process.env.EXPO_PUBLIC_API_URL || "http://localhost:8000";
 
   // Initialize sensor fusion on mount
   useEffect(() => {
     try {
       fusionRef.current = new PositionFusion();
     } catch (error) {
-      console.error('Error initializing PositionFusion:', error);
+      console.error("Error initializing PositionFusion:", error);
     }
   }, []);
 
@@ -51,7 +58,7 @@ export default function ScanScreen({ navigation }) {
 
       return () => magSub.remove();
     } catch (error) {
-      console.error('Magnetometer error:', error);
+      console.error("Magnetometer error:", error);
     }
   }, []);
 
@@ -66,7 +73,7 @@ export default function ScanScreen({ navigation }) {
 
       return () => accelSub.remove();
     } catch (error) {
-      console.error('Accelerometer error:', error);
+      console.error("Accelerometer error:", error);
     }
   }, []);
 
@@ -138,7 +145,7 @@ export default function ScanScreen({ navigation }) {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
 
-        if (status === 'granted') {
+        if (status === "granted") {
           // Get initial position
           const initial = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.BestForNavigation,
@@ -181,7 +188,7 @@ export default function ScanScreen({ navigation }) {
           );
         }
       } catch (error) {
-        console.error('Error getting location:', error);
+        console.error("Error getting location:", error);
       }
     })();
 
@@ -213,28 +220,28 @@ export default function ScanScreen({ navigation }) {
       const formData = new FormData();
 
       // Add photo as a file
-      formData.append('photo', {
+      formData.append("photo", {
         uri: photo.uri,
-        type: 'image/jpeg',
-        name: 'scan.jpg',
+        type: "image/jpeg",
+        name: "scan.jpg",
       });
 
       // Add required fields
-      formData.append('gps_lat', position.latitude.toString());
-      formData.append('gps_lng', position.longitude.toString());
-      formData.append('compass_bearing', heading.toString());
+      formData.append("gps_lat", position.latitude.toString());
+      formData.append("gps_lng", position.longitude.toString());
+      formData.append("compass_bearing", heading.toString());
 
       // Add optional fields
-      formData.append('phone_pitch', '0');
-      formData.append('phone_roll', '0');
-      formData.append('altitude', (altitude || 0).toString());
-      formData.append('floor', floor.toString());
-      formData.append('confidence', Math.round(confidence).toString());
-      formData.append('movement_type', movementType);
-      formData.append('gps_accuracy', (position.accuracy || 10).toString());
+      formData.append("phone_pitch", "0");
+      formData.append("phone_roll", "0");
+      formData.append("altitude", (altitude || 0).toString());
+      formData.append("floor", floor.toString());
+      formData.append("confidence", Math.round(confidence).toString());
+      formData.append("movement_type", movementType);
+      formData.append("gps_accuracy", (position.accuracy || 10).toString());
 
       const response = await fetch(`${BACKEND_URL}/api/scan`, {
-        method: 'POST',
+        method: "POST",
         body: formData,
       });
 
@@ -247,21 +254,21 @@ export default function ScanScreen({ navigation }) {
       // Navigate based on result
       if (data.building && data.building.name) {
         // Award XP for successful scan (50 XP base)
-        await awardXP(50, 'building_scan');
+        await awardXP(50, "building_scan");
 
         // Successfully identified building
-        navigation.navigate('BuildingInfo', { buildingData: data.building });
+        navigation.navigate("BuildingInfo", { buildingData: data.building });
       } else {
         // Could not identify building
-        navigation.navigate('NotFound', {
-          message: data.message || "We couldn't identify this building."
+        navigation.navigate("NotFound", {
+          message: data.message || "We couldn't identify this building.",
         });
       }
     } catch (error) {
-      console.error('Scan failed:', error);
+      console.error("Scan failed:", error);
       // Navigate to NotFound screen on error
-      navigation.navigate('NotFound', {
-        message: 'An error occurred while scanning. Please try again.'
+      navigation.navigate("NotFound", {
+        message: "An error occurred while scanning. Please try again.",
       });
     } finally {
       setIsScanning(false);
@@ -286,29 +293,26 @@ export default function ScanScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing="back"
-      />
+      <CameraView ref={cameraRef} style={styles.camera} facing="back" />
 
       {/* Sensor Panel */}
       <View style={styles.sensorPanel}>
         <Text style={styles.sensorText}>
-          📍 {position ? `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}` : 'Acquiring...'}
+          📍{" "}
+          {position
+            ? `${position.latitude.toFixed(6)}, ${position.longitude.toFixed(
+                6
+              )}`
+            : "Acquiring..."}
         </Text>
         <Text style={styles.sensorText}>
           🧭 Heading: {Math.round(heading)}°
         </Text>
         <Text style={styles.sensorText}>
-          📏 Floor: {floor} ({altitude ? `${altitude.toFixed(1)}m` : '—'})
+          📏 Floor: {floor} ({altitude ? `${altitude.toFixed(1)}m` : "—"})
         </Text>
-        <Text style={styles.sensorText}>
-          🎯 Confidence: {confidence}%
-        </Text>
-        <Text style={styles.sensorText}>
-          🚶 {movementType}
-        </Text>
+        <Text style={styles.sensorText}>🎯 Confidence: {confidence}%</Text>
+        <Text style={styles.sensorText}>🚶 {movementType}</Text>
       </View>
 
       {/* Crosshair */}
@@ -320,7 +324,10 @@ export default function ScanScreen({ navigation }) {
       {/* Capture Button */}
       <View style={styles.controls}>
         <TouchableOpacity
-          style={[styles.captureButton, !position && styles.captureButtonDisabled]}
+          style={[
+            styles.captureButton,
+            !position && styles.captureButtonDisabled,
+          ]}
           onPress={handleCapture}
           disabled={isScanning || !position}
         >
@@ -346,30 +353,30 @@ export default function ScanScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: "#000",
   },
   camera: {
     flex: 1,
   },
   sensorPanel: {
-    position: 'absolute',
+    position: "absolute",
     top: 60,
     left: 20,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: "rgba(0,0,0,0.7)",
     padding: 12,
     borderRadius: 8,
     zIndex: 10,
   },
   sensorText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontFamily: 'monospace',
+    fontFamily: "monospace",
     marginBottom: 4,
   },
   crosshair: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
+    position: "absolute",
+    top: "50%",
+    left: "50%",
     width: 60,
     height: 60,
     marginLeft: -30,
@@ -377,61 +384,61 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   crosshairH: {
-    position: 'absolute',
-    top: '50%',
+    position: "absolute",
+    top: "50%",
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     opacity: 0.8,
   },
   crosshairV: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
-    left: '50%',
+    left: "50%",
     width: 2,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     opacity: 0.8,
   },
   resultPanel: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 120,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: "rgba(0,0,0,0.8)",
     padding: 16,
     borderRadius: 12,
     zIndex: 10,
   },
   resultTitle: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   resultText: {
-    color: '#ccc',
+    color: "#ccc",
     fontSize: 14,
     marginBottom: 4,
   },
   controls: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 120,
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
     zIndex: 10,
   },
   captureButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255,255,255,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 4,
-    borderColor: '#fff',
+    borderColor: "#fff",
   },
   captureButtonDisabled: {
     opacity: 0.5,
@@ -440,23 +447,23 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   text: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 100,
   },
   loadingText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 30,
   },
 });
