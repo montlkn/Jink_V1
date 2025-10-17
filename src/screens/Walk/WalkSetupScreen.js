@@ -1,15 +1,11 @@
-/*
-  File: /src/screens/Walk/WalkSetupScreen.js
-  Description: The screen where users configure and start their "Dérive" or walk.
-*/
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, StyleSheet, View } from "react-native";
-import { getNearbyPlaces } from "../../api/buildingsApi.js";
+import { getNearbyPlaces } from "../../api/buildingsApi";
+import TimerDisplay from "../../components/walk/TimerDisplay";
 import TimeSlider from "../../components/walk/TimeSlider";
-import WalkTypeButton from "../../components/walk/WalkTypeButton";
 
-const WalkSetupScreen = ({ navigation }) => {
+const WalkStartScreen = ({ navigation }) => {
   const [location, setLocation] = useState({
     latitude: 40.7128,
     longitude: -74.006,
@@ -44,6 +40,7 @@ const WalkSetupScreen = ({ navigation }) => {
         location.longitude,
         1000
       ); // 1000 meters radius
+      console.log(nearbyPlaces);
       setData(nearbyPlaces);
       navigation.navigate("WalkNavScreen", {
         places: nearbyPlaces,
@@ -57,17 +54,16 @@ const WalkSetupScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TimeSlider min={5} max={90} initialValue={time} />
-        <View style={styles.buttonsContainer}>
-          <WalkTypeButton
-            title="RANDOM"
-            color="rgba(100, 255, 150, 0.3)"
-            onPress={() => handleClick()}
-          />
-          <WalkTypeButton
-            title="PERSONALISED"
-            color="rgba(150, 100, 255, 0.3)"
-            onPress={() => console.log("Start Personalised Walk")}
+        <View style={styles.clockWrapper}>
+          <TimerDisplay value={time} label="minutes" />
+        </View>
+        <View style={styles.sliderWrapper}>
+          <TimeSlider
+            min={0}
+            max={90}
+            initialValue={time}
+            setValue={SetTime}
+            onPress={handleClick}
           />
         </View>
       </View>
@@ -82,15 +78,35 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "space-around",
     paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 32,
   },
-  buttonsContainer: {
-    height: "50%",
-    justifyContent: "space-around",
+  clockWrapper: {
+    alignItems: "center",
+  },
+  sliderWrapper: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  startButton: {
+    marginTop: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 28,
+    backgroundColor: "#111",
+  },
+  startText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.4,
   },
 });
 
-export default WalkSetupScreen;
+export default WalkStartScreen;
