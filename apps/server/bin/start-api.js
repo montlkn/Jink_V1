@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import express from 'express';
-import { summaryQueue } from '../src/queue.js';
 import {
   handleGetSummary,
   handleRegenerateSummary,
