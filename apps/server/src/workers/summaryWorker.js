@@ -7,7 +7,7 @@ import { Worker } from 'bullmq';
 import Redis from 'ioredis';
 import { supabase } from '../supabaseClient.js';
 import { generateAndPersistSummary, markNeedsUpdate } from '../summary/generate.js';
-import { summaryQueue } from '../lib/queue.js';
+import { summaryQueue } from '../queue.js';
 
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null, // Required for BullMQ
