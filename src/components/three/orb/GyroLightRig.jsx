@@ -20,60 +20,67 @@ export default function GyroLightRig({
   maxRotation = 0.35,
 }) {
   const rot = useRef({ x: 0, y: 0 });
-  const isAvailable = useRef(false);
 
   useEffect(() => {
-    // Check if gyroscope is available
-    Gyroscope.isAvailableAsync().then((available) => {
-      isAvailable.current = available;
-      if (!available) {
-        console.warn("[GyroLightRig] Gyroscope not available on this device");
-      }
-    });
+    let isMounted = true;
+    let subscription;
 
-    if (!isAvailable.current) return;
+    Gyroscope.isAvailableAsync()
+      .then((available) => {
+        if (!isMounted) return;
 
-    const alpha = 0.15; // Low-pass filter coefficient (lower = smoother)
-    const clamp = (v) => Math.max(-maxRotation, Math.min(maxRotation, v));
+        if (!available) {
+          console.warn("[GyroLightRig] Gyroscope not available on this device");
+          return;
+        }
 
-    const subscription = Gyroscope.addListener(({ x, y, z }) => {
-      // Integrate gyro rates with low-pass filter
-      rot.current.x = rot.current.x * (1 - alpha) + x * alpha * sensitivity;
-      rot.current.y = rot.current.y * (1 - alpha) + y * alpha * sensitivity;
+        const alpha = 0.18;
+        const clamp = (v) => Math.max(-maxRotation, Math.min(maxRotation, v));
 
-      // Apply clamped rotation to target
-      if (target?.current) {
-        target.current.rotation.x = clamp(rot.current.y);
-        target.current.rotation.y = clamp(rot.current.x);
-      }
-    });
+        Gyroscope.setUpdateInterval(16);
+        subscription = Gyroscope.addListener(({ x, y }) => {
+          rot.current.x =
+            rot.current.x * (1 - alpha) + x * alpha * sensitivity;
+          rot.current.y =
+            rot.current.y * (1 - alpha) + y * alpha * sensitivity;
 
-    // Set update interval to 16ms (~60fps)
-    Gyroscope.setUpdateInterval(16);
+          if (target?.current) {
+            target.current.rotation.x = clamp(rot.current.y);
+            target.current.rotation.y = clamp(rot.current.x);
+          }
+        });
+      })
+      .catch((error) => {
+        console.warn("[GyroLightRig] Failed to init gyroscope:", error);
+      });
 
     return () => {
-      subscription.remove();
+      isMounted = false;
+      if (subscription) {
+        subscription.remove();
+      }
     };
   }, [target, sensitivity, maxRotation]);
 
+  console.log("[GyroLightRig] Rendering lights");
+
   return (
     <group>
-      {/* Ambient base lighting */}
-      <ambientLight intensity={0.3} />
+      {/* VERY bright ambient to ensure visibility */}
+      <ambientLight intensity={1.5} />
 
-      {/* Hemisphere for subtle sky/ground gradient */}
+      {/* Bright hemisphere */}
       <hemisphereLight
         skyColor="#ffffff"
-        groundColor="#666666"
-        intensity={0.5}
+        groundColor="#cccccc"
+        intensity={1.2}
       />
 
-      {/* Key directional light */}
-      <directionalLight position={[3, 2, 2]} intensity={0.9} color="#ffffff" />
-
-      {/* Fill lights for depth */}
-      <pointLight position={[-2, 1, -1]} intensity={0.4} color="#e8f4ff" />
-      <pointLight position={[1, -2, 2]} intensity={0.3} color="#ffe8f4" />
+      {/* Multiple bright lights from all directions */}
+      <directionalLight position={[5, 5, 5]} intensity={2.0} color="#ffffff" />
+      <directionalLight position={[-5, 5, -5]} intensity={1.5} color="#ffffff" />
+      <pointLight position={[0, 0, 5]} intensity={2.0} color="#ffffff" />
+      <pointLight position={[0, 5, 0]} intensity={1.5} color="#ffffff" />
     </group>
   );
 }

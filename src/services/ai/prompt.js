@@ -135,8 +135,10 @@ export function parseAndValidateResponse(responseText) {
     return {
       valid: true,
       data: {
-        text: json.text.trim(),
-        key_phrases: json.key_phrases.map(p => p.trim()),
+        text: typeof json.text === "string" ? json.text.trim() : "",
+        key_phrases: (Array.isArray(json.key_phrases) ? json.key_phrases : [])
+          .map((p) => (typeof p === "string" ? p.trim() : ""))
+          .filter((p) => p.length > 0),
       },
       error: null,
     };

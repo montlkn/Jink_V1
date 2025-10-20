@@ -6,7 +6,6 @@ import * as THREE from "three";
 import GlassOrb from "./GlassOrb";
 import GyroLightRig from "./GyroLightRig";
 import { useEnvMap } from "./env/envLoader";
-import { getArchetypeColor } from "../../../constants/archetypeColors";
 
 /**
  * ArchetypeOrbV2: Glass-only orb with gyroscope-driven reflections
@@ -32,6 +31,12 @@ const LOD_PRESETS = {
 function OrbScene({ primaryColor, lodSettings }) {
   const lightRigRef = useRef();
   const envMap = useEnvMap();
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("[OrbScene] Rendering with color:", primaryColor, "segments:", lodSettings.segments);
+    console.log("[OrbScene] EnvMap loaded:", envMap !== null);
+  }, [primaryColor, lodSettings, envMap]);
 
   return (
     <group ref={lightRigRef}>
@@ -62,22 +67,7 @@ export default function ArchetypeOrbV2({
 
   // Extract primary archetype color for subtle glass tint
   const primaryColor = useMemo(() => {
-    if (!archetypeData || archetypeData.length === 0) {
-      return 0xffffff; // Default white
-    }
-
-    // Get the dominant archetype's color
-    const sorted = [...archetypeData].sort((a, b) =>
-      (b.percentage || 0) - (a.percentage || 0)
-    );
-    const dominant = sorted[0];
-    const colorHex = dominant.color || getArchetypeColor(dominant.name || dominant.archetype);
-
-    // Convert to THREE color
-    const color = new THREE.Color(colorHex);
-
-    // Very subtle tint (mix mostly with white)
-    return color.lerp(new THREE.Color(0xffffff), 0.85).getHex();
+    return 0xffffff;
   }, [archetypeData]);
 
   // Ensure THREE is available globally for native
@@ -133,7 +123,7 @@ export default function ArchetypeOrbV2({
         <Canvas
           dpr={lodSettings.dpr}
           camera={{ position: [0, 0, 3.5], fov: 42, near: 0.1, far: 100 }}
-          frameloop={frameloop}
+          frameloop="always"
           gl={{
             powerPreference: "high-performance",
             alpha: true,
@@ -143,6 +133,7 @@ export default function ArchetypeOrbV2({
             preserveDrawingBuffer: false,
           }}
           onCreated={(state) => {
+            console.log("[Canvas] Scene created, GL context ready");
             state.gl.setClearColor(0x000000, 0);
             state.scene.background = null;
 

@@ -66,13 +66,20 @@ export default function HomeScreen({ navigation }) {
             0
           );
           const sorted = Object.entries(profile.archetype_scores)
-            .map(([name, score]) => ({
-              name,
-              archetype: name,
-              percentage: (score / total) * 100,
-              score,
-              color: getArchetypeColor(name),
-            }))
+            .map(([name, score]) => {
+              // SAFE: Don't call getArchetypeColor if name is missing
+              const safeColor = (name && typeof name === 'string')
+                ? getArchetypeColor(name)
+                : '#FFFFFF';
+
+              return {
+                name,
+                archetype: name,
+                percentage: (score / total) * 100,
+                score,
+                color: safeColor,
+              };
+            })
             .sort((a, b) => b.percentage - a.percentage)
             .slice(0, 3);
           setArchetypeData(sorted);

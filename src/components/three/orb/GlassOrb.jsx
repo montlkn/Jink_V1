@@ -2,13 +2,10 @@ import React, { useRef } from "react";
 import * as THREE from "three";
 
 /**
- * GlassOrb: A single glass sphere with physical material and high-quality reflections
+ * GlassOrb: Simple, guaranteed-to-render glass sphere
  *
- * Props:
- * - size: visual size multiplier (default 1.0)
- * - color: subtle tint color (default white)
- * - envMap: environment map for reflections
- * - segments: sphere geometry segments (default 64)
+ * Simplified approach that works on all React Native devices.
+ * No transmission (not well supported), just basic material with lighting.
  */
 export default function GlassOrb({
   size = 1.0,
@@ -18,34 +15,29 @@ export default function GlassOrb({
 }) {
   const meshRef = useRef();
 
+  console.log("[GlassOrb] Rendering with color:", color, "envMap:", envMap !== null);
+
   return (
     <mesh ref={meshRef} scale={size} renderOrder={100}>
       <sphereGeometry args={[1, segments, segments]} />
-      <meshPhysicalMaterial
-        // Glass properties
-        transmission={0.95}
-        thickness={1.0}
-        ior={1.48}
-        roughness={0.08}
-        metalness={0}
+      <meshStandardMaterial
+        color={new THREE.Color(color)}
 
-        // Clearcoat for extra shine
-        clearcoat={1.0}
-        clearcoatRoughness={0.15}
+        // Make it shiny and reflective
+        roughness={0.1}
+        metalness={0.3}
 
-        // Reflections
+        // Environment map for reflections
         envMap={envMap}
-        envMapIntensity={1.3}
+        envMapIntensity={envMap ? 1.5 : 0}
+
+        // Make it glow slightly
+        emissive={new THREE.Color(color)}
+        emissiveIntensity={0.2}
 
         // Rendering
-        transparent
-        opacity={0.18}
-        depthWrite={false}
-        depthTest={true}
+        transparent={false}
         side={THREE.FrontSide}
-        color={color}
-
-        // Disable tone mapping for consistent appearance
         toneMapped={false}
       />
     </mesh>

@@ -7,6 +7,7 @@ type AnimatedSummaryTextProps = Omit<TextProps, "children"> & {
   placeholder?: boolean;
   typingDelayMs?: number;
   showCursor?: boolean;
+  animationKey?: string | number;
 };
 
 const CURSOR_CHARACTER = "▌";
@@ -17,12 +18,16 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
   placeholder = false,
   typingDelayMs = 26,
   showCursor = false,
+  animationKey,
   style,
   ...textProps
 }) => {
   const [displayedText, setDisplayedText] = useState<string>(placeholder ? text : "");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const previousTextRef = useRef<string>(text);
+  const previousTextRef = useRef<string>("");
+  const animationKeyRef = useRef<typeof animationKey>(animationKey);
+  const cursorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [cursorVisible, setCursorVisible] = useState(true);
 
   useEffect(() => {
     return () => {
@@ -30,14 +35,21 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      if (cursorIntervalRef.current) {
+        clearInterval(cursorIntervalRef.current);
+        cursorIntervalRef.current = null;
+      }
     };
   }, []);
 
   useEffect(() => {
     const nextText = text || "";
-    const hasChanged = previousTextRef.current !== nextText;
+    const keyChanged = animationKeyRef.current !== animationKey;
+    animationKeyRef.current = animationKey;
+    const hasChanged = previousTextRef.current !== nextText || keyChanged;
+    const shouldAnimate = isActive && !placeholder && hasChanged;
 
-    if (!isActive || placeholder || !hasChanged) {
+    if (!shouldAnimate) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -73,15 +85,46 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [isActive, placeholder, text, typingDelayMs]);
+  }, [animationKey, isActive, placeholder, text, typingDelayMs]);
 
+  const targetLength = (text || "").length;
   const shouldShowCursor =
-    showCursor && !placeholder && displayedText.length < (text || "").length && isActive;
+    showCursor &&
+    !placeholder &&
+    isActive &&
+    (displayedText.length < targetLength || targetLength === 0);
+
+  useEffect(() => {
+    if (!shouldShowCursor) {
+      if (cursorIntervalRef.current) {
+        clearInterval(cursorIntervalRef.current);
+        cursorIntervalRef.current = null;
+      }
+      setCursorVisible(false);
+      return;
+    }
+
+    setCursorVisible(true);
+    if (cursorIntervalRef.current) {
+      clearInterval(cursorIntervalRef.current);
+    }
+    cursorIntervalRef.current = setInterval(() => {
+      setCursorVisible((prev) => !prev);
+    }, 520);
+
+    return () => {
+      if (cursorIntervalRef.current) {
+        clearInterval(cursorIntervalRef.current);
+        cursorIntervalRef.current = null;
+      }
+      setCursorVisible(true);
+    };
+  }, [shouldShowCursor]);
 
   return (
     <Text style={style} {...textProps}>
       {displayedText}
-      {shouldShowCursor ? CURSOR_CHARACTER : ""}
+      {shouldShowCursor ? (cursorVisible ? CURSOR_CHARACTER : " ") : ""}
     </Text>
   );
 };

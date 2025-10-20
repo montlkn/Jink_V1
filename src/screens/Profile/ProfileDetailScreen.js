@@ -4,13 +4,13 @@ import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
+  RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  RefreshControl,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { getUserAestheticProfile } from '../../api/quizApi';
@@ -21,7 +21,7 @@ import AnimatedSummaryText from '../../components/profile/AnimatedSummaryText';
 import { getArchetypeColor } from '../../constants/archetypeColors';
 import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
 import SegmentModal from '../../components/modals/SegmentModal';
-import { generateProfileSummary, getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
+import { getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
 import { composeLocalSummary } from '../../services/ai/localSummary';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
 
@@ -40,7 +40,32 @@ function normalizeSummaryText(text = '') {
     .replace(/\s([?.!,])/g, '$1')
     .trim();
   if (!cleaned) return '';
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+
+  let result = '';
+  let capitalizeNext = true;
+
+  for (let i = 0; i < cleaned.length; i += 1) {
+    const char = cleaned[i];
+    const isLetter = /[a-zA-Z]/.test(char);
+
+    if (capitalizeNext && isLetter) {
+      result += char.toUpperCase();
+      capitalizeNext = false;
+    } else {
+      result += char;
+      if (isLetter) {
+        capitalizeNext = false;
+      }
+    }
+
+    if (/[.!?]/.test(char)) {
+      capitalizeNext = true;
+    } else if (!/\s/.test(char) && !["'", '"', '’', ')', '”'].includes(char)) {
+      capitalizeNext = false;
+    }
+  }
+
+  return result;
 }
 
 function formatSourceModelLabel(sourceModel) {
@@ -57,10 +82,15 @@ function formatSourceModelLabel(sourceModel) {
 }
 
 function evaluateSummaryResponse(payload) {
+  const sanitizedKeyPhrases = sanitizeKeyPhrases(
+    payload?.summary?.keyPhrases || payload?.summary?.key_phrases
+  );
+
   const summary = payload?.summary
     ? {
         ...payload.summary,
         text: normalizeSummaryText(payload.summary.text || ''),
+        keyPhrases: sanitizedKeyPhrases,
       }
     : null;
 
@@ -91,6 +121,60 @@ function buildPlaceholderSummary(message) {
   };
 }
 
+function sanitizeKeyPhrases(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const sanitized = [];
+
+  for (const raw of value) {
+    let candidate = '';
+
+    if (typeof raw === 'string') {
+      candidate = raw;
+    } else if (raw && typeof raw === 'object') {
+      if (typeof raw.label === 'string') {
+        candidate = raw.label;
+      } else if (typeof raw.name === 'string') {
+        candidate = raw.name;
+      } else if (typeof raw.value === 'string') {
+        candidate = raw.value;
+      } else {
+        candidate = String(raw);
+      }
+    } else if (raw != null) {
+      candidate = String(raw);
+    }
+
+    if (!candidate) continue;
+
+    const normalized = candidate.replace(/\s+/g, ' ').trim();
+    if (!normalized) continue;
+
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    sanitized.push(normalized);
+  }
+
+  return sanitized;
+}
+
+function formatSuggestionLabel(phrase) {
+  if (typeof phrase !== 'string') return '';
+  const normalized = phrase.replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+  return normalized
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .map((word) => {
+      const trimmed = word.trim();
+      if (!trimmed) return null;
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    })
+    .filter(Boolean)
+    .join(' ');
+}
+
 /**
  * Format relative time (e.g., "2 hours ago")
  */
@@ -118,7 +202,7 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [profile, setProfile] = useState(null);
   const [aiSummary, setAiSummary] = useState(null);
   const [summaryPending, setSummaryPending] = useState(false);
-  const [summaryMeta, setSummaryMeta] = useState(null);
+  const [summaryAnimationKey, setSummaryAnimationKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -132,11 +216,21 @@ const ProfileDetailScreen = ({ navigation }) => {
   const summaryRefreshAttempts = useRef(0);
   const route = useRoute();
 
+  const commitSummary = useCallback((valueOrUpdater) => {
+    setAiSummary((prev) => {
+      const next =
+        typeof valueOrUpdater === 'function' ? valueOrUpdater(prev) : valueOrUpdater;
+      if (next && next !== prev) {
+        setSummaryAnimationKey((key) => key + 1);
+      }
+      return next;
+    });
+  }, [setSummaryAnimationKey]);
+
   const fallbackToLocalSummary = useCallback((profileData) => {
     if (!profileData) {
-      setAiSummary(buildPlaceholderSummary('Refreshing your aesthetic profile…'));
+      commitSummary(buildPlaceholderSummary('Refreshing your aesthetic profile…'));
       setSummaryPending(false);
-      setSummaryMeta(null);
       return;
     }
 
@@ -147,17 +241,29 @@ const ProfileDetailScreen = ({ navigation }) => {
     });
 
     if (local?.text) {
-      setAiSummary({
+      const primaryInfoData = profileData?.primary_archetype
+        ? getArchetypeInfo(profileData.primary_archetype)
+        : null;
+      const secondaryInfoData = profileData?.secondary_archetype
+        ? getArchetypeInfo(profileData.secondary_archetype)
+        : null;
+      const fallbackPhrases = sanitizeKeyPhrases([
+        ...((primaryInfoData?.vibe || []).slice(0, 3) || []),
+        ...((secondaryInfoData?.vibe || []).slice(0, 2) || []),
+      ]);
+
+      commitSummary({
         ...local,
         text: normalizeSummaryText(local.text),
+        placeholder: false,
+        keyPhrases: fallbackPhrases,
       });
     } else {
-      setAiSummary(buildPlaceholderSummary('We could not personalize your profile just yet.'));
+      commitSummary(buildPlaceholderSummary('We could not personalize your profile just yet.'));
     }
 
     setSummaryPending(false);
-    setSummaryMeta(null);
-  }, []);
+  }, [commitSummary]);
 
   const triggerManualRegeneration = useCallback(async (profileData) => {
     if (!profileData) return false;
@@ -171,12 +277,8 @@ const ProfileDetailScreen = ({ navigation }) => {
       const refreshed = await fetchSummary(false);
       const evaluation = evaluateSummaryResponse(refreshed);
 
-      if (evaluation.meta) {
-        setSummaryMeta(evaluation.meta);
-      }
-
       if (evaluation.summary && !evaluation.guardrailViolation) {
-        setAiSummary(evaluation.summary);
+        commitSummary(evaluation.summary);
         setSummaryPending(false);
         return true;
       }
@@ -192,7 +294,7 @@ const ProfileDetailScreen = ({ navigation }) => {
     }
 
     return false;
-  }, []);
+  }, [commitSummary]);
 
   const refreshSummaryWithGuardrails = useCallback(async (profileData) => {
     if (!profileData) {
@@ -207,12 +309,8 @@ const ProfileDetailScreen = ({ navigation }) => {
       const autogen = await fetchSummary(true);
       const evaluation = evaluateSummaryResponse(autogen);
 
-      if (evaluation.meta) {
-        setSummaryMeta(evaluation.meta);
-      }
-
       if (evaluation.summary && !evaluation.guardrailViolation) {
-        setAiSummary(evaluation.summary);
+        commitSummary(evaluation.summary);
         setSummaryPending(false);
         return;
       }
@@ -243,6 +341,11 @@ const ProfileDetailScreen = ({ navigation }) => {
       return;
     }
 
+    commitSummary((prev) =>
+      prev?.text
+        ? prev
+        : { text: '', generatedAt: null, placeholder: false, keyPhrases: [] }
+    );
     try {
       console.log('[profile-screen] Loading profile detail…');
       const userProfile = await getUserAestheticProfile(session.user.id);
@@ -257,12 +360,8 @@ const ProfileDetailScreen = ({ navigation }) => {
         const initial = await fetchSummary(false);
         const evaluation = evaluateSummaryResponse(initial);
 
-        if (evaluation.meta) {
-          setSummaryMeta(evaluation.meta);
-        }
-
         if (evaluation.summary && !evaluation.guardrailViolation) {
-          setAiSummary(evaluation.summary);
+          commitSummary(evaluation.summary);
           resolvedSummary = evaluation.summary;
           setSummaryPending(false);
         } else if (evaluation.guardrailViolation) {
@@ -270,7 +369,7 @@ const ProfileDetailScreen = ({ navigation }) => {
             '[profile-screen] Cached summary violated guardrails:',
             evaluation.guardrailReasons.join(', ') || 'unknown'
           );
-          setAiSummary((prev) =>
+          commitSummary((prev) =>
             prev && !prev.placeholder
               ? prev
               : buildPlaceholderSummary('Personalizing your aesthetic profile…')
@@ -291,7 +390,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         if (shouldAutogen) {
           willAutogen = true;
           if (!resolvedSummary) {
-            setAiSummary((prev) =>
+            commitSummary((prev) =>
               prev && !prev.placeholder
                 ? prev
                 : buildPlaceholderSummary('Personalizing your aesthetic profile…')
@@ -433,17 +532,28 @@ const ProfileDetailScreen = ({ navigation }) => {
     profile.secondary_archetype
   );
 
-  const summary = generateProfileSummary({
-    primaryArchetype: profile.primary_archetype,
-    secondaryArchetype: profile.secondary_archetype,
-    confidenceScore: profile.response_confidence_score || 0.5,
-    separationScore: 0.5,
-  });
-
   const primaryInfo = getArchetypeInfo(profile.primary_archetype);
   const secondaryInfo = profile.secondary_archetype 
     ? getArchetypeInfo(profile.secondary_archetype) 
     : null;
+
+  const summaryText = aiSummary?.text || '';
+  const summaryPlaceholder = !!aiSummary?.placeholder;
+  const summaryGeneratedAt = aiSummary?.generatedAt;
+  const rawSuggestionPhrases = !summaryPlaceholder && Array.isArray(aiSummary?.keyPhrases)
+    ? aiSummary.keyPhrases
+    : [];
+
+  const suggestionPills = [];
+  const suggestionSeen = new Set();
+  rawSuggestionPhrases.forEach((phrase) => {
+    const formatted = formatSuggestionLabel(phrase);
+    if (!formatted) return;
+    const key = formatted.toLowerCase();
+    if (suggestionSeen.has(key)) return;
+    suggestionSeen.add(key);
+    suggestionPills.push(formatted);
+  });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -481,69 +591,55 @@ const ProfileDetailScreen = ({ navigation }) => {
         </View>
 
         {/* AI-Generated Profile Summary Section */}
-        {aiSummary && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Your Aesthetic Profile</Text>
-            <View style={styles.summaryCard}>
-              {summaryPending && (
-                <View style={styles.summaryPendingRow}>
-                  <ActivityIndicator
-                    size="small"
-                    color="#666"
-                    style={styles.summarySpinner}
-                  />
-                  <Text style={styles.pendingLabel}>
-                    {aiSummary?.placeholder
-                      ? 'Personalizing your aesthetic profile…'
-                      : 'Refreshing with your latest signals…'}
-                  </Text>
-                </View>
-              )}
-              <AnimatedSummaryText
-                text={aiSummary.text}
-                placeholder={!!aiSummary.placeholder}
-                isActive={!summaryPending && !aiSummary?.placeholder}
-                typingDelayMs={24}
-                style={[
-                  styles.aiSummaryText,
-                  aiSummary?.placeholder && styles.placeholderSummaryText,
-                ]}
-                accessibilityLabel={aiSummary.text}
-              />
-              {aiSummary.generatedAt && !summaryPending && (
-                <Text style={styles.generatedAtText}>
-                  Generated {formatRelativeTime(aiSummary.generatedAt)}
-                  {summaryMeta?.sourceModelLabel ? ` • ${summaryMeta.sourceModelLabel}` : ''}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Aesthetic Profile</Text>
+          <View style={styles.summaryCard}>
+            {summaryPending && (
+              <View style={styles.summaryPendingRow}>
+                <ActivityIndicator
+                  size="small"
+                  color="#666"
+                  style={styles.summarySpinner}
+                />
+                <Text style={styles.pendingLabel}>
+                  {aiSummary?.placeholder
+                    ? 'Personalizing your aesthetic profile…'
+                    : 'Refreshing with your latest signals…'}
                 </Text>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Fallback Summary Section (if no AI summary) */}
-        {!aiSummary && summary && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Profile Summary</Text>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>{summary.title}</Text>
-              {summary.secondaryArchetype && (
-                <Text style={styles.summarySecondary}>
-                  with {summary.secondaryArchetype.name} influences
-                </Text>
-              )}
-              <View style={styles.summaryStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Confidence Level</Text>
-                  <Text style={styles.statValue}>{summary.confidenceLevel}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statLabel}>Profile Distinctiveness</Text>
-                  <Text style={styles.statValue}>{summary.distinctiveness}</Text>
-                </View>
               </View>
-            </View>
+            )}
+            <AnimatedSummaryText
+              text={summaryText}
+              placeholder={summaryPlaceholder}
+              isActive={!summaryPlaceholder}
+              typingDelayMs={12}
+              animationKey={summaryAnimationKey}
+              showCursor
+              style={[
+                styles.aiSummaryText,
+                summaryPlaceholder && styles.placeholderSummaryText,
+              ]}
+              accessibilityLabel={
+                summaryText ||
+                'Your aesthetic profile summary is being personalized.'
+              }
+            />
+            {summaryGeneratedAt && !summaryPlaceholder && summaryText && (
+              <Text style={styles.generatedAtText}>
+                Generated {formatRelativeTime(summaryGeneratedAt)}
+              </Text>
+            )}
+            {suggestionPills.length > 0 && (
+              <View style={styles.summarySuggestions}>
+                {suggestionPills.slice(0, 6).map((label, index) => (
+                  <View key={`${label}-${index}`} style={styles.suggestionPill}>
+                    <Text style={styles.suggestionPillText}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
-        )}
+        </View>
 
         {/* Primary Archetype Section */}
         {primaryInfo && (
@@ -862,50 +958,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
+    minHeight: 140,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 6,
-  },
-  summarySecondary: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-    fontStyle: 'italic',
-  },
-  summaryStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
-    marginHorizontal: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#f0f0f0',
   },
   subtypeRow: {
     backgroundColor: '#f9f9f9',
@@ -961,6 +1021,25 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  summarySuggestions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+  },
+  suggestionPill: {
+    backgroundColor: '#f3f3f3',
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  suggestionPillText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });
 

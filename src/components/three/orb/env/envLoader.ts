@@ -1,6 +1,8 @@
 import { useThree } from "@react-three/fiber/native";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+
+const ENABLE_PMREM = false;
 
 /**
  * envLoader: Utilities for loading and managing environment maps in React Native GL
@@ -16,42 +18,83 @@ import * as THREE from "three";
 export function useEnvMap(): THREE.Texture | null {
   const { gl } = useThree();
   const [envMap, setEnvMap] = useState<THREE.Texture | null>(null);
+  const attemptedRef = useRef(false);
+  const shouldGenerate = ENABLE_PMREM;
 
   useEffect(() => {
-    // For now, we'll create a simple procedural environment
-    // In production, you could load an actual HDR or LDR equirect image
-    const pmremGenerator = new THREE.PMREMGenerator(gl);
-    pmremGenerator.compileEquirectangularShader();
+    if (!shouldGenerate) {
+      if (attemptedRef.current === false) {
+        attemptedRef.current = true;
+      }
+      return;
+    }
+
+    if (!gl || attemptedRef.current) {
+      return;
+    }
+
+    attemptedRef.current = true;
+
+    const supportsPMREM =
+      typeof gl?.getExtension === "function" &&
+      (gl.getExtension("EXT_color_buffer_float") ||
+        gl.getExtension("OES_texture_float") ||
+        gl.getExtension("OES_texture_half_float"));
+
+    if (!supportsPMREM) {
+      console.warn("[envLoader] Falling back to lights; PMREM extensions unavailable");
+      setEnvMap(null);
+      return;
+    }
+
+    let pmremGenerator: THREE.PMREMGenerator | null = null;
+    let renderTarget: THREE.WebGLRenderTarget | null = null;
 
     try {
-      // Create a simple gradient environment
-      const envScene = new THREE.Scene();
-      envScene.background = new THREE.Color(0x444444);
+      pmremGenerator = new THREE.PMREMGenerator(gl);
 
-      // Add some ambient lighting to the env scene
-      const topLight = new THREE.DirectionalLight(0xffffff, 1.0);
-      topLight.position.set(0, 1, 0);
+      // Create a bright gradient environment scene
+      const envScene = new THREE.Scene();
+
+      // Bright gradient background (sky to horizon)
+      envScene.background = new THREE.Color(0xccddff);
+
+      // Add bright hemisphere light
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.5);
+      envScene.add(hemiLight);
+
+      // Add multiple directional lights for varied reflections
+      const topLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      topLight.position.set(0, 10, 0);
       envScene.add(topLight);
 
-      const sideLight = new THREE.DirectionalLight(0x8899ff, 0.5);
-      sideLight.position.set(1, 0, 0);
+      const frontLight = new THREE.DirectionalLight(0xeef4ff, 0.8);
+      frontLight.position.set(5, 5, 10);
+      envScene.add(frontLight);
+
+      const sideLight = new THREE.DirectionalLight(0xffe4f4, 0.6);
+      sideLight.position.set(-8, 3, -5);
       envScene.add(sideLight);
 
       // Generate PMREM from scene
-      const renderTarget = pmremGenerator.fromScene(envScene, 0.04);
+      renderTarget = pmremGenerator.fromScene(envScene);
       setEnvMap(renderTarget.texture);
 
+      console.log("[envLoader] Environment map created successfully");
+
       return () => {
-        pmremGenerator.dispose();
-        renderTarget.dispose();
+        pmremGenerator?.dispose();
+        renderTarget?.dispose();
       };
     } catch (error) {
       console.warn("[envLoader] Failed to create environment map:", error);
       setEnvMap(null);
+      pmremGenerator?.dispose?.();
+      renderTarget?.dispose?.();
     }
-  }, [gl]);
+  }, [gl, shouldGenerate]);
 
-  return envMap;
+  return shouldGenerate ? envMap : null;
 }
 
 /**
@@ -63,6 +106,11 @@ export function useEnvMapFromEquirect(imageUri: string): THREE.Texture | null {
   const [envMap, setEnvMap] = useState<THREE.Texture | null>(null);
 
   useEffect(() => {
+    if (!ENABLE_PMREM) {
+      setEnvMap(null);
+      return;
+    }
+
     const textureLoader = new THREE.TextureLoader();
     const pmremGenerator = new THREE.PMREMGenerator(gl);
     pmremGenerator.compileEquirectangularShader();
