@@ -24,7 +24,8 @@
     "ios": {
       "bundleIdentifier": "com.lucienmount.architectureapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMotionUsageDescription": "Motion is used to animate lighting reflections."
       },
       "appleTeamId": "5JRD794HZ9"
     },

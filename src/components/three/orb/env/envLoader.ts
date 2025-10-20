@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import {
   EquirectangularReflectionMapping,
   PMREMGenerator,
-  Texture,
-  WebGLRenderer,
   SRGBColorSpace,
+  Texture,
+  TextureLoader,
+  UnsignedByteType,
+  WebGLRenderer,
 } from "three";
 import { useThree } from "@react-three/fiber/native";
 import { Asset } from "expo-asset";
-import { loadTextureAsync } from "expo-three";
+import { RGBELoader } from "three-stdlib";
 
 type MaybeTexture = Texture | null;
 
@@ -21,6 +23,41 @@ async function resolveAsset(localModule: any): Promise<Asset | null> {
   } catch (error) {
     console.warn("[envLoader] Failed to resolve asset:", error);
     return null;
+  }
+}
+
+function ensureDomPolyfills() {
+  const globalAny = global as any;
+  if (!globalAny.document) {
+    globalAny.document = {};
+  }
+  const doc = globalAny.document;
+  if (typeof doc.createElement !== "function") {
+    doc.createElement = () => ({
+      style: {},
+      setAttribute: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      getContext: () => null,
+    });
+  }
+  if (typeof doc.createElementNS !== "function") {
+    doc.createElementNS = () => ({
+      style: {},
+      setAttribute: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      getContext: () => null,
+    });
+  }
+  if (typeof doc.getElementsByTagName !== "function") {
+    doc.getElementsByTagName = () => [];
+  }
+  if (!doc.body) {
+    doc.body = {
+      appendChild: () => {},
+      removeChild: () => {},
+    };
   }
 }
 
@@ -60,6 +97,7 @@ export function useEnvMap(localModule: any) {
 
     let cancelled = false;
     let pmrem: PMREMGenerator | null = null;
+    let generatedTexture: Texture | null = null;
 
     (async () => {
       const renderer = three.gl as WebGLRenderer;
@@ -76,26 +114,32 @@ export function useEnvMap(localModule: any) {
       let equi: Texture | null = null;
 
       try {
-        // Use expo-three's loadTextureAsync with the asset
-        equi = await loadTextureAsync({ asset });
+        const uri = asset.localUri ?? asset.uri;
+        if (!uri) {
+          throw new Error("Resolved asset is missing a URI");
+        }
 
-        if (__DEV__) {
-          console.log("[envLoader] Loaded result:", {
-            isNull: equi === null,
-            isUndefined: equi === undefined,
-            isTexture: (equi as any)?.isTexture,
-            type: typeof equi,
-          });
+        const isHdr = uri.toLowerCase().endsWith(".hdr");
+
+        if (isHdr) {
+          equi = await new RGBELoader()
+            .setDataType(UnsignedByteType)
+            .loadAsync(uri);
+        } else {
+          ensureDomPolyfills();
+          const loader = new TextureLoader();
+          equi = await loader.loadAsync(uri);
         }
 
         if (!equi || !(equi as any).isTexture) {
           throw new Error("Loaded asset is not a THREE.Texture");
         }
-        equi.colorSpace = SRGBColorSpace;
+
         equi.mapping = EquirectangularReflectionMapping;
+        equi.colorSpace = SRGBColorSpace;
         equi.needsUpdate = true;
       } catch (error) {
-        console.warn("[envLoader] Expo texture load failed:", error);
+        console.warn("[envLoader] Environment texture load failed:", error);
         if (!cancelled) {
           setEnvMap(null);
         }
@@ -108,6 +152,9 @@ export function useEnvMap(localModule: any) {
           pmrem.compileEquirectangularShader();
           const { texture } = pmrem.fromEquirectangular(equi);
           equi.dispose();
+
+          generatedTexture = texture;
+
           if (!cancelled) {
             setEnvMap(texture);
             return;
@@ -120,6 +167,7 @@ export function useEnvMap(localModule: any) {
 
       if (!cancelled) {
         setEnvMap(equi);
+        generatedTexture = equi;
       } else {
         equi.dispose();
       }
@@ -129,6 +177,9 @@ export function useEnvMap(localModule: any) {
       cancelled = true;
       if (pmrem) {
         pmrem.dispose();
+      }
+      if (generatedTexture) {
+        generatedTexture.dispose();
       }
     };
   }, [three.gl, localModule]);

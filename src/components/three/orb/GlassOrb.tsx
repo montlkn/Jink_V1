@@ -26,6 +26,12 @@ function OrbContent({ envAsset }: { envAsset: any }) {
         materialRef.current.needsUpdate = true;
       }
     }
+
+    return () => {
+      if (scene.environment === env) {
+        scene.environment = null;
+      }
+    };
   }, [env, scene]);
 
   if (__DEV__) {
@@ -48,11 +54,10 @@ function OrbContent({ envAsset }: { envAsset: any }) {
           envMap={env || undefined}
           envMapIntensity={1.6}
           roughness={0.05}
-          clearcoat={1}
-          clearcoatRoughness={0.02}
-          transmission={0}
+          transmission={1}
+          thickness={2}
+          metalness={0}
           transparent
-          opacity={0.18}
           ior={1.47}
         />
       </mesh>
@@ -63,11 +68,14 @@ function OrbContent({ envAsset }: { envAsset: any }) {
 export default function GlassOrb({ size = 220 }: Props) {
   return (
     <Canvas
-      gl={{ alpha: true }}
-      style={{ width: size, height: size, backgroundColor: 'transparent' }}
+      gl={{
+        alpha: true,
+        antialias: false, // Expo GL doesn't support multisampling
+      }}
+      style={{ width: size, height: size, backgroundColor: "transparent" }}
       dpr={[1, 1.25]}
       onCreated={({ gl }) => {
-        gl.setClearColor?.(0x000000, 0);   // transparent
+        gl.setClearColor?.(0x000000, 0); // transparent
         gl.setClearAlpha?.(0);
         gl.outputColorSpace = SRGBColorSpace;
         gl.toneMapping = ACESFilmicToneMapping;

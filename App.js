@@ -3,9 +3,9 @@
   Description: The main entry point for the entire application.
   Its only job is to render the main navigator.
 */
-import "expo-three";
-import React from "react";
+
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
+// MUST be before importing expo-three
 if (typeof global !== 'undefined') {
   const weakSet = WeakMap.prototype.set;
   WeakMap.prototype.set = function patchedWeakMapSet(key, value) {
@@ -23,7 +23,26 @@ if (typeof global !== 'undefined') {
   if (!global.cancelAnimationFrame) {
     global.cancelAnimationFrame = (id) => clearTimeout(id);
   }
+  // Polyfill document for three.js
+  if (!global.document) {
+    global.document = {
+      getElementsByTagName: () => [],
+      createElement: () => ({
+        style: {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+      createElementNS: () => ({
+        style: {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    };
+  }
 }
+
+import "expo-three";
+import React from "react";
 import { AuthProvider } from "./src/auth/authProvider";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { OrbTransitionProvider } from "./src/state/orbTransitionContext";

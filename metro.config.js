@@ -15,6 +15,12 @@ const SERVER_ONLY_SHIM = path.resolve(__dirname, 'shims/server-only.js');
 config.resolver = config.resolver || {};
 config.resolver.sourceExts = [...(config.resolver.sourceExts || []), 'cjs'];
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
+config.resolver.assetExts = [
+  ...(config.resolver.assetExts || []),
+  'hdr',
+  'exr',
+  'ktx2',
+];
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),
   three: path.resolve(__dirname, 'node_modules/three'),
