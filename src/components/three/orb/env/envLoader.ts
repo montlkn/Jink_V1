@@ -1,139 +1,137 @@
+import { useEffect, useState } from "react";
+import {
+  EquirectangularReflectionMapping,
+  PMREMGenerator,
+  Texture,
+  WebGLRenderer,
+  SRGBColorSpace,
+} from "three";
 import { useThree } from "@react-three/fiber/native";
-import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
+import { Asset } from "expo-asset";
+import { loadTextureAsync } from "expo-three";
 
-const ENABLE_PMREM = false;
+type MaybeTexture = Texture | null;
 
-/**
- * envLoader: Utilities for loading and managing environment maps in React Native GL
- *
- * PMREM (Prefiltered Mipmapped Radiance Environment Map) provides stable,
- * performant reflections on mobile devices.
- */
-
-/**
- * Hook to load and return an environment map
- * Falls back to null if loading fails (component should handle this gracefully)
- */
-export function useEnvMap(): THREE.Texture | null {
-  const { gl } = useThree();
-  const [envMap, setEnvMap] = useState<THREE.Texture | null>(null);
-  const attemptedRef = useRef(false);
-  const shouldGenerate = ENABLE_PMREM;
-
-  useEffect(() => {
-    if (!shouldGenerate) {
-      if (attemptedRef.current === false) {
-        attemptedRef.current = true;
-      }
-      return;
-    }
-
-    if (!gl || attemptedRef.current) {
-      return;
-    }
-
-    attemptedRef.current = true;
-
-    const supportsPMREM =
-      typeof gl?.getExtension === "function" &&
-      (gl.getExtension("EXT_color_buffer_float") ||
-        gl.getExtension("OES_texture_float") ||
-        gl.getExtension("OES_texture_half_float"));
-
-    if (!supportsPMREM) {
-      console.warn("[envLoader] Falling back to lights; PMREM extensions unavailable");
-      setEnvMap(null);
-      return;
-    }
-
-    let pmremGenerator: THREE.PMREMGenerator | null = null;
-    let renderTarget: THREE.WebGLRenderTarget | null = null;
-
-    try {
-      pmremGenerator = new THREE.PMREMGenerator(gl);
-
-      // Create a bright gradient environment scene
-      const envScene = new THREE.Scene();
-
-      // Bright gradient background (sky to horizon)
-      envScene.background = new THREE.Color(0xccddff);
-
-      // Add bright hemisphere light
-      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x888888, 1.5);
-      envScene.add(hemiLight);
-
-      // Add multiple directional lights for varied reflections
-      const topLight = new THREE.DirectionalLight(0xffffff, 1.2);
-      topLight.position.set(0, 10, 0);
-      envScene.add(topLight);
-
-      const frontLight = new THREE.DirectionalLight(0xeef4ff, 0.8);
-      frontLight.position.set(5, 5, 10);
-      envScene.add(frontLight);
-
-      const sideLight = new THREE.DirectionalLight(0xffe4f4, 0.6);
-      sideLight.position.set(-8, 3, -5);
-      envScene.add(sideLight);
-
-      // Generate PMREM from scene
-      renderTarget = pmremGenerator.fromScene(envScene);
-      setEnvMap(renderTarget.texture);
-
-      console.log("[envLoader] Environment map created successfully");
-
-      return () => {
-        pmremGenerator?.dispose();
-        renderTarget?.dispose();
-      };
-    } catch (error) {
-      console.warn("[envLoader] Failed to create environment map:", error);
-      setEnvMap(null);
-      pmremGenerator?.dispose?.();
-      renderTarget?.dispose?.();
-    }
-  }, [gl, shouldGenerate]);
-
-  return shouldGenerate ? envMap : null;
+async function resolveAsset(localModule: any): Promise<Asset | null> {
+  try {
+    if (!localModule) return null;
+    const asset = Asset.fromModule(localModule);
+    await asset.downloadAsync();
+    return asset;
+  } catch (error) {
+    console.warn("[envLoader] Failed to resolve asset:", error);
+    return null;
+  }
 }
 
-/**
- * Alternative: Load environment from equirectangular image
- * (Requires expo-asset and proper image loading)
- */
-export function useEnvMapFromEquirect(imageUri: string): THREE.Texture | null {
-  const { gl } = useThree();
-  const [envMap, setEnvMap] = useState<THREE.Texture | null>(null);
+function supportsPmrem(renderer: WebGLRenderer): boolean {
+  try {
+    const caps: any = renderer?.capabilities;
+    const ctx: WebGLRenderingContext | WebGL2RenderingContext | undefined =
+      renderer?.getContext?.();
+
+    const isWebGL2 = Boolean(caps?.isWebGL2);
+    if (!isWebGL2 || !ctx) {
+      return false;
+    }
+
+    const hasFloatRT =
+      ctx.getExtension?.("EXT_color_buffer_float") ||
+      ctx.getExtension?.("WEBGL_color_buffer_float") ||
+      ctx.getExtension?.("EXT_color_buffer_half_float");
+
+    return Boolean(hasFloatRT);
+  } catch (error) {
+    console.warn("[envLoader] PMREM capability detection failed:", error);
+    return false;
+  }
+}
+
+export function useEnvMap(localModule: any) {
+  const three = useThree();
+  const [envMap, setEnvMap] = useState<MaybeTexture>(null);
 
   useEffect(() => {
-    if (!ENABLE_PMREM) {
-      setEnvMap(null);
+    // Safety check: ensure we have a valid gl context
+    if (!three?.gl) {
+      console.warn("[envLoader] GL context not available yet");
       return;
     }
 
-    const textureLoader = new THREE.TextureLoader();
-    const pmremGenerator = new THREE.PMREMGenerator(gl);
-    pmremGenerator.compileEquirectangularShader();
+    let cancelled = false;
+    let pmrem: PMREMGenerator | null = null;
 
-    textureLoader.load(
-      imageUri,
-      (texture) => {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        const renderTarget = pmremGenerator.fromEquirectangular(texture);
-        setEnvMap(renderTarget.texture);
-        texture.dispose();
-      },
-      undefined,
-      (error) => {
-        console.warn("[envLoader] Failed to load equirect:", error);
-        setEnvMap(null);
+    (async () => {
+      const renderer = three.gl as WebGLRenderer;
+      const asset = await resolveAsset(localModule);
+
+      if (!asset || !renderer) {
+        console.warn("[envLoader] Env asset missing or renderer unavailable.");
+        if (!cancelled) {
+          setEnvMap(null);
+        }
+        return;
       }
-    );
+
+      let equi: Texture | null = null;
+
+      try {
+        // Use expo-three's loadTextureAsync with the asset
+        equi = await loadTextureAsync({ asset });
+
+        if (__DEV__) {
+          console.log("[envLoader] Loaded result:", {
+            isNull: equi === null,
+            isUndefined: equi === undefined,
+            isTexture: (equi as any)?.isTexture,
+            type: typeof equi,
+          });
+        }
+
+        if (!equi || !(equi as any).isTexture) {
+          throw new Error("Loaded asset is not a THREE.Texture");
+        }
+        equi.colorSpace = SRGBColorSpace;
+        equi.mapping = EquirectangularReflectionMapping;
+        equi.needsUpdate = true;
+      } catch (error) {
+        console.warn("[envLoader] Expo texture load failed:", error);
+        if (!cancelled) {
+          setEnvMap(null);
+        }
+        return;
+      }
+
+      if (supportsPmrem(renderer)) {
+        try {
+          pmrem = new PMREMGenerator(renderer);
+          pmrem.compileEquirectangularShader();
+          const { texture } = pmrem.fromEquirectangular(equi);
+          equi.dispose();
+          if (!cancelled) {
+            setEnvMap(texture);
+            return;
+          }
+          texture.dispose();
+        } catch (error) {
+          console.warn("[envLoader] PMREM failed, using equirect:", error);
+        }
+      }
+
+      if (!cancelled) {
+        setEnvMap(equi);
+      } else {
+        equi.dispose();
+      }
+    })();
 
     return () => {
-      pmremGenerator.dispose();
+      cancelled = true;
+      if (pmrem) {
+        pmrem.dispose();
+      }
     };
-  }, [gl, imageUri]);
+  }, [three.gl, localModule]);
 
   return envMap;
 }

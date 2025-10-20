@@ -1,9 +1,9 @@
 import React from "react";
 import {
-  View,
-  Text,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function NotFoundScreen({ route, navigation }) {
@@ -22,6 +22,7 @@ export default function NotFoundScreen({ route, navigation }) {
           <Text style={styles.tipTitle}>Tips for better results:</Text>
           <Text style={styles.tipText}>• Get closer to the building</Text>
           <Text style={styles.tipText}>• Ensure good lighting</Text>
+          <Text style={styles.tipText}>• Make sure the building is the focus of the image and not a small artifact</Text>
           <Text style={styles.tipText}>• Capture distinctive features</Text>
           <Text style={styles.tipText}>• Make sure you're in NYC</Text>
         </View>

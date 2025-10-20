@@ -35,4 +35,27 @@ function applyReactNativeMapsPatch() {
   console.log('[patches] Applied react-native-maps patch');
 }
 
+function fixThreeTypes() {
+  const indexPath = path.join(process.cwd(), 'node_modules/@types/three/index.d.ts');
+
+  if (!fs.existsSync(indexPath)) {
+    console.warn('[patches] @types/three not installed, skipping fix.');
+    return;
+  }
+
+  try {
+    const content = fs.readFileSync(indexPath, 'utf8');
+    if (content.includes('export * from "./src/Three.js";')) {
+      const fixed = content.replace('export * from "./src/Three.js";', 'export * from "./src/Three";');
+      fs.writeFileSync(indexPath, fixed, 'utf8');
+      console.log('[patches] Fixed @types/three index.d.ts');
+    } else {
+      console.log('[patches] @types/three already patched');
+    }
+  } catch (error) {
+    console.error('[patches] Failed to fix @types/three:', error.message);
+  }
+}
+
 applyReactNativeMapsPatch();
+fixThreeTypes();

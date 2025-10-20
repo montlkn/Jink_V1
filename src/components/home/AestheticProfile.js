@@ -19,7 +19,6 @@ const AestheticProfile = ({ navigation, onNavigate, archetypeData }) => {
       >
         <View style={styles.orbContainer}>
           <ArchetypeOrb
-            mode="clouds"
             archetypeData={sampleData}
             size={220}
             quality="high"

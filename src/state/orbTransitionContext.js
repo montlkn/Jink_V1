@@ -14,8 +14,8 @@ const DEFAULT_EASING = Easing.out(Easing.cubic);
 const ORB_SIZE = 360;
 
 const OrbTransitionContext = createContext({
-  registerHomeOrbLayout: () => {},
-  setOrbData: () => {},
+  registerHomeOrbLayout: (layout) => {},
+  setOrbData: (data) => {},
   startHomeToJinkTransition: async () => false,
   transitionProgress: new Animated.Value(0),
   isTransitioning: false,

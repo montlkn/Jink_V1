@@ -3,9 +3,19 @@
   Description: The main entry point for the entire application.
   Its only job is to render the main navigator.
 */
+import "expo-three";
 import React from "react";
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
 if (typeof global !== 'undefined') {
+  const weakSet = WeakMap.prototype.set;
+  WeakMap.prototype.set = function patchedWeakMapSet(key, value) {
+    if (key === null || (typeof key !== "object" && typeof key !== "function")) {
+      try {
+        console.error("[WeakMap] invalid key", key, "value type:", typeof value);
+      } catch (_) {}
+    }
+    return weakSet.call(this, key, value);
+  };
   if (!global.performance) global.performance = { now: Date.now };
   if (!global.requestAnimationFrame) {
     global.requestAnimationFrame = (cb) => setTimeout(() => cb(global.performance.now()), 16);

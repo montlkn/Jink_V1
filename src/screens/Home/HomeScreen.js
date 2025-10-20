@@ -7,7 +7,6 @@ import {
   StyleSheet,
   View
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { supabase } from '../../api/supabaseClient';
 import ArchetypeOrb from '../../components/ArchetypeOrb';
@@ -237,13 +236,6 @@ export default function HomeScreen({ navigation }) {
           style={[styles.orbSection, { opacity: orbOpacity }]}
         >
           <View style={styles.orbWrapper}>
-            <LinearGradient
-              pointerEvents="none"
-              colors={['rgba(9, 13, 22, 0.82)', 'rgba(12, 18, 30, 0.68)', 'rgba(22, 26, 34, 0.32)']}
-              start={{ x: 0.2, y: 0.1 }}
-              end={{ x: 0.8, y: 0.95 }}
-              style={styles.orbGradient}
-            />
             <ArchetypeOrb
               archetypeData={archetypeData}
               xpLevel={userLevel}
@@ -265,6 +257,7 @@ export default function HomeScreen({ navigation }) {
                 title={dailyQuest.title}
                 description={dailyQuest.description}
                 epReward={dailyQuest.xpReward}
+                xpReward={dailyQuest.xpReward}
                 additionalRewards={dailyQuest.additionalRewards}
                 progress={dailyQuest.progress}
                 total={dailyQuest.total}
@@ -282,6 +275,7 @@ export default function HomeScreen({ navigation }) {
                 title={weeklyQuest.title}
                 description={weeklyQuest.description}
                 epReward={weeklyQuest.xpReward}
+                xpReward={weeklyQuest.xpReward}
                 additionalRewards={weeklyQuest.additionalRewards}
                 progress={weeklyQuest.progress}
                 total={weeklyQuest.total}

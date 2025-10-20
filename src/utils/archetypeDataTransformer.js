@@ -140,14 +140,14 @@ export const processArchetypeData = (archetypeData, { allowFallback = true } = {
   return topThree.map((archetype, index) => {
     const { name, percentage } = archetype;
     const baseColor = archetype.color || getArchetypeColor(name);
-    // Derive a triad of related colors for richer smoke blending
+    // Derive a triad for layered glass tints and highlight accents
     const secondaryColor = deriveTint(baseColor, { hueShift: 0.03, lightness: 0.04 });
     const tertiaryColor  = deriveTint(baseColor, { hueShift: -0.03, lightness: -0.04 });
-    // Proportional size mapping for dense, in-orb volumetric smoke
-    // Wider base so clouds feel substantial and overlapping
+    // Proportional size mapping retained for legacy consumers (now used for glow sizing)
+    // Wider base keeps gradients substantial when projected in the glass orb
     const sizeFactor = 0.8 + percentage * 1.2;
     const opacity = clamp(0.5 + percentage * 0.4, 0.5, 0.9);
-    const baseScale = 0.6; // larger base for fuller smoke volume
+    const baseScale = 0.6; // larger base preserves perceived orb fill
     const width = baseScale * sizeFactor; // clamped in render layer
     const length = width * 0.95;
     const depth = width * 0.85;
