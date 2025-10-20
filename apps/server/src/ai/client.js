@@ -106,7 +106,26 @@ export async function generateSummary(aestheticData, options = {}) {
       throw new Error('Content blocked by safety filters');
     }
 
-    const responseText = response.text;
+    let responseText = typeof response.text === 'string' ? response.text : '';
+    if (!responseText) {
+      const candidates = response?.response?.candidates || response?.candidates;
+      if (Array.isArray(candidates)) {
+        responseText = candidates
+          .map(candidate => {
+            const parts = candidate?.content?.parts || candidate?.parts;
+            if (!Array.isArray(parts)) return '';
+            return parts
+              .map(part => (typeof part?.text === 'string' ? part.text : ''))
+              .join('');
+          })
+          .filter(Boolean)
+          .join('\n');
+      }
+    }
+
+    if (!responseText) {
+      throw new Error('Empty response from Gemini');
+    }
 
     // Parse and validate
     const validation = parseAndValidateResponse(responseText);

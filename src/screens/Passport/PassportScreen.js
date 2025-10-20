@@ -92,6 +92,12 @@ const PassportScreen = ({ navigation }) => {
 
   const handleCardPress = (category) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (category === 'Past Walks') {
+      navigation.navigate('PastWalksNolli', {});
+      return;
+    }
+
     console.log(`Pressed ${category}`);
   };
 
@@ -169,7 +175,7 @@ const PassportScreen = ({ navigation }) => {
           <Text style={styles.cardDescription}>
             {stamps.length > 0
               ? `${stamps.length} stamp${stamps.length !== 1 ? 's' : ''} collected`
-              : 'Complete quests to earn stamps'}
+              : 'Complete quests or scan buildings to earn stamps'}
           </Text>
           {stamps.length > 0 && (
             <ScrollView
@@ -208,7 +214,7 @@ const PassportScreen = ({ navigation }) => {
           <Text style={styles.cardDescription}>
             {achievements.length > 0
               ? `${achievements.length} achievement${achievements.length !== 1 ? 's' : ''} unlocked`
-              : 'Complete quests to unlock achievements'}
+              : 'Complete quests or hit milestones to unlock achievements'}
           </Text>
           {achievements.length > 0 && (
             <View style={styles.previewContainer}>

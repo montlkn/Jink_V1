@@ -38,9 +38,17 @@ export const AI_CONFIG = {
 
   // Rate limiting
   rateLimit: {
-    perUserBurst: 1,
-    perUserRefillMinutes: 10,
-    perUserDailyMax: 5,
+    // Allow overrides via env for dev/test
+    perUserBurst: Number.parseInt(process.env.AI_RATE_LIMIT_BURST || '1', 10),
+    perUserRefillMinutes: Number.parseInt(
+      process.env.AI_RATE_LIMIT_PER_USER_MINUTES || '10',
+      10
+    ),
+    perUserDailyMax: Number.parseInt(
+      process.env.AI_RATE_LIMIT_DAILY_CAP || '5',
+      10
+    ),
+    disabled: String(process.env.AI_RATE_LIMIT_DISABLE || '').toLowerCase() === 'true',
   },
 
   // Circuit breaker settings
@@ -49,6 +57,7 @@ export const AI_CONFIG = {
     windowSize: 200, // Track last 200 calls
     resetTimeoutMs: 5000, // Start at 5 seconds
     maxResetTimeoutMs: 900000, // Max 15 minutes
+    disabled: String(process.env.AI_CIRCUIT_BREAKER_DISABLE || '').toLowerCase() === 'true',
   },
 
   // Output constraints

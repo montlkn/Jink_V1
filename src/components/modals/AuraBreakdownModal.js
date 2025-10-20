@@ -19,10 +19,16 @@ const AuraBreakdownModal = ({
   if (!visible) return null;
 
   const handleViewProfile = () => {
+    console.log('[aura-modal] Handle view profile');
     if (onClose) onClose();
     setTimeout(() => {
       // Navigate to ProfileDetail in the root stack navigator
-      navigation.getParent()?.navigate('ProfileDetail');
+      const rootNav =
+        navigation.getParent?.()?.getParent?.() ??
+        navigation.getParent?.() ??
+        navigation;
+      console.log('[aura-modal] rootNav resolved:', !!rootNav);
+      rootNav?.navigate('ProfileDetail');
     }, 150);
   };
 
@@ -68,9 +74,12 @@ const AuraBreakdownModal = ({
                     if (!archetypeName) return;
                     // Small delay so the modal close animation feels natural
                     setTimeout(() => {
-                      navigation
-                        .getParent()
-                        ?.navigate('ProfileDetail', { initialArchetype: archetypeName });
+                      const rootNav =
+                        navigation.getParent?.()?.getParent?.() ??
+                        navigation.getParent?.() ??
+                        navigation;
+                      console.log('[aura-modal] archetype tap -> ProfileDetail', archetypeName, !!rootNav);
+                      rootNav?.navigate('ProfileDetail', { initialArchetype: archetypeName });
                     }, 150);
                   }}
                 >

@@ -15,6 +15,7 @@ import {
   fetchQuizQuestions,
   submitQuizResponse
 } from '../../api/quizApi';
+import { fetchSummary } from '../../api/summaryApi';
 import { useAuth } from '../../auth/authProvider';
 
 const { width } = Dimensions.get('window');
@@ -101,6 +102,13 @@ const OnboardingQuizScreen = ({ navigation }) => {
     try {
       // Calculate the user's aesthetic profile
       await calculateAestheticProfile(session.user.id);
+      // Trigger summary generation inline (or queue) based on server config
+      try {
+        await fetchSummary(true);
+      } catch (e) {
+        // Non-blocking; profile is calculated even if summary gen is deferred
+        console.warn('Post-quiz summary trigger skipped:', e?.message);
+      }
       
       // Navigation will happen automatically via AppNavigator conditional rendering
       console.log('Quiz completed successfully - profile calculated');

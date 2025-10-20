@@ -25,5 +25,9 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
+  },
+  "files.associations": {
+    ".edge-env": "dotenv",
+    "*.env": "dotenv"
   }
 }

@@ -1,0 +1,53 @@
+declare module "react-native-maps" {
+  import * as React from "react";
+  import { ViewProps } from "react-native";
+
+  export type LatLng = {
+    latitude: number;
+    longitude: number;
+  };
+
+  export type EdgePadding = {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+
+  export type Region = {
+    latitude: number;
+    longitude: number;
+    latitudeDelta: number;
+    longitudeDelta: number;
+  };
+
+  export interface FitToCoordinatesOptions {
+    edgePadding?: EdgePadding;
+    animated?: boolean;
+  }
+
+  export interface MapViewProps extends ViewProps {
+    provider?: "google" | "apple";
+    customMapStyle?: Array<Record<string, unknown>>;
+    initialRegion?: Region;
+    onMapReady?: () => void;
+    onRegionChangeComplete?: (region: Region) => void;
+  }
+
+  export default class MapView extends React.Component<MapViewProps> {
+    fitToCoordinates(coordinates: LatLng[], options?: FitToCoordinatesOptions): void;
+    pointForCoordinate(coordinate: LatLng): Promise<{ x: number; y: number }>;
+  }
+
+  export const PROVIDER_GOOGLE: "google";
+
+  export interface PolygonProps {
+    coordinates: LatLng[];
+    holes?: LatLng[][];
+    fillColor?: string;
+    strokeColor?: string;
+    strokeWidth?: number;
+  }
+
+  export class Polygon extends React.Component<PolygonProps> {}
+}

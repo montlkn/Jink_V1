@@ -14,6 +14,7 @@ import BuildingInfoScreen from "../screens/Scan/BuildingInfoScreen";
 import NotFoundScreen from "../screens/Scan/NotFoundScreen";
 import { userNeedsOnboarding } from "../api/quizApi";
 import BottomTabNavigator from "./BottomTabNavigator";
+import PastWalksNolliScreen from "../screens/PastWalks/PastWalksNolliScreen";
 // Test screens removed
 
 const Stack = createNativeStackNavigator();
@@ -143,6 +144,11 @@ export default function AppNavigator() {
               name="NotFound"
               component={NotFoundScreen}
               options={{ headerShown: true, title: "Scan Result" }}
+            />
+            <Stack.Screen
+              name="PastWalksNolli"
+              component={PastWalksNolliScreen}
+              options={{ headerShown: false, presentation: "fullScreenModal" }}
             />
             <Stack.Screen
               name="AuthCallback"

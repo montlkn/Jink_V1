@@ -2,12 +2,54 @@
  * Rate limiting and circuit breaker for AI generation endpoints
  */
 
-import Redis from 'ioredis';
 import { AI_CONFIG } from '../config/aiConfig.js';
+import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null, // Not strictly required for rate limit, but good practice
-});
+let redisClient = null;
+let redisUnavailableLogged = false;
+let redisDisabled = false;
+
+function getRedis() {
+  if (AI_CONFIG.rateLimit.disabled || redisDisabled) return null;
+  if (redisClient) return redisClient;
+
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    if (!redisUnavailableLogged) {
+      console.warn('[rate-limit] REDIS_URL not set, disabling Redis-backed limits');
+      redisUnavailableLogged = true;
+    }
+    redisDisabled = true;
+    return null;
+  }
+
+  redisClient = new Redis(redisUrl, {
+    maxRetriesPerRequest: null,
+    lazyConnect: true,
+    connectTimeout: 5_000,
+    retryStrategy: () => null,
+  });
+  // Connect on first use
+  redisClient.connect().catch(error => {
+    if (!redisUnavailableLogged) {
+      console.warn('[rate-limit] Redis connect failed, limits disabled:', error.message);
+      redisUnavailableLogged = true;
+    }
+    redisClient?.disconnect();
+    redisClient = null;
+    redisDisabled = true;
+  });
+  redisClient.on('error', error => {
+    if (!redisUnavailableLogged) {
+      console.warn('[rate-limit] Redis error, failing open:', error.message);
+      redisUnavailableLogged = true;
+    }
+    redisClient?.disconnect();
+    redisClient = null;
+    redisDisabled = true;
+  });
+  return redisClient;
+}
 
 /**
  * Per-user rate limiter (token bucket algorithm)
@@ -19,6 +61,14 @@ export async function checkUserRateLimit(userId) {
   const dailyMax = AI_CONFIG.rateLimit.perUserDailyMax;
 
   try {
+    // Optional: disable rate limiting (useful for dev/testing)
+    if (AI_CONFIG.rateLimit.disabled) {
+      return { allowed: true, tokensRemaining: burst, dailyRemaining: dailyMax };
+    }
+    const redis = getRedis();
+    if (!redis) {
+      return { allowed: true };
+    }
     // Get current tokens and last refill time
     const data = await redis.get(key);
     const now = Date.now();
@@ -62,11 +112,8 @@ export async function checkUserRateLimit(userId) {
       dailyCount += 1;
 
       // Update Redis with new state
-      await redis.setex(
-        key,
-        refillMinutes * 60 * 60, // Expire after 1 hour of inactivity
-        JSON.stringify({ tokens, lastRefill, dailyCount })
-      );
+      const expireSeconds = Math.max(60, refillMinutes * 60); // seconds
+      await redis.setex(key, expireSeconds, JSON.stringify({ tokens, lastRefill, dailyCount }));
 
       await redis.incr(dayKey);
       await redis.expire(dayKey, 24 * 60 * 60);
@@ -103,6 +150,14 @@ export async function checkCircuitBreaker() {
   const windowKey = 'cb:ai:window';
 
   try {
+    // Optional: disable breaker fully (useful for early testing)
+    if (AI_CONFIG.circuitBreaker.disabled) {
+      return { state: 'disabled', failureRate: 0, canAttempt: true };
+    }
+    const redis = getRedis();
+    if (!redis) {
+      return { state: 'disabled', failureRate: 0, canAttempt: true };
+    }
     const state = await redis.get(key);
     const windowData = await redis.get(windowKey);
 
@@ -151,6 +206,8 @@ export async function recordGenerationAttempt(success) {
   const key = 'cb:ai:state';
 
   try {
+    const redis = getRedis();
+    if (!redis) return;
     const windowData = await redis.get(windowKey);
     const now = Date.now();
 

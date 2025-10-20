@@ -361,33 +361,13 @@ docker compose down
 
 ### Production deployment:
 
-If using Render, Railway, Fly.io, or Heroku:
+Modal is the canonical deployment target for the summary service. Follow `docs/MODAL_DEPLOYMENT.md` to:
 
-1. Push code to GitHub
-2. Connect repo to your deployment platform
-3. Set environment variables from `.env`
-4. Deploy both API and Worker services
-5. Configure health checks to hit `/healthz`
+1. Configure Modal secrets for Supabase, Redis, and Gemini.
+2. Deploy `modal_app.py` via `modal deploy modal_app.py`.
+3. Point the Expo client at the generated `https://<app>.modal.run` URL.
 
-**Example for Fly.io:**
-
-```toml
-# fly.toml
-[[services]]
-  internal_port = 8080
-  protocol = "tcp"
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-
-[[services]]
-  internal_port = 3000
-  protocol = "tcp"
-  # Worker process (no ports exposed)
-```
+If you deploy to another platform (Render, Railway, etc.), reuse the Express entrypoint in `apps/server/bin/start-api.js` and mirror the same environment variables.
 
 ---
 

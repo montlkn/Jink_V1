@@ -19,6 +19,7 @@ import { getArchetypeColor } from '../../constants/archetypeColors';
 import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
 import SegmentModal from '../../components/modals/SegmentModal';
 import { generateProfileSummary, getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
+import { composeLocalSummary } from '../../services/ai/localSummary';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
 
 /**
@@ -69,18 +70,53 @@ const ProfileDetailScreen = ({ navigation }) => {
     }
 
     try {
+      console.log('[profile-screen] Loading profile detail…');
       const userProfile = await getUserAestheticProfile(session.user.id);
       setProfile(userProfile);
 
-      // Fetch AI-generated summary
+      let resolvedSummary = null;
+      // Fetch AI-generated summary in two steps to avoid rate-limit hits
       try {
-        const summaryData = await fetchSummary(true); // autogen=true
-        if (summaryData?.summary) {
-          setAiSummary(summaryData.summary);
+        // 1) Fetch cached summary without triggering work
+        const initial = await fetchSummary(false);
+        if (initial?.summary) {
+          setAiSummary(initial.summary);
+          resolvedSummary = initial.summary;
+        }
+
+        // 2) Only trigger autogen if missing or marked as needing update
+        const shouldAutogen = !initial?.summary || initial?.meta?.needsUpdate;
+        if (shouldAutogen) {
+          // Kick off regeneration in the background so UI can render cached data
+          void (async () => {
+            try {
+              console.log('[profile-screen] Autogen summary background fetch…');
+              const regen = await fetchSummary(true);
+              if (regen?.summary) {
+                setAiSummary(regen.summary);
+              }
+            } catch (autogenErr) {
+              // Avoid spamming logs; show concise warning
+              console.warn('AI summary autogen skipped:', autogenErr.message);
+            }
+          })();
         }
       } catch (summaryErr) {
         console.warn('Could not fetch AI summary:', summaryErr.message);
         // Non-critical: continue without AI summary
+      }
+
+      // If still no AI summary, compose a local deterministic write‑up
+      if (!resolvedSummary && !aiSummary) {
+        const local = composeLocalSummary({
+          primary_archetype: userProfile.primary_archetype,
+          secondary_archetype: userProfile.secondary_archetype,
+          archetype_scores: userProfile.archetype_scores,
+        });
+        console.log('[profile-screen] Using fallback summary');
+        if (local?.text) {
+          setAiSummary(local);
+        }
       }
 
       setError(null);
@@ -211,6 +247,7 @@ const ProfileDetailScreen = ({ navigation }) => {
             strokeWidth={30}
             onSegmentPress={handleSegmentPress}
             hideMoreDetails={true}
+            showLeaderLabels
           />
         </View>
 

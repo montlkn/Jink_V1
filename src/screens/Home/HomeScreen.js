@@ -7,6 +7,7 @@ import {
   StyleSheet,
   View
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { supabase } from '../../api/supabaseClient';
 import ArchetypeOrb from '../../components/ArchetypeOrb';
@@ -19,6 +20,8 @@ import { getArchetypeColor } from '../../constants/archetypeColors';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
 import { useOrbTransition } from '../../state/orbTransitionContext';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
+
+const ORB_SIZE = 360;
 
 export default function HomeScreen({ navigation }) {
   const [archetypeData, setArchetypeData] = useState([]);
@@ -226,15 +229,24 @@ export default function HomeScreen({ navigation }) {
           onLayout={handleOrbLayout}
           style={[styles.orbSection, { opacity: orbOpacity }]}
         >
-          <ArchetypeOrb
-            archetypeData={archetypeData}
-            xpLevel={userLevel}
-            xpProgress={userXP / xpForNextLevel}
-            size={360}
-            onPress={handleOrbPress}
-            interactive={true}
-            lod="standard"
-          />
+          <View style={styles.orbWrapper}>
+            <LinearGradient
+              pointerEvents="none"
+              colors={['rgba(9, 13, 22, 0.82)', 'rgba(12, 18, 30, 0.68)', 'rgba(22, 26, 34, 0.32)']}
+              start={{ x: 0.2, y: 0.1 }}
+              end={{ x: 0.8, y: 0.95 }}
+              style={styles.orbGradient}
+            />
+            <ArchetypeOrb
+              archetypeData={archetypeData}
+              xpLevel={userLevel}
+              xpProgress={userXP / xpForNextLevel}
+              size={ORB_SIZE}
+              onPress={handleOrbPress}
+              interactive={true}
+              lod="standard"
+            />
+          </View>
         </Animated.View>
 
         <Animated.View style={{ opacity: contentFade }}>
@@ -319,6 +331,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.25,
+    shadowRadius: 30,
+    elevation: 24,
+  },
+  orbWrapper: {
+    width: ORB_SIZE,
+    height: ORB_SIZE,
+    borderRadius: ORB_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    backgroundColor: 'rgba(8, 12, 20, 0.6)',
+  },
+  orbGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
   orbLabel: {
     fontSize: 18,

@@ -3,6 +3,7 @@
  */
 
 import { AI_CONFIG } from '../config/aiConfig.js';
+import { getLexiconFor } from './lexicon.js';
 
 /**
  * Strip PII from context before sending to LLM
@@ -24,20 +25,19 @@ export function stripPII(context) {
  * Build the system prompt (fixed, deterministic)
  */
 export function buildSystemPrompt() {
-  return `You are an architecture and design expert writing personalized profile summaries.
+  return `You are an architecture and design expert writing concise, personal profile summaries.
 
-Your task:
-1. Write a 2-4 sentence profile summary in second person ("Your style...", "You prefer...")
-2. Respond in strict JSON format only: { "text": "...", "key_phrases": [...] }
-3. The text must be under 100 words
-4. Include 3-7 key phrases that capture the user's aesthetic signature
-5. No preamble, no explanation, no markdown
-
-Example response:
-{
-  "text": "Your aesthetic bridges modernist precision with industrial authenticity. Clean lines and functional materials are your hallmarks, though you appreciate moments of raw, exposed texture. You're drawn to designs that value honesty over ornamentation.",
-  "key_phrases": ["functional minimalism", "material honesty", "geometric precision", "industrial warmth"]
-}`;
+Requirements:
+1) Write 2–4 sentences in second person ("you prefer…", "you tend to…").
+2) Keep it warm and specific; avoid templates or lists that feel like mad‑libs.
+3) Do not mention scores, percentages, vectors, or the word "archetype".
+4) Prefer lowercase for descriptive terms (e.g., "modernist", "industrial", "material honesty"). Avoid Title Case buzzwords.
+5) Vary sentence openings; don’t repeat the same structure.
+6) Make it feel personal, like you are describing how the user feels and sees the world-- what they like and their preferences are understood and verablised succintly. 
+7) 55–100 words, plain text only.
+8) Respond in strict JSON only: { "text": "...", "key_phrases": ["…"] }
+9) key_phrases: 3–6 concise, lowercase phrases (2–4 words each), no punctuation.
+`;
 }
 
 /**
@@ -62,7 +62,17 @@ export function buildUserPrompt(aestheticData) {
     .map(([aesthetic, pct]) => `${aesthetic}: ${pct.toFixed(1)}%`)
     .join(', ');
 
-  const topCategoriesText = topCategories?.join(', ') || 'Residential, Commercial';
+  const topCategoriesText = topCategories?.join(', ') || 'residential, commercial';
+
+  // Add a small, grounded style lexicon to reduce hallucination and align tone
+  const pLex = getLexiconFor(primaryArchetype);
+  const sLex = getLexiconFor(secondaryArchetype);
+  const primaryLexText = pLex
+    ? `primary lexicon (${pLex.name.toLowerCase()}): ${pLex.vibe.map(v => v.toLowerCase()).join(', ')}`
+    : '';
+  const secondaryLexText = sLex
+    ? `secondary lexicon (${sLex.name.toLowerCase()}): ${sLex.vibe.map(v => v.toLowerCase()).join(', ')}`
+    : '';
 
   return `User's aesthetic profile:
 - Primary: ${primaryArchetype}
@@ -70,6 +80,10 @@ export function buildUserPrompt(aestheticData) {
 - Breakdown (top aesthetics): ${breakdownText}
 - Saved posts: ${totalPosts || 'many'}
 - Interests: ${topCategoriesText}
+
+Grounding vocabulary (use as guidance, do not list verbatim):
+${primaryLexText}
+${secondaryLexText}
 
 Generate a concise, personalized profile summary for this user.`;
 }
@@ -131,12 +145,12 @@ export function parseAndValidateResponse(responseText) {
       };
     }
 
-    // Sanitize: trim text and phrases
+    // Sanitize: trim text and phrases; normalize key phrases to lowercase
     return {
       valid: true,
       data: {
         text: json.text.trim(),
-        key_phrases: json.key_phrases.map(p => p.trim()),
+        key_phrases: json.key_phrases.map(p => p.trim().toLowerCase()),
       },
       error: null,
     };
@@ -165,5 +179,7 @@ export function sanitizeGeneratedText(text) {
     sanitized = sanitized.replace(pattern, '[redacted]');
   }
 
+  // Light normalization: collapse multiple spaces, ensure natural casing is kept
+  sanitized = sanitized.replace(/\s+/g, ' ').trim();
   return sanitized;
 }

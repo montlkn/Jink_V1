@@ -123,6 +123,7 @@ Create `.env` in the root directory:
 ```env
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
+EXPO_PUBLIC_API_URL=https://<your-modal-app>.modal.run
 ```
 
 Run the app:
@@ -130,6 +131,8 @@ Run the app:
 ```bash
 npx expo start
 ```
+
+Backend summary service deployment is handled via Modal—see `docs/MODAL_DEPLOYMENT.md` for the end-to-end guide.
 
 ---
 

@@ -6,8 +6,21 @@
 
 import { normalize } from './normalize.js';
 
+function resolveThreshold() {
+  const raw = Number.parseFloat(process.env.DIVERGENCE_THRESHOLD_PCT || '5');
+  if (!Number.isFinite(raw)) {
+    return 5;
+  }
+  // Allow fractional inputs (0-1) to mean percentage in ratio form.
+  if (raw > 0 && raw <= 1) {
+    return raw * 100;
+  }
+  return raw;
+}
+
 export const DIVERGENCE_POLICY = {
-  triggerThresholdPct: 6, // Regenerate when TV distance >= 6%
+  // Allow env override; default to 5%
+  triggerThresholdPct: resolveThreshold(),
   baselineDeadbandPct: 3, // Only update baseline when divergence falls below 3%
   minBaselineAgeDays: 14, // Don't update baseline for 14 days
   minInteractionsSinceBaseline: 20, // Or until 20 interactions

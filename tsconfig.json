@@ -15,5 +15,8 @@
     "**/*.tsx",
     "**/*.js",
     "**/*.jsx"
+  ],
+  "exclude": [
+    "supabase/functions/**/*"
   ]
 }

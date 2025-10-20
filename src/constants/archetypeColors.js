@@ -1,17 +1,19 @@
-// Centralized archetype color mapping derived from services
+// 🎨 Centralized archetype color mapping - Y2K Designer Republic Aesthetic
+// Revised color palette with sleek, modern, punchy vibes - DISTINCT COLORS!
+// Subtypes are darker shades of their parent archetype
 
 export const ARCHETYPE_COLORS = {
-  Classicist: '#FF0000',
-  Romantic: '#8B008B',
-  Stylist: '#FFD700',
-  Modernist: '#2F4F4F',
-  Industrialist: '#008080',
-  Visionary: '#FF6347',
-  'Pop Culturalist': '#FF69B4',
-  Vernacularist: '#228B22',
-  Austerist: '#696969',
-  Infrastructuralist: '#008091',
-  Naturalist: '#8FBC8F',
+  Classicist: '#F5F5DC',           // 🏛️ BEIGE - classical marble, timeless columns
+  Romantic: '#DC143C',             // ❤️ CRIMSON RED - passionate, emotional, velvet
+  Stylist: '#FFD700',              // ✨ GOLD - glamour, deco luxury, polished
+  Modernist: '#0066FF',            // 🔷 ELECTRIC BLUE - rational grid, clean system
+  Industrialist: '#FF8C00',        // 🔥 DARK ORANGE - rust, industrial fire, exposed metal
+  Infrastructuralist: '#CC6600',   // 🌉 BURNT ORANGE - darker shade of Industrialist (subtype)
+  Visionary: '#00FFFF',            // 🚀 CYAN - futuristic, experimental, digital future
+  'Pop Culturalist': '#FF1493',    // 💗 DEEP PINK - neon spectacle, vegas signs
+  Vernacularist: '#32CD32',        // 🏺 LIME GREEN - rooted, regional, communal
+  Naturalist: '#228B22',           // 🌲 FOREST GREEN - darker shade of Vernacularist (subtype)
+  Austerist: '#95A5A6',            // 📋 COOL GREY - efficient, standardized, corporate
 };
 
 // Support common id keys used in services/state
@@ -46,4 +48,3 @@ export const getArchetypeColor = (nameOrId) => {
     .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   return ARCHETYPE_COLORS[title] || '#FFFFFF';
 };
-
