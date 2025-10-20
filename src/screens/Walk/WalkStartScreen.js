@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import ArchetypeOrbScene from "../../components/three/ArchetypeOrbScene";
+import ArchetypeOrb from "../../components/ArchetypeOrb";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 
 const WalkStartScreen = ({ navigation }) => {
@@ -35,7 +35,7 @@ const WalkStartScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Animated.View style={{ transform: [{ scale: entryScale }] }}>
-          <ArchetypeOrbScene archetypeData={orbData} size={320} />
+          <ArchetypeOrb archetypeData={orbData} size={320} lod="standard" />
         </Animated.View>
         <Pressable
           style={styles.startButton}

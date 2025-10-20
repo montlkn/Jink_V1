@@ -1,7 +1,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   SafeAreaView,
@@ -10,7 +10,9 @@ import {
   Text,
   TouchableOpacity,
   View,
+  RefreshControl,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { getUserAestheticProfile } from '../../api/quizApi';
 import { fetchSummary, regenerateSummary } from '../../api/summaryApi';
 import { useAuth } from '../../auth/authProvider';
@@ -117,6 +119,7 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [aiSummary, setAiSummary] = useState(null);
   const [summaryPending, setSummaryPending] = useState(false);
   const [summaryMeta, setSummaryMeta] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [highlightedArchetype, setHighlightedArchetype] = useState(null);
@@ -129,7 +132,7 @@ const ProfileDetailScreen = ({ navigation }) => {
   const summaryRefreshAttempts = useRef(0);
   const route = useRoute();
 
-  const fallbackToLocalSummary = (profileData) => {
+  const fallbackToLocalSummary = useCallback((profileData) => {
     if (!profileData) {
       setAiSummary(buildPlaceholderSummary('Refreshing your aesthetic profile…'));
       setSummaryPending(false);
@@ -154,9 +157,9 @@ const ProfileDetailScreen = ({ navigation }) => {
 
     setSummaryPending(false);
     setSummaryMeta(null);
-  };
+  }, []);
 
-  const triggerManualRegeneration = async (profileData) => {
+  const triggerManualRegeneration = useCallback(async (profileData) => {
     if (!profileData) return false;
 
     summaryRefreshAttempts.current += 1;
@@ -189,9 +192,9 @@ const ProfileDetailScreen = ({ navigation }) => {
     }
 
     return false;
-  };
+  }, []);
 
-  const refreshSummaryWithGuardrails = async (profileData) => {
+  const refreshSummaryWithGuardrails = useCallback(async (profileData) => {
     if (!profileData) {
       setSummaryPending(false);
       return;
@@ -232,11 +235,7 @@ const ProfileDetailScreen = ({ navigation }) => {
     }
 
     fallbackToLocalSummary(profileData);
-  };
-
-  useEffect(() => {
-    loadUserProfile();
-  }, [session]);
+  }, [fallbackToLocalSummary, triggerManualRegeneration]);
 
   const loadUserProfile = async () => {
     if (!session?.user?.id) {
@@ -324,6 +323,25 @@ const ProfileDetailScreen = ({ navigation }) => {
       console.error('Error loading profile detail:', err);
       setError(err.message);
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+
+    setRefreshing(true);
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
+      await loadUserProfile();
+    } catch (refreshErr) {
+      console.warn('Profile refresh failed:', refreshErr?.message || refreshErr);
+    } finally {
+      setRefreshing(false);
     }
   };
   const handleSegmentPress = (segment) => {
@@ -437,7 +455,20 @@ const ProfileDetailScreen = ({ navigation }) => {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView ref={scrollViewRef} style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#000"
+            colors={['#000']}
+          />
+        }
+      >
         <View style={styles.chartSection}>
           <DonutChart
             data={chartData}

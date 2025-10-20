@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
-import ArchetypeOrbScene from "../components/three/ArchetypeOrbScene";
+import ArchetypeOrb from "../components/ArchetypeOrb";
 
 const DEFAULT_TRANSITION_DURATION = 520;
 const DEFAULT_EASING = Easing.out(Easing.cubic);
@@ -135,10 +135,11 @@ const OrbTransitionOverlay = ({ progress, layout, orbData }) => {
           },
         ]}
       >
-        <ArchetypeOrbScene
+        <ArchetypeOrb
           archetypeData={orbData}
           size={ORB_SIZE}
           interactive={false}
+          lod="standard"
         />
       </Animated.View>
     </View>

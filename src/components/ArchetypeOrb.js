@@ -1,39 +1,39 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import ArchetypeOrbR3F from './three/ArchetypeOrbR3F';
-import ArchetypeOrbScene from './three/ArchetypeOrbScene';
 import ArchetypeOrbV2 from './three/orb/ArchetypeOrbV2';
 
 // Kill switch: hard-disable any orb rendering (stability hotfix)
 const DISABLE_ORB = false;
 
-// Feature flag for volumetric orb
-// Enable by default to surface the new analytic orb
-const ENABLE_VOLUMETRIC = true;
-
-export default function ArchetypeOrb({ mode = 'clouds', style, lod = 'low', ...rest }) {
+/**
+ * ArchetypeOrb: Main entry point for the orb visualization
+ *
+ * Now uses glass-only implementation with gyroscope-driven reflections.
+ * All modes route to the same glass orb for consistency.
+ *
+ * Props:
+ * - mode: 'glass' (default) - kept for API compatibility
+ * - archetypeData: array of archetype objects
+ * - xpLevel: current XP level
+ * - xpProgress: progress within current level (0..1)
+ * - size: orb diameter in pixels
+ * - lod: level of detail ('ultra' | 'standard' | 'low' | 'safe')
+ * - style: additional React Native styles
+ * - onPress: callback for press events
+ * - interactive: enable press events (default false)
+ */
+export default function ArchetypeOrb({ mode = 'glass', style, lod = 'standard', ...rest }) {
   // Global pause: render a lightweight placeholder to preserve layout
   if (DISABLE_ORB) {
     return <View style={[styles.placeholder, style]} pointerEvents="none" />;
   }
+
   try {
-    console.log('ArchetypeOrb mode', mode);
+    console.log('[ArchetypeOrb] Rendering glass orb with lod:', lod);
   } catch (_) {}
 
-  // Volumetric mode (Orb V2)
-  if (mode === 'volumetric' || (ENABLE_VOLUMETRIC && mode === 'clouds')) {
-    // Pass a conservative default LOD for safety unless caller overrides
-    return <ArchetypeOrbV2 {...rest} lod={lod} style={style} />;
-  }
-
-  // Legacy shader mode
-  if (mode === 'shader') {
-    return <ArchetypeOrbR3F {...rest} style={style} />;
-  }
-
-  // Default: billboard clouds mode
-  // Prefer sprite-based implementation for clouds by default (safe + efficient)
-  return <ArchetypeOrbR3F {...rest} quality={lod === 'ultra' ? 'high' : 'high'} style={style} />;
+  // All modes now use the glass implementation
+  return <ArchetypeOrbV2 {...rest} lod={lod} style={style} />;
 }
 
 const styles = StyleSheet.create({
