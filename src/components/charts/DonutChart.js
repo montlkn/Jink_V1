@@ -209,9 +209,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
-  svg: {
-    backgroundColor: "transparent",
-  },
+  svg: {},
 });
 
 export default DonutChart;

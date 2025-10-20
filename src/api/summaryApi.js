@@ -65,6 +65,23 @@ export async function fetchSummary(autogen = false) {
   }
 }
 
+function generateIdempotencyKey(providedKey) {
+  if (providedKey && typeof providedKey === "string") {
+    return providedKey;
+  }
+
+  if (globalThis?.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  // Fallback UUID v4 generator for environments without crypto support (Expo bridge)
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const rand = Math.random() * 16 | 0;
+    const value = char === "x" ? rand : (rand & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
 /**
  * Manually regenerate summary
  * Requires Idempotency-Key header for deduplication
@@ -76,7 +93,7 @@ export async function regenerateSummary(idempotencyKey) {
       method: "POST",
       headers: {
         ...headers,
-        "Idempotency-Key": idempotencyKey || crypto.randomUUID(),
+        "Idempotency-Key": generateIdempotencyKey(idempotencyKey),
       },
       body: JSON.stringify({ reason: "manual_refresh" }),
     });

@@ -12,15 +12,82 @@ import {
   View,
 } from 'react-native';
 import { getUserAestheticProfile } from '../../api/quizApi';
-import { fetchSummary } from '../../api/summaryApi';
+import { fetchSummary, regenerateSummary } from '../../api/summaryApi';
 import { useAuth } from '../../auth/authProvider';
 import DonutChart from '../../components/charts/DonutChart';
+import AnimatedSummaryText from '../../components/profile/AnimatedSummaryText';
 import { getArchetypeColor } from '../../constants/archetypeColors';
 import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
 import SegmentModal from '../../components/modals/SegmentModal';
 import { generateProfileSummary, getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
 import { composeLocalSummary } from '../../services/ai/localSummary';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
+
+const REQUIRED_PROMPT_VERSION = 'prompt-v2';
+const MAX_SUMMARY_REFRESH_ATTEMPTS = 2;
+const SUMMARY_GUARDRAILS = [
+  { pattern: /saved posts?/i, reason: 'mentions saved posts' },
+  { pattern: /instagram/i, reason: 'mentions Instagram' },
+  { pattern: /followers?/i, reason: 'mentions followers' },
+  { pattern: /social (?:feed|graph)/i, reason: 'references social feed' },
+];
+
+function normalizeSummaryText(text = '') {
+  const cleaned = text
+    .replace(/\s+/g, ' ')
+    .replace(/\s([?.!,])/g, '$1')
+    .trim();
+  if (!cleaned) return '';
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
+function formatSourceModelLabel(sourceModel) {
+  if (!sourceModel || typeof sourceModel !== 'string') return null;
+  const parts = sourceModel.split(/[-_]/).filter(Boolean);
+  if (parts.length === 0) return sourceModel;
+  return parts
+    .map((part) => {
+      if (!part) return part;
+      if (part.toUpperCase() === part) return part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(' ');
+}
+
+function evaluateSummaryResponse(payload) {
+  const summary = payload?.summary
+    ? {
+        ...payload.summary,
+        text: normalizeSummaryText(payload.summary.text || ''),
+      }
+    : null;
+
+  const meta = payload?.meta
+    ? {
+        ...payload.meta,
+        sourceModelLabel: formatSourceModelLabel(payload.meta.sourceModel),
+      }
+    : null;
+
+  const guardrailMatches = summary
+    ? SUMMARY_GUARDRAILS.filter(({ pattern }) => pattern.test(summary.text))
+    : [];
+
+  return {
+    summary,
+    meta,
+    guardrailViolation: guardrailMatches.length > 0,
+    guardrailReasons: guardrailMatches.map(({ reason }) => reason),
+  };
+}
+
+function buildPlaceholderSummary(message) {
+  return {
+    text: message,
+    generatedAt: null,
+    placeholder: true,
+  };
+}
 
 /**
  * Format relative time (e.g., "2 hours ago")
@@ -48,6 +115,8 @@ const ProfileDetailScreen = ({ navigation }) => {
   const { session } = useAuth();
   const [profile, setProfile] = useState(null);
   const [aiSummary, setAiSummary] = useState(null);
+  const [summaryPending, setSummaryPending] = useState(false);
+  const [summaryMeta, setSummaryMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [highlightedArchetype, setHighlightedArchetype] = useState(null);
@@ -57,7 +126,113 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [selectedSegment, setSelectedSegment] = useState(null);
   const scrollViewRef = useRef();
   const initialArchetypeRef = useRef(null);
+  const summaryRefreshAttempts = useRef(0);
   const route = useRoute();
+
+  const fallbackToLocalSummary = (profileData) => {
+    if (!profileData) {
+      setAiSummary(buildPlaceholderSummary('Refreshing your aesthetic profile…'));
+      setSummaryPending(false);
+      setSummaryMeta(null);
+      return;
+    }
+
+    const local = composeLocalSummary({
+      primary_archetype: profileData.primary_archetype,
+      secondary_archetype: profileData.secondary_archetype,
+      archetype_scores: profileData.archetype_scores,
+    });
+
+    if (local?.text) {
+      setAiSummary({
+        ...local,
+        text: normalizeSummaryText(local.text),
+      });
+    } else {
+      setAiSummary(buildPlaceholderSummary('We could not personalize your profile just yet.'));
+    }
+
+    setSummaryPending(false);
+    setSummaryMeta(null);
+  };
+
+  const triggerManualRegeneration = async (profileData) => {
+    if (!profileData) return false;
+
+    summaryRefreshAttempts.current += 1;
+
+    try {
+      console.log('[profile-screen] Requesting manual summary regeneration');
+      await regenerateSummary();
+
+      const refreshed = await fetchSummary(false);
+      const evaluation = evaluateSummaryResponse(refreshed);
+
+      if (evaluation.meta) {
+        setSummaryMeta(evaluation.meta);
+      }
+
+      if (evaluation.summary && !evaluation.guardrailViolation) {
+        setAiSummary(evaluation.summary);
+        setSummaryPending(false);
+        return true;
+      }
+
+      if (evaluation.guardrailViolation) {
+        console.log(
+          '[profile-screen] Manual regeneration violated guardrails:',
+          evaluation.guardrailReasons.join(', ') || 'unknown'
+        );
+      }
+    } catch (regenErr) {
+      console.warn('AI summary manual regeneration failed:', regenErr.message);
+    }
+
+    return false;
+  };
+
+  const refreshSummaryWithGuardrails = async (profileData) => {
+    if (!profileData) {
+      setSummaryPending(false);
+      return;
+    }
+
+    summaryRefreshAttempts.current += 1;
+
+    try {
+      console.log(`[profile-screen] Autogen summary attempt #${summaryRefreshAttempts.current}`);
+      const autogen = await fetchSummary(true);
+      const evaluation = evaluateSummaryResponse(autogen);
+
+      if (evaluation.meta) {
+        setSummaryMeta(evaluation.meta);
+      }
+
+      if (evaluation.summary && !evaluation.guardrailViolation) {
+        setAiSummary(evaluation.summary);
+        setSummaryPending(false);
+        return;
+      }
+
+      if (evaluation.guardrailViolation) {
+        console.log(
+          '[profile-screen] Autogen summary guardrail violation:',
+          evaluation.guardrailReasons.join(', ') || 'unknown'
+        );
+      }
+    } catch (autogenErr) {
+      console.warn('AI summary autogen skipped:', autogenErr.message);
+    }
+
+    if (summaryRefreshAttempts.current < MAX_SUMMARY_REFRESH_ATTEMPTS) {
+      const regenerated = await triggerManualRegeneration(profileData);
+      if (regenerated) {
+        return;
+      }
+    }
+
+    fallbackToLocalSummary(profileData);
+  };
 
   useEffect(() => {
     loadUserProfile();
@@ -73,61 +248,84 @@ const ProfileDetailScreen = ({ navigation }) => {
       console.log('[profile-screen] Loading profile detail…');
       const userProfile = await getUserAestheticProfile(session.user.id);
       setProfile(userProfile);
+      setLoading(false);
 
       let resolvedSummary = null;
-      // Fetch AI-generated summary in two steps to avoid rate-limit hits
+      let willAutogen = false;
+      summaryRefreshAttempts.current = 0;
+
       try {
-        // 1) Fetch cached summary without triggering work
         const initial = await fetchSummary(false);
-        if (initial?.summary) {
-          setAiSummary(initial.summary);
-          resolvedSummary = initial.summary;
+        const evaluation = evaluateSummaryResponse(initial);
+
+        if (evaluation.meta) {
+          setSummaryMeta(evaluation.meta);
         }
 
-        // 2) Only trigger autogen if missing or marked as needing update
-        const shouldAutogen = !initial?.summary || initial?.meta?.needsUpdate;
+        if (evaluation.summary && !evaluation.guardrailViolation) {
+          setAiSummary(evaluation.summary);
+          resolvedSummary = evaluation.summary;
+          setSummaryPending(false);
+        } else if (evaluation.guardrailViolation) {
+          console.log(
+            '[profile-screen] Cached summary violated guardrails:',
+            evaluation.guardrailReasons.join(', ') || 'unknown'
+          );
+          setAiSummary((prev) =>
+            prev && !prev.placeholder
+              ? prev
+              : buildPlaceholderSummary('Personalizing your aesthetic profile…')
+          );
+          setSummaryPending(true);
+        }
+
+        const summarySourceModel = evaluation.meta?.sourceModel || '';
+        const hasRequiredPrompt =
+          typeof summarySourceModel === 'string' &&
+          summarySourceModel.includes(REQUIRED_PROMPT_VERSION);
+
+        const shouldAutogen =
+          !evaluation.summary ||
+          evaluation.guardrailViolation ||
+          evaluation.meta?.needsUpdate ||
+          !hasRequiredPrompt;
         if (shouldAutogen) {
-          // Kick off regeneration in the background so UI can render cached data
-          void (async () => {
-            try {
-              console.log('[profile-screen] Autogen summary background fetch…');
-              const regen = await fetchSummary(true);
-              if (regen?.summary) {
-                setAiSummary(regen.summary);
-              }
-            } catch (autogenErr) {
-              // Avoid spamming logs; show concise warning
-              console.warn('AI summary autogen skipped:', autogenErr.message);
-            }
-          })();
+          willAutogen = true;
+          if (!resolvedSummary) {
+            setAiSummary((prev) =>
+              prev && !prev.placeholder
+                ? prev
+                : buildPlaceholderSummary('Personalizing your aesthetic profile…')
+            );
+          }
+          setSummaryPending(true);
+          void refreshSummaryWithGuardrails(userProfile);
+        } else {
+          setSummaryPending(false);
         }
       } catch (summaryErr) {
         console.warn('Could not fetch AI summary:', summaryErr.message);
+        setSummaryPending(false);
         // Non-critical: continue without AI summary
       }
 
       // If still no AI summary, compose a local deterministic write‑up
-      if (!resolvedSummary && !aiSummary) {
-        const local = composeLocalSummary({
-          primary_archetype: userProfile.primary_archetype,
-          secondary_archetype: userProfile.secondary_archetype,
-          archetype_scores: userProfile.archetype_scores,
-        });
+      if (
+        !resolvedSummary &&
+        (!aiSummary || aiSummary.placeholder) &&
+        !willAutogen
+      ) {
         console.log('[profile-screen] Using fallback summary');
-        if (local?.text) {
-          setAiSummary(local);
-        }
+        fallbackToLocalSummary(userProfile);
       }
 
       setError(null);
     } catch (err) {
       console.error('Error loading profile detail:', err);
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
-
   const handleSegmentPress = (segment) => {
     setSelectedSegment(segment);
     setSegmentModalVisible(true);
@@ -256,10 +454,35 @@ const ProfileDetailScreen = ({ navigation }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Your Aesthetic Profile</Text>
             <View style={styles.summaryCard}>
-              <Text style={styles.aiSummaryText}>{aiSummary.text}</Text>
-              {aiSummary.generatedAt && (
+              {summaryPending && (
+                <View style={styles.summaryPendingRow}>
+                  <ActivityIndicator
+                    size="small"
+                    color="#666"
+                    style={styles.summarySpinner}
+                  />
+                  <Text style={styles.pendingLabel}>
+                    {aiSummary?.placeholder
+                      ? 'Personalizing your aesthetic profile…'
+                      : 'Refreshing with your latest signals…'}
+                  </Text>
+                </View>
+              )}
+              <AnimatedSummaryText
+                text={aiSummary.text}
+                placeholder={!!aiSummary.placeholder}
+                isActive={!summaryPending && !aiSummary?.placeholder}
+                typingDelayMs={24}
+                style={[
+                  styles.aiSummaryText,
+                  aiSummary?.placeholder && styles.placeholderSummaryText,
+                ]}
+                accessibilityLabel={aiSummary.text}
+              />
+              {aiSummary.generatedAt && !summaryPending && (
                 <Text style={styles.generatedAtText}>
                   Generated {formatRelativeTime(aiSummary.generatedAt)}
+                  {summaryMeta?.sourceModelLabel ? ` • ${summaryMeta.sourceModelLabel}` : ''}
                 </Text>
               )}
             </View>
@@ -491,15 +714,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 25,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
     marginHorizontal: 20,
     marginTop: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   section: {
     marginHorizontal: 20,
@@ -692,6 +908,22 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 12,
     fontWeight: '500',
+  },
+  placeholderSummaryText: {
+    color: '#555',
+    fontStyle: 'italic',
+  },
+  summarySpinner: {
+    marginRight: 8,
+  },
+  summaryPendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  pendingLabel: {
+    fontSize: 13,
+    color: '#666',
   },
   generatedAtText: {
     fontSize: 12,

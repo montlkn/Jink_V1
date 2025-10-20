@@ -6,6 +6,8 @@ import { supabase } from '../supabaseClient.js';
 import { generateSummary } from '../ai/client.js';
 import { hashBreakdown, normalize } from '../utils/normalize.js';
 
+const SUMMARY_PROMPT_VERSION = 'prompt-v2';
+
 /**
  * Build payload for AI generation
  */
@@ -50,7 +52,7 @@ export async function generateAndPersistSummary(userId, profile) {
       key_phrases: aiResult.keyPhrases,
       language: 'en',
       tone: 'neutral',
-      source_model: aiResult.sourceModel,
+      source_model: `${aiResult.sourceModel}#${SUMMARY_PROMPT_VERSION}`,
       generated_at: aiResult.generatedAt,
       baseline_version: 1,
       baseline_breakdown: breakdownNormalized,

@@ -28,15 +28,16 @@ export function buildSystemPrompt() {
   return `You are an architecture and design expert writing concise, personal profile summaries.
 
 Requirements:
-1) Write 2–4 sentences in second person ("you prefer…", "you tend to…").
-2) Keep it warm and specific; avoid templates or lists that feel like mad‑libs.
-3) Do not mention scores, percentages, vectors, or the word "archetype".
-4) Prefer lowercase for descriptive terms (e.g., "modernist", "industrial", "material honesty"). Avoid Title Case buzzwords.
-5) Vary sentence openings; don’t repeat the same structure.
-6) Make it feel personal, like you are describing how the user feels and sees the world-- what they like and their preferences are understood and verablised succintly. 
-7) 55–100 words, plain text only.
-8) Respond in strict JSON only: { "text": "...", "key_phrases": ["…"] }
-9) key_phrases: 3–6 concise, lowercase phrases (2–4 words each), no punctuation.
+1) Write 2–4 sentences in second person ("You gravitate toward…", "You tend to…").
+2) Use natural grammar with sentence case (each sentence starts uppercase) while keeping descriptive adjectives in lowercase unless they are proper nouns.
+3) Keep it warm and specific; avoid templates or mechanical lists.
+4) Reference only the details explicitly provided (primary/secondary archetype, aesthetic breakdown, top categories). Never mention saved posts, counts, or other unprovided data.
+5) Do not mention scores, percentages, vectors, or the word "archetype".
+6) Vary sentence openings; don’t repeat the same structure.
+7) Make it feel personal, like you understand how the user experiences space. 
+8) Limit to 60–100 words, plain text only.
+9) Respond in strict JSON only: { "text": "...", "key_phrases": ["…"] }
+10) key_phrases: 3–6 concise, lowercase phrases (2–4 words each), no punctuation.
 `;
 }
 
@@ -49,7 +50,6 @@ export function buildUserPrompt(aestheticData) {
     primaryArchetype,
     secondaryArchetype,
     topCategories,
-    totalPosts,
   } = aestheticData;
 
   // Format aesthetic breakdown as a ranked list
@@ -62,7 +62,8 @@ export function buildUserPrompt(aestheticData) {
     .map(([aesthetic, pct]) => `${aesthetic}: ${pct.toFixed(1)}%`)
     .join(', ');
 
-  const topCategoriesText = topCategories?.join(', ') || 'residential, commercial';
+  const hasTopCategories = Array.isArray(topCategories) && topCategories.length > 0;
+  const topCategoriesText = hasTopCategories ? topCategories.join(', ') : null;
 
   // Add a small, grounded style lexicon to reduce hallucination and align tone
   const pLex = getLexiconFor(primaryArchetype);
@@ -78,8 +79,7 @@ export function buildUserPrompt(aestheticData) {
 - Primary: ${primaryArchetype}
 - Secondary: ${secondaryArchetype || 'N/A'}
 - Breakdown (top aesthetics): ${breakdownText}
-- Saved posts: ${totalPosts || 'many'}
-- Interests: ${topCategoriesText}
+${hasTopCategories ? `- Interests: ${topCategoriesText}` : ''}
 
 Grounding vocabulary (use as guidance, do not list verbatim):
 ${primaryLexText}
