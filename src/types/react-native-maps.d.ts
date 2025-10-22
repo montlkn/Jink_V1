@@ -31,6 +31,7 @@ declare module "react-native-maps" {
     customMapStyle?: Array<Record<string, unknown>>;
     initialRegion?: Region;
     onMapReady?: () => void;
+    onRegionChange?: (region: Region) => void;
     onRegionChangeComplete?: (region: Region) => void;
   }
 

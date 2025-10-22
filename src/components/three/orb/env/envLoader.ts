@@ -1,18 +1,35 @@
 import { useEffect, useState } from "react";
 import {
   EquirectangularReflectionMapping,
+  LinearFilter,
   PMREMGenerator,
   SRGBColorSpace,
   Texture,
-  TextureLoader,
   UnsignedByteType,
   WebGLRenderer,
 } from "three";
 import { useThree } from "@react-three/fiber/native";
 import { Asset } from "expo-asset";
-import { RGBELoader } from "three-stdlib";
+import { TextureLoader as ExpoTextureLoader } from "expo-three";
 
 type MaybeTexture = Texture | null;
+type RGBELoaderCtor = typeof import("three-stdlib")["RGBELoader"];
+
+let cachedRGBELoader: RGBELoaderCtor | null = null;
+const envCache = new Map<
+  string,
+  {
+    texture: Texture;
+    refCount: number;
+  }
+>();
+
+const getCacheKey = (asset: Asset | null | undefined): string | null => {
+  if (!asset) return null;
+  if (asset.localUri) return asset.localUri;
+  if (asset.uri) return asset.uri;
+  return null;
+};
 
 async function resolveAsset(localModule: any): Promise<Asset | null> {
   try {
@@ -23,6 +40,29 @@ async function resolveAsset(localModule: any): Promise<Asset | null> {
   } catch (error) {
     console.warn("[envLoader] Failed to resolve asset:", error);
     return null;
+  }
+}
+
+function supportsPmrem(renderer: WebGLRenderer): boolean {
+  try {
+    const caps: any = renderer?.capabilities;
+    const ctx: WebGLRenderingContext | WebGL2RenderingContext | undefined =
+      renderer?.getContext?.();
+
+    const isWebGL2 = Boolean(caps?.isWebGL2);
+    if (!isWebGL2 || !ctx) {
+      return false;
+    }
+
+    const hasFloatRT =
+      ctx.getExtension?.("EXT_color_buffer_float") ||
+      ctx.getExtension?.("WEBGL_color_buffer_float") ||
+      ctx.getExtension?.("EXT_color_buffer_half_float");
+
+    return Boolean(hasFloatRT);
+  } catch (error) {
+    console.warn("[envLoader] PMREM capability detection failed:", error);
+    return false;
   }
 }
 
@@ -61,27 +101,39 @@ function ensureDomPolyfills() {
   }
 }
 
-function supportsPmrem(renderer: WebGLRenderer): boolean {
+async function loadStandardTexture(localModule: any): Promise<Texture | null> {
   try {
-    const caps: any = renderer?.capabilities;
-    const ctx: WebGLRenderingContext | WebGL2RenderingContext | undefined =
-      renderer?.getContext?.();
-
-    const isWebGL2 = Boolean(caps?.isWebGL2);
-    if (!isWebGL2 || !ctx) {
-      return false;
-    }
-
-    const hasFloatRT =
-      ctx.getExtension?.("EXT_color_buffer_float") ||
-      ctx.getExtension?.("WEBGL_color_buffer_float") ||
-      ctx.getExtension?.("EXT_color_buffer_half_float");
-
-    return Boolean(hasFloatRT);
+    ensureDomPolyfills();
+    const loader = new ExpoTextureLoader();
+    return await new Promise((resolve, reject) => {
+      loader.load(
+        localModule?.localUri ?? localModule,
+        (texture) => {
+          texture.minFilter = LinearFilter;
+          texture.magFilter = LinearFilter;
+          texture.generateMipmaps = false;
+          resolve(texture);
+        },
+        undefined,
+        reject
+      );
+    });
   } catch (error) {
-    console.warn("[envLoader] PMREM capability detection failed:", error);
-    return false;
+    console.warn("[envLoader] Expo texture load failed:", error);
+    return null;
   }
+}
+
+async function loadHdrTexture(uri: string) {
+  ensureDomPolyfills();
+  if (!cachedRGBELoader) {
+    const mod = await import("three-stdlib");
+    cachedRGBELoader = mod.RGBELoader;
+  }
+
+  return await new cachedRGBELoader()
+    .setDataType(UnsignedByteType)
+    .loadAsync(uri);
 }
 
 export function useEnvMap(localModule: any) {
@@ -97,7 +149,15 @@ export function useEnvMap(localModule: any) {
 
     let cancelled = false;
     let pmrem: PMREMGenerator | null = null;
-    let generatedTexture: Texture | null = null;
+    let cacheKey: string | null = null;
+    let didAcquire = false;
+
+    const releaseCache = () => {
+      if (!didAcquire || !cacheKey) return;
+      const entry = envCache.get(cacheKey);
+      if (!entry) return;
+      entry.refCount = Math.max(0, entry.refCount - 1);
+    };
 
     (async () => {
       const renderer = three.gl as WebGLRenderer;
@@ -111,7 +171,29 @@ export function useEnvMap(localModule: any) {
         return;
       }
 
+      cacheKey = getCacheKey(asset);
+      if (!cacheKey) {
+        if (!cancelled) {
+          setEnvMap(null);
+        }
+        return;
+      }
+
+      const cached = envCache.get(cacheKey);
+      if (cached) {
+        cached.refCount += 1;
+        didAcquire = true;
+        if (!cancelled) {
+          setEnvMap(cached.texture);
+        } else {
+          releaseCache();
+          didAcquire = false;
+        }
+        return;
+      }
+
       let equi: Texture | null = null;
+      let shouldUsePmrem = false;
 
       try {
         const uri = asset.localUri ?? asset.uri;
@@ -122,13 +204,10 @@ export function useEnvMap(localModule: any) {
         const isHdr = uri.toLowerCase().endsWith(".hdr");
 
         if (isHdr) {
-          equi = await new RGBELoader()
-            .setDataType(UnsignedByteType)
-            .loadAsync(uri);
+          equi = await loadHdrTexture(uri);
+          shouldUsePmrem = true;
         } else {
-          ensureDomPolyfills();
-          const loader = new TextureLoader();
-          equi = await loader.loadAsync(uri);
+          equi = await loadStandardTexture(asset);
         }
 
         if (!equi || !(equi as any).isTexture) {
@@ -146,30 +225,37 @@ export function useEnvMap(localModule: any) {
         return;
       }
 
-      if (supportsPmrem(renderer)) {
+      if (shouldUsePmrem && supportsPmrem(renderer)) {
         try {
           pmrem = new PMREMGenerator(renderer);
           pmrem.compileEquirectangularShader();
           const { texture } = pmrem.fromEquirectangular(equi);
+          pmrem.dispose();
           equi.dispose();
 
-          generatedTexture = texture;
+          envCache.set(cacheKey, { texture, refCount: 1 });
+          didAcquire = true;
 
           if (!cancelled) {
             setEnvMap(texture);
-            return;
+          } else {
+            releaseCache();
+            didAcquire = false;
           }
-          texture.dispose();
+          return;
         } catch (error) {
           console.warn("[envLoader] PMREM failed, using equirect:", error);
         }
       }
 
+      envCache.set(cacheKey, { texture: equi, refCount: 1 });
+      didAcquire = true;
+
       if (!cancelled) {
         setEnvMap(equi);
-        generatedTexture = equi;
       } else {
-        equi.dispose();
+        releaseCache();
+        didAcquire = false;
       }
     })();
 
@@ -178,9 +264,8 @@ export function useEnvMap(localModule: any) {
       if (pmrem) {
         pmrem.dispose();
       }
-      if (generatedTexture) {
-        generatedTexture.dispose();
-      }
+      releaseCache();
+      didAcquire = false;
     };
   }, [three.gl, localModule]);
 

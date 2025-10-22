@@ -44,9 +44,10 @@ const DEFAULT_REGION = {
 };
 
 const FEATHER_STEPS = [
-  { strokeWidth: 18, opacity: 0.22 },
-  { strokeWidth: 12, opacity: 0.35 },
-  { strokeWidth: 6, opacity: 0.6 },
+  // Slightly larger feather to show context around buildings
+  { strokeWidth: 30, opacity: 0.18 },
+  { strokeWidth: 20, opacity: 0.28 },
+  { strokeWidth: 10, opacity: 0.5 },
 ];
 
 const FOG_COLOR = "rgba(0, 0, 0, 0.72)";
@@ -82,6 +83,7 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
   const { walkId } = route.params ?? {};
   const mapRef = useRef<MapView>(null);
   const { session } = useAuth() as { session?: { user?: { id?: string } } };
+  const mapProvider = useMemo(() => PROVIDER_GOOGLE, []);
   const [isMapReady, setIsMapReady] = useState(false);
   const [summaries, setSummaries] = useState<WalkSummary[]>([]);
   const [selectedWalk, setSelectedWalk] = useState<WalkGeometry | null>(null);
@@ -409,11 +411,12 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={styles.mapContainer} onLayout={handleMapLayout}>
         <MapView
           ref={mapRef}
-          provider={PROVIDER_GOOGLE}
+          provider={mapProvider}
           style={StyleSheet.absoluteFill}
           initialRegion={DEFAULT_REGION}
           customMapStyle={PAST_WALKS_NOLLI_MAP_STYLE as unknown as MapViewProps["customMapStyle"]}
           onMapReady={handleMapReady}
+          onRegionChange={() => scheduleProjection(selectedWalkRef.current, 16)}
           onRegionChangeComplete={() => scheduleProjection(selectedWalkRef.current, 150)}
         >
           {mapBuildings.map((polygon) => (
@@ -430,14 +433,16 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {(!isMapReady || isLoadingData || isSelectingWalk) && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="small" color="#2ECC71" />
-            <Text style={styles.loadingText}>
-              {!isMapReady
-                ? "Preparing map…"
-                : isSelectingWalk
-                ? "Loading walk details…"
-                : "Loading walk data…"}
-            </Text>
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="small" color="#2ECC71" />
+              <Text style={styles.loadingText}>
+                {!isMapReady
+                  ? "Preparing map…"
+                  : isSelectingWalk
+                  ? "Loading walk details…"
+                  : "Loading walk data…"}
+              </Text>
+            </View>
           </View>
         )}
 
@@ -631,14 +636,16 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   loadingOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -40 }, { translateY: -20 }],
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingCard: {
+    minWidth: 160,
+    borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -647,6 +654,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#2ECC71",
     fontWeight: "500",
+    textAlign: "center",
   },
   statusMessage: {
     position: "absolute",

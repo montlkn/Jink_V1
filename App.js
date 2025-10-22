@@ -7,14 +7,84 @@
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
 // MUST be before importing expo-three
 if (typeof global !== 'undefined') {
+  const primitiveStoreSymbol = Symbol.for("__weakmapPrimitiveStore");
+  const primitiveLogSymbol = Symbol.for("__weakmapPrimitiveLog");
   const weakSet = WeakMap.prototype.set;
+  const weakGet = WeakMap.prototype.get;
+  const weakHas = WeakMap.prototype.has;
+  const weakDelete = WeakMap.prototype.delete;
+
+  const isObjectKey = (key) =>
+    !(key === null || (typeof key !== "object" && typeof key !== "function"));
+
   WeakMap.prototype.set = function patchedWeakMapSet(key, value) {
-    if (key === null || (typeof key !== "object" && typeof key !== "function")) {
+    if (isObjectKey(key)) {
+      return weakSet.call(this, key, value);
+    }
+
+    if (__DEV__) {
       try {
-        console.error("[WeakMap] invalid key", key, "value type:", typeof value);
+        const repr =
+          key === null ? "null" : `${typeof key}${typeof key === "number" ? `:${key}` : ""}`;
+        if (__DEV__ && !this[primitiveLogSymbol]) {
+          Object.defineProperty(this, primitiveLogSymbol, {
+            value: new Set(),
+            enumerable: false,
+            configurable: false,
+            writable: false,
+          });
+        }
+        if (__DEV__ && !this[primitiveLogSymbol].has(repr)) {
+          this[primitiveLogSymbol].add(repr);
+          const stack = new Error().stack
+            ?.split("\n")
+            .slice(2, 5)
+            .map((line) => line.trim())
+            .join(" ⟶ ");
+          console.warn(
+            "[WeakMap shim] storing primitive key",
+            repr,
+            stack ? `stack: ${stack}` : ""
+          );
+        }
       } catch (_) {}
     }
-    return weakSet.call(this, key, value);
+
+    if (!this[primitiveStoreSymbol]) {
+      Object.defineProperty(this, primitiveStoreSymbol, {
+        value: new Map(),
+        enumerable: false,
+        configurable: false,
+        writable: false,
+      });
+    }
+
+    this[primitiveStoreSymbol].set(key, value);
+    return this;
+  };
+
+  WeakMap.prototype.get = function patchedWeakMapGet(key) {
+    if (isObjectKey(key)) {
+      return weakGet.call(this, key);
+    }
+
+    return this[primitiveStoreSymbol]?.get(key);
+  };
+
+  WeakMap.prototype.has = function patchedWeakMapHas(key) {
+    if (isObjectKey(key)) {
+      return weakHas.call(this, key);
+    }
+
+    return this[primitiveStoreSymbol]?.has(key) ?? false;
+  };
+
+  WeakMap.prototype.delete = function patchedWeakMapDelete(key) {
+    if (isObjectKey(key)) {
+      return weakDelete.call(this, key);
+    }
+
+    return this[primitiveStoreSymbol]?.delete(key) ?? false;
   };
   if (!global.performance) global.performance = { now: Date.now };
   if (!global.requestAnimationFrame) {
@@ -39,13 +109,15 @@ if (typeof global !== 'undefined') {
       }),
     };
   }
+
 }
 
 import "expo-three";
-import React from "react";
+import React, { useEffect } from "react";
 import { AuthProvider } from "./src/auth/authProvider";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { OrbTransitionProvider } from "./src/state/orbTransitionContext";
+import { Asset } from "expo-asset";
 // This is our global color and theme configuration
 
 const AppTheme = {
@@ -60,7 +132,18 @@ const AppTheme = {
   },
 };
 
+const ORB_ASSETS = [
+  require("./assets/env/qwantani_moon_noon_puresky_1k.png"),
+  require("./assets/textures/smoke_atlas.png"),
+];
+
 export default function App() {
+  useEffect(() => {
+    Asset.loadAsync(ORB_ASSETS).catch((error) => {
+      console.warn("[App] Failed to preload orb assets", error);
+    });
+  }, []);
+
   return (
     <AuthProvider>
       <OrbTransitionProvider>

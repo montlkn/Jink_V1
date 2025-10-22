@@ -32,11 +32,5 @@ export function GyroLightRig({ target, maxRadians = 0.35 }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [maxRadians]);
 
-  return (
-    <group>
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[2, 2, 3]} intensity={1.0} />
-      <directionalLight position={[-3, 1, -2]} intensity={1.2} />
-    </group>
-  );
+  return null;
 }

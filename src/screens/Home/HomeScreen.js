@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: 'rgba(8, 12, 20, 0.6)',
+    backgroundColor: 'rgba(8, 12, 20, 0)',
   },
   orbGradient: {
     ...StyleSheet.absoluteFillObject,
