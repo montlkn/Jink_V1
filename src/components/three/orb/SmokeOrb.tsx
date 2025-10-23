@@ -21,6 +21,7 @@ type Props = {
   colorB?: string;
   colorC?: string;
   scale?: number;
+  opacity?: number;
 };
 
 export function SmokeOrb({
@@ -28,6 +29,7 @@ export function SmokeOrb({
   colorB = "#fff",
   colorC = "#fff",
   scale = 0.92,
+  opacity = 0.85,
 }: Props) {
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef = useRef<THREE.ShaderMaterial>(null);
@@ -55,11 +57,12 @@ export function SmokeOrb({
       uTime: { value: 0 },
       uAtlasSize: { value: new Vector2(2048, 2048) },
       uZoom: { value: 0.88 },
+      uOpacity: { value: opacity },
       uColorA: { value: resolvedColors.a.clone() },
       uColorB: { value: resolvedColors.b.clone() },
       uColorC: { value: resolvedColors.c.clone() },
     }),
-    [texture, resolvedColors]
+    [texture, resolvedColors, opacity]
   );
 
   useEffect(() => {
@@ -125,8 +128,9 @@ export function SmokeOrb({
       matRef.current.uniforms.uColorA.value.copy(resolvedColors.a);
       matRef.current.uniforms.uColorB.value.copy(resolvedColors.b);
       matRef.current.uniforms.uColorC.value.copy(resolvedColors.c);
+      matRef.current.uniforms.uOpacity.value = opacity;
     }
-  }, [resolvedColors]);
+  }, [resolvedColors, opacity]);
 
   return (
     <mesh ref={meshRef} scale={scale} renderOrder={-1}>
@@ -155,6 +159,7 @@ export function SmokeOrb({
           uniform vec3 uColorB;
           uniform vec3 uColorC;
           uniform float uZoom;
+          uniform float uOpacity;
           varying vec2 vUv;
 
           void main() {
@@ -183,11 +188,12 @@ export function SmokeOrb({
 
             vec2 centeredUv = zoomed * 2.0 - 1.0;
             float r = length(centeredUv);
-            float edgeFade = smoothstep(0.9, 0.25, r);
+            float edgeFade = smoothstep(0.85, 0.3, r);
+            float rimMix = pow(edgeFade, 1.35);
 
             float normalized = clamp((d - 0.1) / 0.75, 0.0, 1.0);
             float density = pow(normalized, 0.6);
-            float alpha = clamp(density * edgeFade * 1.6, 0.0, 1.0);
+            float alpha = clamp(density * edgeFade * 1.45, 0.0, 1.0);
 
             vec3 color;
             if (density < 0.33) {
@@ -198,8 +204,10 @@ export function SmokeOrb({
               color = mix(uColorC, uColorA, (density - 0.66) / 0.34);
             }
 
-            vec3 glow = color * (alpha * 1.3);
-            gl_FragColor = vec4(glow, clamp(alpha, 0.0, 1.0));
+            // Keep color brightness, only fade alpha (so it looks white when fading out)
+            vec3 brightColor = color * 1.5; // Boost brightness
+            float finalAlpha = clamp(alpha * uOpacity, 0.0, 1.0);
+            gl_FragColor = vec4(brightColor, finalAlpha);
           }
         `}
       />

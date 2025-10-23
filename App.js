@@ -109,6 +109,26 @@ if (typeof global !== 'undefined') {
       }),
     };
   }
+  if (typeof global.document.contains !== "function") {
+    global.document.contains = () => false;
+  }
+  if (!global.document.body) {
+    global.document.body = {
+      appendChild: () => {},
+      removeChild: () => {},
+      contains: () => false,
+    };
+  } else {
+    if (typeof global.document.body.appendChild !== "function") {
+      global.document.body.appendChild = () => {};
+    }
+    if (typeof global.document.body.removeChild !== "function") {
+      global.document.body.removeChild = () => {};
+    }
+    if (typeof global.document.body.contains !== "function") {
+      global.document.body.contains = () => false;
+    }
+  }
 
 }
 

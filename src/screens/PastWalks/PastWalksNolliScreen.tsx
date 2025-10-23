@@ -13,7 +13,7 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { MapViewProps, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Camera, MapViewProps, Polygon, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import Svg, { Defs, Mask, Path, Polyline, Rect } from "react-native-svg";
 
 import { useAuth } from "../../auth/authProvider";
@@ -22,7 +22,7 @@ import {
   fetchWalkGeometry,
   hydrateWalkHistoryDataset,
 } from "../../services/walkHistoryService";
-import type { GeoJsonFeature, WalkGeometry, WalkSummary } from "../../types/walks";
+import type { GeoJsonFeature, LatLng, WalkGeometry, WalkSummary } from "../../types/walks";
 import {
   projectFeatureToScreen,
   projectRouteToScreen,
@@ -52,6 +52,8 @@ const FEATHER_STEPS = [
 
 const FOG_COLOR = "rgba(0, 0, 0, 0.72)";
 const MASK_ID = "pastWalksMask";
+const MIN_LAT_LNG_DELTA = 0.005;
+const ROUTE_PADDING_FACTOR = 0.2;
 
 type ProjectedPolygon = {
   id: string;
@@ -62,6 +64,45 @@ type MapPolygon = {
   id: string;
   coordinates: { latitude: number; longitude: number }[];
   holes?: { latitude: number; longitude: number }[][];
+};
+
+const createRegionForRoute = (coordinates: LatLng[], paddingFactor = ROUTE_PADDING_FACTOR): Region | null => {
+  if (!Array.isArray(coordinates) || coordinates.length === 0) {
+    return null;
+  }
+
+  let minLat = Number.POSITIVE_INFINITY;
+  let maxLat = Number.NEGATIVE_INFINITY;
+  let minLng = Number.POSITIVE_INFINITY;
+  let maxLng = Number.NEGATIVE_INFINITY;
+  let validPoints = 0;
+
+  coordinates.forEach((point) => {
+    if (!point) return;
+    const { latitude, longitude } = point;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return;
+    }
+    if (latitude < minLat) minLat = latitude;
+    if (latitude > maxLat) maxLat = latitude;
+    if (longitude < minLng) minLng = longitude;
+    if (longitude > maxLng) maxLng = longitude;
+    validPoints += 1;
+  });
+
+  if (validPoints === 0) {
+    return null;
+  }
+
+  const latitudeDelta = Math.max((maxLat - minLat) * (1 + paddingFactor), MIN_LAT_LNG_DELTA);
+  const longitudeDelta = Math.max((maxLng - minLng) * (1 + paddingFactor), MIN_LAT_LNG_DELTA);
+
+  return {
+    latitude: (maxLat + minLat) / 2,
+    longitude: (maxLng + minLng) / 2,
+    latitudeDelta,
+    longitudeDelta,
+  };
 };
 
 const formatSummaryTitle = (summary: WalkSummary): string => {
@@ -112,17 +153,60 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleFitToWalk = useCallback(
     (walk: WalkGeometry | null, animated = true) => {
-      if (!walk || !walk.route.length || !mapRef.current) {
+      if (!walk || !Array.isArray(walk.route) || walk.route.length === 0) {
+        return;
+      }
+
+      const map = mapRef.current;
+      if (!map) {
+        return;
+      }
+
+      const validCoordinates = walk.route.filter(
+        (point) => Number.isFinite(point?.latitude) && Number.isFinite(point?.longitude)
+      );
+      if (validCoordinates.length === 0) {
         return;
       }
 
       try {
-        mapRef.current.fitToCoordinates(walk.route, {
-          edgePadding: { top: 80, right: 40, bottom: 120, left: 40 },
-          animated,
-        });
+        if (typeof map.fitToCoordinates === "function") {
+          map.fitToCoordinates(validCoordinates, {
+            edgePadding: { top: 80, right: 40, bottom: 120, left: 40 },
+            animated,
+          });
+          return;
+        }
+
+        const derivedRegion = createRegionForRoute(validCoordinates);
+        if (!derivedRegion) {
+          return;
+        }
+
+        if (typeof map.animateToRegion === "function") {
+          map.animateToRegion(derivedRegion, animated ? 450 : 0);
+          return;
+        }
+
+        const altitude =
+          Math.max(derivedRegion.latitudeDelta, derivedRegion.longitudeDelta) * 111_000 * 2 || 1000;
+        const cameraUpdate: Partial<Camera> = {
+          center: { latitude: derivedRegion.latitude, longitude: derivedRegion.longitude },
+          altitude,
+          heading: 0,
+          pitch: 0,
+        };
+
+        if (typeof map.animateCamera === "function") {
+          map.animateCamera(cameraUpdate, { duration: animated ? 450 : 0 });
+          return;
+        }
+
+        if (typeof map.setCamera === "function") {
+          map.setCamera(cameraUpdate);
+        }
       } catch (error) {
-        console.warn("[PastWalksNolli] fitToCoordinates failed", error);
+        console.warn("[PastWalksNolli] fitToCoordinates fallback failed", error);
       }
     },
     []

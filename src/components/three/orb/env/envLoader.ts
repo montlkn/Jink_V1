@@ -93,11 +93,23 @@ function ensureDomPolyfills() {
   if (typeof doc.getElementsByTagName !== "function") {
     doc.getElementsByTagName = () => [];
   }
+  if (typeof doc.contains !== "function") {
+    doc.contains = () => false;
+  }
   if (!doc.body) {
     doc.body = {
       appendChild: () => {},
       removeChild: () => {},
     };
+  }
+  if (typeof doc.body.appendChild !== "function") {
+    doc.body.appendChild = () => {};
+  }
+  if (typeof doc.body.removeChild !== "function") {
+    doc.body.removeChild = () => {};
+  }
+  if (typeof doc.body.contains !== "function") {
+    doc.body.contains = () => false;
   }
 }
 
