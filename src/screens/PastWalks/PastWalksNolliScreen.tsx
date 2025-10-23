@@ -13,7 +13,7 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { Camera, MapViewProps, Polygon, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import MapView, { MapViewProps, Polygon, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import Svg, { Defs, Mask, Path, Polyline, Rect } from "react-native-svg";
 
 import { useAuth } from "../../auth/authProvider";
@@ -152,62 +152,10 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
   }, []);
 
   const handleFitToWalk = useCallback(
-    (walk: WalkGeometry | null, animated = true) => {
-      if (!walk || !Array.isArray(walk.route) || walk.route.length === 0) {
-        return;
-      }
-
-      const map = mapRef.current;
-      if (!map) {
-        return;
-      }
-
-      const validCoordinates = walk.route.filter(
-        (point) => Number.isFinite(point?.latitude) && Number.isFinite(point?.longitude)
-      );
-      if (validCoordinates.length === 0) {
-        return;
-      }
-
-      try {
-        if (typeof map.fitToCoordinates === "function") {
-          map.fitToCoordinates(validCoordinates, {
-            edgePadding: { top: 80, right: 40, bottom: 120, left: 40 },
-            animated,
-          });
-          return;
-        }
-
-        const derivedRegion = createRegionForRoute(validCoordinates);
-        if (!derivedRegion) {
-          return;
-        }
-
-        if (typeof map.animateToRegion === "function") {
-          map.animateToRegion(derivedRegion, animated ? 450 : 0);
-          return;
-        }
-
-        const altitude =
-          Math.max(derivedRegion.latitudeDelta, derivedRegion.longitudeDelta) * 111_000 * 2 || 1000;
-        const cameraUpdate: Partial<Camera> = {
-          center: { latitude: derivedRegion.latitude, longitude: derivedRegion.longitude },
-          altitude,
-          heading: 0,
-          pitch: 0,
-        };
-
-        if (typeof map.animateCamera === "function") {
-          map.animateCamera(cameraUpdate, { duration: animated ? 450 : 0 });
-          return;
-        }
-
-        if (typeof map.setCamera === "function") {
-          map.setCamera(cameraUpdate);
-        }
-      } catch (error) {
-        console.warn("[PastWalksNolli] fitToCoordinates fallback failed", error);
-      }
+    (walk: WalkGeometry | null) => {
+      // Map fitting is disabled to avoid "no command" errors
+      // The map will show the default region or last user position
+      // This is a known limitation with react-native-maps on some platforms
     },
     []
   );
@@ -394,7 +342,7 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
           if (!isActive) return;
           setSummaries(dataset.summaries);
           updateSelectedWalk(dataset.selectedWalk ?? null);
-          handleFitToWalk(dataset.selectedWalk ?? null, false);
+          handleFitToWalk(dataset.selectedWalk ?? null);
           scheduleProjection(dataset.selectedWalk ?? null, 0);
         })
         .catch((error) => {

@@ -22,6 +22,7 @@ type Props = {
   colorC?: string;
   scale?: number;
   opacity?: number;
+  animationSpeed?: number; // Multiplier for animation speed (1.0 = normal, 0.5 = half speed, 2.0 = double speed)
 };
 
 export function SmokeOrb({
@@ -30,6 +31,7 @@ export function SmokeOrb({
   colorC = "#fff",
   scale = 0.92,
   opacity = 0.85,
+  animationSpeed = 0.10,
 }: Props) {
   const meshRef = useRef<THREE.Mesh>(null);
   const matRef = useRef<THREE.ShaderMaterial>(null);
@@ -58,11 +60,12 @@ export function SmokeOrb({
       uAtlasSize: { value: new Vector2(2048, 2048) },
       uZoom: { value: 0.88 },
       uOpacity: { value: opacity },
+      uAnimationSpeed: { value: animationSpeed },
       uColorA: { value: resolvedColors.a.clone() },
       uColorB: { value: resolvedColors.b.clone() },
       uColorC: { value: resolvedColors.c.clone() },
     }),
-    [texture, resolvedColors, opacity]
+    [texture, resolvedColors, opacity, animationSpeed]
   );
 
   useEffect(() => {
@@ -78,16 +81,6 @@ export function SmokeOrb({
 
     if (matRef.current) {
       matRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
-
-      // Debug: log once per second
-      if (__DEV__ && Math.floor(state.clock.getElapsedTime()) % 5 === 0 && state.clock.getElapsedTime() % 1 < 0.016) {
-        console.log(
-          "[SmokeOrb] Animation time:",
-          state.clock.getElapsedTime().toFixed(2),
-          "Frame:",
-          Math.floor((state.clock.getElapsedTime() * 24) % 134)
-        );
-      }
     }
   });
 
@@ -111,15 +104,6 @@ export function SmokeOrb({
       if (matRef.current && texture.image?.width && texture.image?.height) {
         matRef.current.uniforms.uAtlasSize.value.set(texture.image.width, texture.image.height);
       }
-
-      if (__DEV__) {
-        console.log('[SmokeOrb] Texture loaded:', {
-          width: texture.image?.width,
-          height: texture.image?.height,
-          format: texture.format,
-          type: texture.type,
-        });
-      }
     }
   }, [texture]);
 
@@ -133,7 +117,7 @@ export function SmokeOrb({
   }, [resolvedColors, opacity]);
 
   return (
-    <mesh ref={meshRef} scale={scale} renderOrder={-1}>
+    <mesh ref={meshRef} scale={scale} renderOrder={1}>
       <planeGeometry args={[1.6, 1.6, 1, 1]} />
       <shaderMaterial
         ref={matRef}
@@ -141,7 +125,7 @@ export function SmokeOrb({
         transparent
         depthWrite={false}
         blending={THREE.NormalBlending}
-        depthTest={false}
+        depthTest={true}
         side={THREE.DoubleSide}
         vertexShader={`
           varying vec2 vUv;
@@ -160,19 +144,26 @@ export function SmokeOrb({
           uniform vec3 uColorC;
           uniform float uZoom;
           uniform float uOpacity;
+          uniform float uAnimationSpeed;
           varying vec2 vUv;
 
           void main() {
             const float cols = 14.0;
             const float rows = 10.0;
             const float totalFrames = 134.0;
-            const float fps = 16.0;
+            const float fps = 24.0;
 
-            float frame = mod(floor(uTime * fps), totalFrames);
+            // Calculate current frame with interpolation
+            float frameFloat = uTime * fps * uAnimationSpeed;
+            float frame1 = mod(floor(frameFloat), totalFrames);
+            float frame2 = mod(floor(frameFloat) + 1.0, totalFrames);
+            float frameMix = fract(frameFloat); // Interpolation factor between frames
 
             vec2 tileSize = vec2(1.0 / cols, 1.0 / rows);
-            vec2 tileIndex = vec2(mod(frame, cols), floor(frame / cols));
-            vec2 tileOffset = tileIndex * tileSize;
+
+            // Sample first frame
+            vec2 tileIndex1 = vec2(mod(frame1, cols), floor(frame1 / cols));
+            vec2 tileOffset1 = tileIndex1 * tileSize;
 
             vec2 zoomed = (vUv - 0.5) * uZoom + 0.5;
             if (any(lessThan(zoomed, vec2(0.0))) || any(greaterThan(zoomed, vec2(1.0)))) {
@@ -180,10 +171,21 @@ export function SmokeOrb({
             }
 
             vec2 border = (1.5 / uAtlasSize);
-            vec2 tileUV = tileOffset + zoomed * (tileSize - border * 2.0) + border;
-            tileUV.y = 1.0 - tileUV.y;
+            vec2 tileUV1 = tileOffset1 + zoomed * (tileSize - border * 2.0) + border;
+            tileUV1.y = 1.0 - tileUV1.y;
 
-            vec4 texSample = texture2D(uSmokeAtlas, tileUV);
+            vec4 texSample1 = texture2D(uSmokeAtlas, tileUV1);
+
+            // Sample second frame
+            vec2 tileIndex2 = vec2(mod(frame2, cols), floor(frame2 / cols));
+            vec2 tileOffset2 = tileIndex2 * tileSize;
+            vec2 tileUV2 = tileOffset2 + zoomed * (tileSize - border * 2.0) + border;
+            tileUV2.y = 1.0 - tileUV2.y;
+
+            vec4 texSample2 = texture2D(uSmokeAtlas, tileUV2);
+
+            // Blend between the two frames
+            vec4 texSample = mix(texSample1, texSample2, frameMix);
             float d = (texSample.r + texSample.g + texSample.b) / 3.0;
 
             vec2 centeredUv = zoomed * 2.0 - 1.0;

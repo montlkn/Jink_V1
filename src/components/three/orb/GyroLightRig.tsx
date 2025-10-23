@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
-import { Group } from "three";
-import { DeviceMotion } from "expo-sensors";
+import React, { useEffect, useRef } from "react";
+import { Euler, Group } from "three";
+import { subscribeToDeviceRotation } from "./gyroController";
 
 type Props = {
   target?: React.MutableRefObject<Group | null>;
@@ -8,29 +8,27 @@ type Props = {
 };
 
 export function GyroLightRig({ target, maxRadians = 0.35 }: Props) {
+  const rotationEuler = useRef(new Euler());
+
   useEffect(() => {
-    DeviceMotion.setUpdateInterval(16);
-    const sub = DeviceMotion.addListener(({ rotation }) => {
-      if (!rotation || !target?.current) {
+    if (!target) {
+      return;
+    }
+
+    const clamp = (value: number) =>
+      Math.max(-maxRadians, Math.min(maxRadians, value));
+
+    const unsubscribe = subscribeToDeviceRotation(({ alpha, beta, gamma }) => {
+      if (!target.current) {
         return;
       }
 
-      const { alpha = 0, beta = 0, gamma = 0 } = rotation;
-      const clamp = (value: number) =>
-        Math.max(-maxRadians, Math.min(maxRadians, value));
-
-      target.current.rotation.set(
-        clamp(beta),
-        clamp(alpha),
-        clamp(-gamma)
-      );
+      rotationEuler.current.set(clamp(beta), clamp(alpha), clamp(-gamma));
+      target.current.rotation.copy(rotationEuler.current);
     });
 
-    return () => {
-      sub.remove();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maxRadians]);
+    return unsubscribe;
+  }, [target, maxRadians]);
 
   return null;
 }

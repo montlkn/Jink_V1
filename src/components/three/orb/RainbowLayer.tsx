@@ -55,7 +55,7 @@ export function RainbowLayer() {
           vec3 rainbow = vec3(r, g, b);
 
           // Only show rainbow at edges (Fresnel effect) - very subtle now
-          float intensity = fresnel * 0.12;
+          float intensity = fresnel * 0.08;
 
           gl_FragColor = vec4(rainbow, intensity);
         }
@@ -70,7 +70,7 @@ export function RainbowLayer() {
   });
 
   return (
-    <mesh ref={meshRef} scale={0.98} renderOrder={0}>
+    <mesh ref={meshRef} scale={1.02} renderOrder={3}>
       <sphereGeometry args={[1, 64, 64]} />
       <primitive object={shaderMaterial} attach="material" />
     </mesh>

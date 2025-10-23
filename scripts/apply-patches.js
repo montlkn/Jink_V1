@@ -32,7 +32,7 @@ function applyReactNativeMapsPatch() {
   }
 
   copyRecursive(patchSource, moduleTarget);
-  console.log('[patches] Applied react-native-maps patch');
+  console.log('[patches] Applied react-native-maps patch (with onLongPress disabled)');
 }
 
 function fixThreeTypes() {

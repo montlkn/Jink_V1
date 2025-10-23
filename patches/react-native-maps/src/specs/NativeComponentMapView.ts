@@ -634,7 +634,7 @@ export interface MapFabricNativeProps extends ViewProps {
    * @platform iOS: Supported
    * @platform Android: Supported
    */
-  onLongPress?: LongPressEventHandler;
+  // onLongPress?: LongPressEventHandler; // Disabled: causes iOS error "unrecognized selector"
 
   /**
    * Callback that is called when the map has finished rendering all tiles.

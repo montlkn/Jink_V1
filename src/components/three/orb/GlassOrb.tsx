@@ -1,6 +1,6 @@
 import { Canvas, useThree } from "@react-three/fiber/native";
-import React, { useEffect, useMemo, useRef } from "react";
-import { ACESFilmicToneMapping, Color, Group, SRGBColorSpace } from "three";
+import React, { useEffect, useRef } from "react";
+import { ACESFilmicToneMapping, Group, SRGBColorSpace } from "three";
 import { useEnvMap } from "./env/envLoader";
 import { GyroLightRig } from "./GyroLightRig";
 import { RainbowLayer } from "./RainbowLayer";
@@ -18,18 +18,18 @@ type Props = {
 
 type OrbContentProps = {
   envAsset: any;
-  tintColor: Color;
   colorA: string;
   colorB: string;
   colorC: string;
 };
 
-function OrbContent({ envAsset, tintColor, colorA, colorB, colorC }: OrbContentProps) {
+function OrbContent({ envAsset, colorA, colorB, colorC }: OrbContentProps) {
   const envHolder = useRef<Group | null>(null);
   const lightGroup = useRef<Group | null>(null);
   const materialRef = useRef<any>(null);
   const env = useEnvMap(envAsset);
   const { scene } = useThree();
+  const hasLoggedEnv = useRef(false);
 
   // Feed PBR with the env once it exists
   useEffect(() => {
@@ -41,8 +41,11 @@ function OrbContent({ envAsset, tintColor, colorA, colorB, colorC }: OrbContentP
         materialRef.current.needsUpdate = true;
       }
 
-      if (__DEV__) {
-        console.log('[GlassOrb] Environment map loaded and applied to material');
+      if (__DEV__ && !hasLoggedEnv.current) {
+        hasLoggedEnv.current = true;
+        console.log(
+          "[GlassOrb] Environment map loaded and applied to material"
+        );
       }
     }
 
@@ -52,16 +55,6 @@ function OrbContent({ envAsset, tintColor, colorA, colorB, colorC }: OrbContentP
       }
     };
   }, [env, scene]);
-
-  if (__DEV__) {
-    // eslint-disable-next-line no-console
-    console.log(
-      "[GlassOrb] env isTexture:",
-      !!(env as any)?.isTexture,
-      "type:",
-      env === null ? "null" : typeof env
-    );
-  }
 
   return (
     <>
@@ -121,39 +114,7 @@ export default function GlassOrb({
   colorA = "#8cf",
   colorB = "#fff",
   colorC = "#fff",
-  palette,
 }: Props) {
-  const tintColor = useMemo(() => {
-    if (palette && palette.length > 0) {
-      const totalWeight = palette.reduce((sum, entry) => sum + Math.max(entry.weight ?? 0, 0), 0);
-      const normalizer = totalWeight > 0 ? totalWeight : palette.length;
-      const blended = palette.reduce((acc, entry) => {
-        try {
-          const ratio = Math.max(entry.weight ?? 0, 0) / normalizer;
-          if (ratio <= 0) return acc;
-          const sample = new Color(entry.color);
-          acc.add(sample.multiplyScalar(ratio));
-        } catch (error) {
-          console.warn("[GlassOrb] Failed to apply palette color", entry, error);
-        }
-        return acc;
-      }, new Color(0x000000));
-      return blended;
-    }
-
-    // Fallback to supplied colors; blend evenly
-    try {
-      const base = new Color(colorA);
-      base.add(new Color(colorB));
-      base.add(new Color(colorC));
-      base.multiplyScalar(1 / 3);
-      return base;
-    } catch (error) {
-      console.warn("[GlassOrb] Failed to blend fallback colors", error);
-      return new Color("#8cf");
-    }
-  }, [palette, colorA, colorB, colorC]);
-
   return (
     <Canvas
       camera={{ position: [0, 0, 2.5], fov: 50 }}
@@ -205,7 +166,6 @@ export default function GlassOrb({
     >
       <OrbContent
         envAsset={ENV}
-        tintColor={tintColor}
         colorA={colorA}
         colorB={colorB}
         colorC={colorC}
