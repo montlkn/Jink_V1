@@ -1,16 +1,16 @@
 // @ts-nocheck
-import type {HostComponent, ViewProps, ColorValue} from 'react-native';
+import type { ColorValue, HostComponent, ViewProps } from 'react-native';
 
-import {codegenNativeComponent} from 'react-native';
-import codegenNativeCommands from 'react-native/Libraries/Utilities/codegenNativeCommands';
+import { codegenNativeComponent } from 'react-native';
 import type {
+  BubblingEventHandler,
+  DirectEventHandler,
   Double,
+  Float,
   Int32,
   WithDefault,
-  Float,
-  DirectEventHandler,
-  BubblingEventHandler,
 } from 'react-native/Libraries/Types/CodegenTypes';
+import codegenNativeCommands from 'react-native/Libraries/Utilities/codegenNativeCommands';
 import FabricMapView from './NativeComponentMapView';
 
 export type EdgePadding = Readonly<{
@@ -634,7 +634,6 @@ export interface MapFabricNativeProps extends ViewProps {
    * @platform iOS: Supported
    * @platform Android: Supported
    */
-  // onLongPress?: LongPressEventHandler; // Disabled: causes iOS error "unrecognized selector"
 
   /**
    * Callback that is called when the map has finished rendering all tiles.

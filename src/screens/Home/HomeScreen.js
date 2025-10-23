@@ -15,10 +15,10 @@ import XPDetailModal from '../../components/modals/XPDetailModal';
 import XPGlassBadge from '../../components/passport/XPGlassBadge';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
-import { getArchetypeColor } from '../../constants/archetypeColors';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
 import { useOrbTransition } from '../../state/orbTransitionContext';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
+import { extractTopArchetypesFromScores } from '../../utils/archetypeColorBlend';
 
 const ORB_SIZE = 360;
 
@@ -60,27 +60,7 @@ export default function HomeScreen({ navigation }) {
 
         const profile = await getUserAestheticProfile(session.user.id);
         if (profile?.archetype_scores) {
-          const total = Object.values(profile.archetype_scores).reduce(
-            (sum, val) => sum + Math.max(0, val),
-            0
-          );
-          const sorted = Object.entries(profile.archetype_scores)
-            .map(([name, score]) => {
-              // SAFE: Don't call getArchetypeColor if name is missing
-              const safeColor = (name && typeof name === 'string')
-                ? getArchetypeColor(name)
-                : '#FFFFFF';
-
-              return {
-                name,
-                archetype: name,
-                percentage: (score / total) * 100,
-                score,
-                color: safeColor,
-              };
-            })
-            .sort((a, b) => b.percentage - a.percentage)
-            .slice(0, 3);
+          const sorted = extractTopArchetypesFromScores(profile.archetype_scores);
           setArchetypeData(sorted);
         }
       } catch (err) {

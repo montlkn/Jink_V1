@@ -2,7 +2,16 @@ import type {TurboModule} from 'react-native';
 import {TurboModuleRegistry} from 'react-native';
 import type {Double} from 'react-native/Libraries/Types/CodegenTypes';
 import type {Camera, Address} from '../MapView.types';
-import type {LatLng, Point} from '../sharedTypes';
+
+type NativeLatLng = {
+  latitude: Double;
+  longitude: Double;
+};
+
+type NativePoint = {
+  x: Double;
+  y: Double;
+};
 
 export type Region = {
   latitude: Double;
@@ -11,16 +20,25 @@ export type Region = {
   longitudeDelta: Double;
 };
 
-export type MapBoundaries = {northEast: LatLng; southWest: LatLng};
+export type MapBoundaries = {northEast: NativeLatLng; southWest: NativeLatLng};
 
 export interface Spec extends TurboModule {
   getCamera(tag: Double): Promise<Camera>;
   getMarkersFrames(tag: Double, onlyVisible: boolean): Promise<unknown>;
   getMapBoundaries(tag: Double): Promise<MapBoundaries>;
   takeSnapshot(tag: Double, config: string): Promise<string>;
-  getAddressFromCoordinates(tag: Double, coordinate: LatLng): Promise<Address>;
-  getPointForCoordinate(tag: Double, coordinate: LatLng): Promise<Point>;
-  getCoordinateForPoint(tag: Double, point: Point): Promise<LatLng>;
+  getAddressFromCoordinates(
+    tag: Double,
+    coordinate: NativeLatLng,
+  ): Promise<Address>;
+  getPointForCoordinate(
+    tag: Double,
+    coordinate: NativeLatLng,
+  ): Promise<NativePoint>;
+  getCoordinateForPoint(
+    tag: Double,
+    point: NativePoint,
+  ): Promise<NativeLatLng>;
 }
 
 const module = TurboModuleRegistry.get<Spec>('RNMapsAirModule');

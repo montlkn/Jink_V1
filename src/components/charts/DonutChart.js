@@ -14,7 +14,7 @@ const DonutChart = ({
   centerText = null,
   showLeaderLabels = false,
 }) => {
-  const margin = { top: 24, right: 24, bottom: 24, left: 24 };
+  const margin = { top: 40, right: 80, bottom: 40, left: 80 };
   const chartWidth = size - margin.left - margin.right;
   const chartHeight = size - margin.top - margin.bottom;
   const radius = Math.min(chartWidth, chartHeight) / 2;
@@ -71,9 +71,9 @@ const DonutChart = ({
             const midAngle = (d.startAngle + d.endAngle) / 2;
             const isRightSide = midAngle < Math.PI;
             const isTopHalf = arcOuter[1] <= 0;
-            const paddingX = 32;
-            const paddingY = 18;
-            const baseDiagLength = radius * 0.35;
+            const paddingX = 10;
+            const paddingY = 10;
+            const baseDiagLength = radius * 0.55;
             const maxHorizontal = isRightSide
               ? halfWidth - paddingX - arcOuter[0]
               : arcOuter[0] + halfWidth - paddingX;

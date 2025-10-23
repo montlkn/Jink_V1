@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import GlassOrb from "./three/orb/GlassOrb";
 import { blendArchetypeColors } from "../utils/archetypeColorBlend";
 
-export default function ArchetypeOrb(props) {
+function ArchetypeOrb(props) {
   const {
     size = 220,
     archetypeData = [],
@@ -69,3 +69,14 @@ export default function ArchetypeOrb(props) {
     </Animated.View>
   );
 }
+
+function areEqual(prevProps, nextProps) {
+  if (prevProps.size !== nextProps.size) return false;
+  if (prevProps.interactive !== nextProps.interactive) return false;
+  if (prevProps.onPress !== nextProps.onPress) return false;
+  // Archetype data: assume stable reference; if it changes identity, rerender
+  if (prevProps.archetypeData !== nextProps.archetypeData) return false;
+  return true;
+}
+
+export default React.memo(ArchetypeOrb, areEqual);

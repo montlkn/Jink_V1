@@ -16,10 +16,11 @@ const TimeSlider = ({ min, max, initialValue }) => {
 
 const styles = StyleSheet.create({
   container: {
-    height: "60%",
+    height: "85%",
     alignItems: "center",
     justifyContent: "space-between",
     position: "relative",
+    paddingVertical: 10,
   },
   track: {
     width: 4,

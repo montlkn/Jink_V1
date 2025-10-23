@@ -59,4 +59,3 @@ function fixThreeTypes() {
 
 applyReactNativeMapsPatch();
 fixThreeTypes();
-

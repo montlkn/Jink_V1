@@ -582,7 +582,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         <View style={styles.chartSection}>
           <DonutChart
             data={chartData}
-            size={300}
+            size={380}
             strokeWidth={30}
             onSegmentPress={handleSegmentPress}
             hideMoreDetails={true}

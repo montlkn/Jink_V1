@@ -40,7 +40,9 @@ const KEYBOARD_HIDE_DURATION = 110;
 export default function LiquidGlassBottomTab({ state, descriptors, navigation }) {
   const routes = state.routes.slice(0, TAB_COUNT);
   const focusIndex = Math.min(state.index, TAB_COUNT - 1);
-  const { startHomeToJinkTransition } = useOrbTransition();
+  const { startHomeToJinkTransition, pinToJink } = useOrbTransition();
+  const focusedRouteName = routes[focusIndex]?.name;
+  const isJinkFocused = focusedRouteName === "Jink";
 
   const pillWidth = Math.min(SCREEN_WIDTH * 0.8, SCREEN_WIDTH - 120);
   const pillLeft = EDGE;
@@ -64,6 +66,13 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
   const itemWidth = pillWidth / TAB_COUNT;
   const bubbleBaseLeft = itemWidth / 2 - BUBBLE_SIZE / 2;
   const targetX = bubbleBaseLeft + itemWidth * focusIndex;
+
+  // Pin/unpin global orb when focusing Jink tab
+  useEffect(() => {
+    if (!isJinkFocused) {
+      pinToJink(false);
+    }
+  }, [isJinkFocused, pinToJink]);
 
   // Keyboard lift listener
   useEffect(() => {
@@ -248,6 +257,27 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
     outputRange: [1, 0],
   });
 
+  if (isJinkFocused) {
+    return (
+      <View
+        pointerEvents="box-none"
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center" }}
+      >
+        <View style={[styles.singleBackWrapper, { bottom: 20 }]}>
+          <BlurView intensity={60} tint="light" style={styles.singleBackBlur}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Home")}
+              style={styles.singleBackButton}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="chevron-back" size={24} color="#000" />
+            </TouchableOpacity>
+          </BlurView>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <>
       {/* LEFT PILL TAB */}
@@ -283,8 +313,14 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
                     onPress={async () => {
                       Haptics.selectionAsync();
                       if (route.name === "Jink") {
-                        await startHomeToJinkTransition();
+                        const completed = await startHomeToJinkTransition();
+                        navigation.navigate(route.name);
+                        if (completed) {
+                          pinToJink(true);
+                        }
+                        return;
                       }
+                      pinToJink(false);
                       navigation.navigate(route.name);
                     }}
                   />
@@ -295,21 +331,19 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
         </View>
       </View>
 
-      
-
       {/* FLOATING SEARCH BUTTON / BAR */}
       <Animated.View
         style={[
-      styles.searchContainer,
-      {
-        right: EDGE,
-        width: iWidth,
-        borderRadius: iRadius,
-        bottom: iBottom,
-        transform: [{ scale: searchScale }],
-      },
-    ]}
-  >
+          styles.searchContainer,
+          {
+            right: EDGE,
+            width: iWidth,
+            borderRadius: iRadius,
+            bottom: iBottom,
+            transform: [{ scale: searchScale }],
+          },
+        ]}
+      >
         <BlurView intensity={60} tint="light" style={styles.searchBlur}>
           {isSearching ? (
             <View style={styles.searchExpandedRow}>
@@ -356,6 +390,26 @@ function TabButton({ label, icon, focused, onPress }) {
 }
 
 const styles = StyleSheet.create({
+  // Single back mode for Jink
+  singleBackWrapper: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  singleBackBlur: {
+    width: PILL_HEIGHT,
+    height: PILL_HEIGHT,
+    borderRadius: PILL_HEIGHT / 2,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  singleBackButton: {
+    width: PILL_HEIGHT,
+    height: PILL_HEIGHT,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   // TAB BAR
   pillWrapper: {
     position: "absolute",

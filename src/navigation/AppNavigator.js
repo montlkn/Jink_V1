@@ -3,6 +3,7 @@ import * as Linking from "expo-linking";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useEffect, useState, useCallback } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { preloadOrbAssets } from "../services/orbAssets";
 
 import { useAuth } from "../auth/authProvider";
 import WalkCameraScreen from "../screens/Walk/WalkCameraScreen";
@@ -28,6 +29,11 @@ export default function AppNavigator() {
     console.log("Session:", session);
     console.log("Loading:", loading);
   }, [session, loading]);
+
+  // Preload orb assets early to avoid first-load hitch
+  useEffect(() => {
+    preloadOrbAssets();
+  }, []);
 
   // Check onboarding status when session is ready
   useEffect(() => {

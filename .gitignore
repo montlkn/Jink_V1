@@ -7,6 +7,10 @@ node_modules/
 
 #ios
 ios/
+!/patches/
+!patches/react-native-maps/
+!patches/react-native-maps/ios/
+!patches/react-native-maps/ios/**
 
 #android
 android/

@@ -6,7 +6,6 @@ import { Color, ShaderMaterial, TextureLoader, Vector2 } from "three";
 
 const SMOKE_ATLAS = require("../../../../assets/textures/smoke_atlas.png");
 const SMOKE_ATLAS_STARTUP = require("../../../../assets/textures/smoke_atlas_startup.png");
-
 extend({ ShaderMaterial });
 
 declare global {
@@ -169,7 +168,12 @@ export function SmokeOrb({
 
   useEffect(() => {
     if (startupTexture) {
-      console.log('[SmokeOrb] Startup texture loaded:', startupTexture.image?.width, 'x', startupTexture.image?.height);
+      console.log(
+        "[SmokeOrb] Startup texture loaded:",
+        startupTexture.image?.width,
+        "x",
+        startupTexture.image?.height
+      );
 
       // Same texture settings for startup atlas
       startupTexture.wrapS = THREE.ClampToEdgeWrapping;
@@ -189,7 +193,12 @@ export function SmokeOrb({
           startupTexture.image.width,
           startupTexture.image.height
         );
-        console.log('[SmokeOrb] Startup atlas size set to:', startupTexture.image.width, 'x', startupTexture.image.height);
+        console.log(
+          "[SmokeOrb] Startup atlas size set to:",
+          startupTexture.image.width,
+          "x",
+          startupTexture.image.height
+        );
       }
     }
   }, [startupTexture]);
@@ -274,7 +283,8 @@ export function SmokeOrb({
             const float loopCols = 14.0;
             const float loopRows = 10.0;
             const float loopTotalFrames = 134.0;
-            const float fps = 24.0;
+            const float startupFps = 24.0;
+            const float loopFps = 24.0;
 
             vec2 zoomed = (vUv - 0.5) * uZoom + 0.5;
             if (any(lessThan(zoomed, vec2(0.0))) || any(greaterThan(zoomed, vec2(1.0)))) {
@@ -289,13 +299,14 @@ export function SmokeOrb({
 
             if (uTime < transitionStart) {
               // Phase 1: Only startup animation (plays once)
-              float startupFrameFloat = uTime * fps;
+              float startupFrameFloat = uTime * startupFps;
               // Clamp to last frame when startup finishes
               startupFrameFloat = min(startupFrameFloat, uStartupAtlasTotalFrames - 1.0);
               texSample = sampleAtlas(uStartupAtlas, startupFrameFloat, uStartupAtlasCols, uStartupAtlasRows, uStartupAtlasTotalFrames, uStartupAtlasSize, zoomed);
             } else if (uTime < transitionEnd) {
               // Phase 2: Crossfade from startup to loop
               float transitionProgress = (uTime - transitionStart) / uTransitionDuration;
+              transitionProgress = smoothstep(0.0, 1.0, clamp(transitionProgress, 0.0, 1.0));
 
               // Sample startup (hold on last frame)
               float startupFrameFloat = uStartupAtlasTotalFrames - 1.0;
@@ -303,7 +314,7 @@ export function SmokeOrb({
 
               // Sample loop (start from beginning)
               float loopTime = uTime - transitionStart;
-              float loopFrameFloat = loopTime * fps * uAnimationSpeed;
+              float loopFrameFloat = mod(loopTime * loopFps * uAnimationSpeed, loopTotalFrames);
               vec4 loopSample = sampleAtlas(uSmokeAtlas, loopFrameFloat, loopCols, loopRows, loopTotalFrames, uAtlasSize, zoomed);
 
               // Crossfade
@@ -311,8 +322,9 @@ export function SmokeOrb({
             } else {
               // Phase 3: Only loop animation
               float loopTime = uTime - transitionStart;
-              float loopFrameFloat = loopTime * fps * uAnimationSpeed;
-              texSample = sampleAtlas(uSmokeAtlas, loopFrameFloat, loopCols, loopRows, loopTotalFrames, uAtlasSize, zoomed);
+              float loopFrameFloat = mod(loopTime * loopFps * uAnimationSpeed, loopTotalFrames);
+              vec4 loopSample = sampleAtlas(uSmokeAtlas, loopFrameFloat, loopCols, loopRows, loopTotalFrames, uAtlasSize, zoomed);
+              texSample = loopSample;
             }
 
             float d = (texSample.r + texSample.g + texSample.b) / 3.0;
@@ -336,7 +348,7 @@ export function SmokeOrb({
             }
 
             // Keep color brightness, only fade alpha (so it looks white when fading out)
-            vec3 brightColor = color * 1.5; // Boost brightness
+            vec3 brightColor = color * 1.4;
             float finalAlpha = clamp(alpha * uOpacity, 0.0, 1.0);
             gl_FragColor = vec4(brightColor, finalAlpha);
           }

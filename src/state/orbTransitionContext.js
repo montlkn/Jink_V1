@@ -1,22 +1,48 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
+  Suspense,
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
+import { getUserAestheticProfile } from "../api/quizApi";
+import { useAuth } from "../auth/authProvider";
 import ArchetypeOrb from "../components/ArchetypeOrb";
+import { extractTopArchetypesFromScores } from "../utils/archetypeColorBlend";
 
 const DEFAULT_TRANSITION_DURATION = 520;
 const DEFAULT_EASING = Easing.out(Easing.cubic);
 const ORB_SIZE = 360;
+const JINK_TARGET_SIZE = 220; // Ring radius on WalkStart
+const JINK_OFFSET_X = 0;
+const JINK_OFFSET_Y = 8; // Positive pushes orb downward on Jink
+const ORB_DATA_STORAGE_KEY = "arch-app/orbData.v1";
+
+const sanitizeOrbEntries = (data) => {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  return data
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry) => ({
+      ...entry,
+      color:
+        typeof entry?.color === "string" && entry.color.length
+          ? entry.color
+          : "#FFFFFF",
+    }));
+};
 
 const OrbTransitionContext = createContext({
   registerHomeOrbLayout: (layout) => {},
   setOrbData: (data) => {},
   startHomeToJinkTransition: async () => false,
+  pinToJink: (shouldPin) => {},
   transitionProgress: new Animated.Value(0),
   isTransitioning: false,
   orbData: [],
@@ -27,7 +53,79 @@ export const OrbTransitionProvider = ({ children }) => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [renderOverlay, setRenderOverlay] = useState(false);
   const [homeOrbLayout, setHomeOrbLayout] = useState(null);
-  const [orbData, setOrbData] = useState([]);
+  const [orbData, setOrbState] = useState([]);
+  const [pinnedToJink, setPinnedToJink] = useState(false);
+  const bootstrapRef = useRef(false);
+  const { session } = useAuth();
+
+  const setOrbData = useCallback((data) => {
+    const normalized = sanitizeOrbEntries(data);
+    setOrbState(normalized);
+    if (normalized.length) {
+      AsyncStorage.setItem(ORB_DATA_STORAGE_KEY, JSON.stringify(normalized)).catch(
+        (error) => {
+          console.warn("[OrbTransition] Failed to persist orb colors", error);
+        }
+      );
+    } else {
+      AsyncStorage.removeItem(ORB_DATA_STORAGE_KEY).catch((error) => {
+        console.warn("[OrbTransition] Failed to clear orb colors", error);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    AsyncStorage.getItem(ORB_DATA_STORAGE_KEY)
+      .then((stored) => {
+        if (!isMounted || !stored) {
+          return;
+        }
+        try {
+          const parsed = JSON.parse(stored);
+          const normalized = sanitizeOrbEntries(parsed);
+          if (normalized.length) {
+            setOrbState(normalized);
+          }
+        } catch (error) {
+          console.warn("[OrbTransition] Failed to parse cached orb colors", error);
+        }
+      })
+      .catch((error) => {
+        console.warn("[OrbTransition] Failed to read cached orb colors", error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (bootstrapRef.current) {
+      return;
+    }
+    if (!session?.user?.id) {
+      return;
+    }
+    if (orbData.length > 0) {
+      bootstrapRef.current = true;
+      return;
+    }
+    bootstrapRef.current = true;
+    (async () => {
+      try {
+        const profile = await getUserAestheticProfile(session.user.id);
+        if (profile?.archetype_scores) {
+          const top = extractTopArchetypesFromScores(profile.archetype_scores);
+          if (top.length) {
+            setOrbData(top);
+          }
+        }
+      } catch (error) {
+        console.warn("[OrbTransition] Failed to bootstrap orb colors", error);
+        bootstrapRef.current = false;
+      }
+    })();
+  }, [orbData.length, session, setOrbData]);
 
   const registerHomeOrbLayout = useCallback((layout) => {
     if (!layout) return;
@@ -61,6 +159,7 @@ export const OrbTransitionProvider = ({ children }) => {
       registerHomeOrbLayout,
       setOrbData,
       startHomeToJinkTransition,
+      pinToJink: (v) => setPinnedToJink(Boolean(v)),
       transitionProgress: progress,
       isTransitioning,
       orbData,
@@ -69,25 +168,24 @@ export const OrbTransitionProvider = ({ children }) => {
       registerHomeOrbLayout,
       setOrbData,
       startHomeToJinkTransition,
+      setPinnedToJink,
       progress,
       isTransitioning,
       orbData,
     ]
   );
 
-  const overlay = renderOverlay ? (
-    <OrbTransitionOverlay
-      progress={progress}
-      layout={homeOrbLayout}
-      orbData={orbData}
-    />
-  ) : null;
-
   return (
     <OrbTransitionContext.Provider value={contextValue}>
       <View style={styles.flex}>
         {children}
-        {overlay}
+        <OrbTransitionOverlay
+          progress={progress}
+          layout={homeOrbLayout}
+          orbData={orbData}
+          pinned={pinnedToJink}
+          visible={renderOverlay || pinnedToJink}
+        />
       </View>
     </OrbTransitionContext.Provider>
   );
@@ -97,7 +195,7 @@ export const useOrbTransition = () => {
   return useContext(OrbTransitionContext);
 };
 
-const OrbTransitionOverlay = ({ progress, layout, orbData }) => {
+const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) => {
   const { width, height } = Dimensions.get("window");
   const baseLeft = width / 2 - ORB_SIZE / 2;
   const baseTop = height / 2 - ORB_SIZE / 2;
@@ -105,43 +203,59 @@ const OrbTransitionOverlay = ({ progress, layout, orbData }) => {
   const fromLeft = layout ? layout.x : baseLeft;
   const fromTop = layout ? layout.y : baseTop;
 
-  const translateX = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [fromLeft - baseLeft, 0],
-    extrapolate: "clamp",
-  });
+  const translateX = pinned
+    ? JINK_OFFSET_X
+    : progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [fromLeft - baseLeft, JINK_OFFSET_X],
+        extrapolate: "clamp",
+      });
 
-  const translateY = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [fromTop - baseTop, 0],
-    extrapolate: "clamp",
-  });
+  const translateY = pinned
+    ? JINK_OFFSET_Y
+    : progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [fromTop - baseTop, JINK_OFFSET_Y],
+        extrapolate: "clamp",
+      });
 
-  const scale = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0.85],
-    extrapolate: "clamp",
-  });
+  const pinnedScale = JINK_TARGET_SIZE / ORB_SIZE;
+  const scale = pinned
+    ? pinnedScale
+    : progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, pinnedScale],
+        extrapolate: "clamp",
+      });
 
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overlayRoot]}>
-      <Animated.View
-        style={[
-          styles.overlayOrb,
-          {
-            left: baseLeft,
-            top: baseTop,
-            transform: [{ translateX }, { translateY }, { scale }],
-          },
-        ]}
-      >
-        <ArchetypeOrb
-          archetypeData={orbData}
-          size={ORB_SIZE}
-          interactive={false}
-          lod="standard"
-        />
-      </Animated.View>
+    <View
+      pointerEvents="none"
+      style={[StyleSheet.absoluteFill, styles.overlayRoot, { opacity: visible ? 1 : 0 }]}
+    >
+      <Suspense fallback={null}>
+        <Animated.View
+          style={[
+            styles.overlayOrb,
+            {
+              left: baseLeft,
+              top: baseTop,
+              transform: [
+                { translateX },
+                { translateY },
+                { scale },
+              ],
+            },
+          ]}
+        >
+          <ArchetypeOrb
+            archetypeData={orbData}
+            size={ORB_SIZE}
+            interactive={false}
+            lod="standard"
+          />
+        </Animated.View>
+      </Suspense>
     </View>
   );
 };
