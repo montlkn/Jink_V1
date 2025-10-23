@@ -54,7 +54,7 @@ export function SmokeOrb({
       uSmokeAtlas: { value: texture },
       uTime: { value: 0 },
       uAtlasSize: { value: new Vector2(2048, 2048) },
-      uZoom: { value: 0.65 },
+      uZoom: { value: 0.88 },
       uColorA: { value: resolvedColors.a.clone() },
       uColorB: { value: resolvedColors.b.clone() },
       uColorC: { value: resolvedColors.c.clone() },
@@ -62,9 +62,15 @@ export function SmokeOrb({
     [texture, resolvedColors]
   );
 
+  useEffect(() => {
+    if (meshRef.current) {
+      meshRef.current.up.set(0, 1, 0);
+    }
+  }, []);
+
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.quaternion.copy(state.camera.quaternion);
+      meshRef.current.lookAt(state.camera.position);
     }
 
     if (matRef.current) {
@@ -76,7 +82,7 @@ export function SmokeOrb({
           "[SmokeOrb] Animation time:",
           state.clock.getElapsedTime().toFixed(2),
           "Frame:",
-          Math.floor((state.clock.getElapsedTime() * 6) % 64)
+          Math.floor((state.clock.getElapsedTime() * 24) % 134)
         );
       }
     }
@@ -84,10 +90,19 @@ export function SmokeOrb({
 
   useEffect(() => {
     if (texture) {
+      // Texture wrapping settings
       texture.wrapS = THREE.ClampToEdgeWrapping;
       texture.wrapT = THREE.ClampToEdgeWrapping;
+
+      // Disable mipmaps to prevent bleeding between atlas tiles
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+
+      // Light anisotropy for quality
       const maxAniso = (texture as any)?.manager?.renderer?.capabilities?.getMaxAnisotropy?.() ?? 4;
       texture.anisotropy = Math.min(maxAniso, 2);
+
       texture.needsUpdate = true;
 
       if (matRef.current && texture.image?.width && texture.image?.height) {
@@ -115,7 +130,7 @@ export function SmokeOrb({
 
   return (
     <mesh ref={meshRef} scale={scale} renderOrder={-1}>
-      <planeGeometry args={[2, 2, 1, 1]} />
+      <planeGeometry args={[1.6, 1.6, 1, 1]} />
       <shaderMaterial
         ref={matRef}
         uniforms={uniforms}
@@ -142,49 +157,37 @@ export function SmokeOrb({
           uniform float uZoom;
           varying vec2 vUv;
 
-          vec4 sampleFrame(float frame, vec2 tile, vec2 localUv) {
-            const float cols = 8.0;
-            float fx = mod(frame, cols);
-            float fy = floor(frame / cols);
-            vec2 uv = localUv + vec2(fx, fy) * tile;
-            return texture2D(uSmokeAtlas, uv);
-          }
-
           void main() {
-            const float cols = 8.0;
-            const float rows = 8.0;
-            const float total = 64.0;
-            const float fps = 6.0;
+            const float cols = 14.0;
+            const float rows = 10.0;
+            const float totalFrames = 134.0;
+            const float fps = 24.0;
 
-            float frame = floor(mod(uTime * fps, total));
-            float blend = fract(uTime * fps);
+            float frame = mod(floor(uTime * fps), totalFrames);
 
-            vec2 tile = vec2(1.0 / cols, 1.0 / rows);
-            vec2 pixel = 1.0 / uAtlasSize;
-            vec2 gutter = pixel * 1.5;
+            vec2 tileSize = vec2(1.0 / cols, 1.0 / rows);
+            vec2 tileIndex = vec2(mod(frame, cols), floor(frame / cols));
+            vec2 tileOffset = tileIndex * tileSize;
+
             vec2 zoomed = (vUv - 0.5) * uZoom + 0.5;
-
             if (any(lessThan(zoomed, vec2(0.0))) || any(greaterThan(zoomed, vec2(1.0)))) {
               discard;
             }
 
-            vec2 localUv = zoomed * (tile - gutter * 2.0) + gutter;
+            vec2 border = (1.5 / uAtlasSize);
+            vec2 tileUV = tileOffset + zoomed * (tileSize - border * 2.0) + border;
+            tileUV.y = 1.0 - tileUV.y;
 
-            vec4 texSample = mix(
-              sampleFrame(frame, tile, localUv),
-              sampleFrame(mod(frame + 1.0, total), tile, localUv),
-              blend
-            );
-
+            vec4 texSample = texture2D(uSmokeAtlas, tileUV);
             float d = (texSample.r + texSample.g + texSample.b) / 3.0;
 
             vec2 centeredUv = zoomed * 2.0 - 1.0;
-            float radial = length(centeredUv);
-            float edgeFade = 1.0 - smoothstep(0.76, 0.98, radial);
+            float r = length(centeredUv);
+            float edgeFade = smoothstep(0.9, 0.4, r);
 
-            float normalized = clamp((d - 0.1) / 0.8, 0.0, 1.0);
-            float density = pow(normalized, 0.7);
-            float alpha = clamp(density * edgeFade * 1.8, 0.0, 1.0);
+            float normalized = clamp((d - 0.1) / 0.75, 0.0, 1.0);
+            float density = pow(normalized, 0.6);
+            float alpha = clamp(density * edgeFade * 1.6, 0.0, 1.0);
 
             vec3 color;
             if (density < 0.33) {

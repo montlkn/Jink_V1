@@ -70,7 +70,7 @@ export function RainbowLayer() {
   });
 
   return (
-    <mesh ref={meshRef} scale={0.98}>
+    <mesh ref={meshRef} scale={0.98} renderOrder={0}>
       <sphereGeometry args={[1, 64, 64]} />
       <primitive object={shaderMaterial} attach="material" />
     </mesh>

@@ -40,6 +40,10 @@ function OrbContent({ envAsset, tintColor, colorA, colorB, colorC }: OrbContentP
         materialRef.current.envMap = env;
         materialRef.current.needsUpdate = true;
       }
+
+      if (__DEV__) {
+        console.log('[GlassOrb] Environment map loaded and applied to material');
+      }
     }
 
     return () => {
@@ -83,27 +87,27 @@ function OrbContent({ envAsset, tintColor, colorA, colorB, colorC }: OrbContentP
         {/* Rainbow refraction layer - creates chromatic sparkles */}
         <RainbowLayer />
         {/* Outer glass shell */}
-        <mesh>
-          <sphereGeometry args={[1, 256, 256]} />
+        <mesh renderOrder={10}>
+          <sphereGeometry args={[1, 128, 128]} />
           <meshPhysicalMaterial
             ref={materialRef}
             color="#ffffff"
             envMap={env || undefined}
-            envMapIntensity={8.5}
-            roughness={0.04}
-            metalness={0.2}
+            envMapIntensity={12.0}
+            roughness={0.02}
+            metalness={0.35}
             clearcoat={1}
-            clearcoatRoughness={0.06}
-            specularIntensity={5.0}
+            clearcoatRoughness={0.04}
+            specularIntensity={6.0}
             specularColor="#ffffff"
             reflectivity={1.0}
-            opacity={0.28}
+            opacity={0.22}
             transparent
             depthWrite={false}
             ior={1.5}
-            transmission={0.68}
-            thickness={0.65}
-            attenuationDistance={1.5}
+            transmission={0.55}
+            thickness={0.5}
+            attenuationDistance={2.0}
             attenuationColor="#ffffff"
           />
         </mesh>
