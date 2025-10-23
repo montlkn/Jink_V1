@@ -12,7 +12,7 @@ import { supabase } from '../../api/supabaseClient';
 import ArchetypeOrb from '../../components/ArchetypeOrb';
 import AuraBreakdownModal from '../../components/modals/AuraBreakdownModal';
 import XPDetailModal from '../../components/modals/XPDetailModal';
-import XPCircleBadge from '../../components/passport/XPCircleBadge';
+import XPGlassBadge from '../../components/passport/XPGlassBadge';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
 import { getArchetypeColor } from '../../constants/archetypeColors';
@@ -221,9 +221,9 @@ export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* XP Circle Badge - Top Left */}
+        {/* XP Glass Badge - Top Left with gyro and rainbow highlights */}
         <Animated.View style={[styles.xpBadgeContainer, { opacity: contentFade }]}>
-          <XPCircleBadge
+          <XPGlassBadge
             currentXP={userXP}
             level={userLevel}
             xpForNextLevel={xpForNextLevel}
@@ -322,11 +322,6 @@ const styles = StyleSheet.create({
     top: 60,
     left: 20,
     zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 5,
   },
   orbSection: {
     alignItems: 'center',

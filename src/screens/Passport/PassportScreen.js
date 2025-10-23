@@ -1,7 +1,7 @@
 /* File: /src/screens/Passport/PassportScreen.js
-  Description: The main screen for the user's profile, collections, and achievements.
-  Uses common components like SectionHeader and ListItem.
+   Description: Main passport screen for user profile, collections, achievements, and lists.
 */
+
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
@@ -24,6 +24,7 @@ const visas = [
 const PassportScreen = ({ navigation }) => {
   const [stamps, setStamps] = useState([]);
   const [achievements, setAchievements] = useState([]);
+  const [lists, setLists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [xpModalVisible, setXpModalVisible] = useState(false);
   const [userXP, setUserXP] = useState(0);
@@ -40,16 +41,13 @@ const PassportScreen = ({ navigation }) => {
   const loadUserData = async () => {
     setLoading(true);
     try {
-      // Get user session
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user?.id) {
-        // Format passport number: AR-XXXX-XXXX (AR for Architecture)
         const id = session.user.id.replace(/-/g, '').toUpperCase();
         const formattedId = `AR-${id.substring(0, 4)}-${id.substring(4, 8)}`;
         setUserId(formattedId);
 
-        // Get issue date from user creation
         if (session.user.created_at) {
           const date = new Date(session.user.created_at);
           const formatted = date.toLocaleDateString('en-US', {
@@ -67,22 +65,26 @@ const PassportScreen = ({ navigation }) => {
         getUserXP()
       ]);
 
-      // Set XP data
       setUserXP(epData.ep || epData.xp || 0);
       setUserLevel(epData.level || 1);
       setXpForNextLevel(getXPForNextLevel(epData.level || 1));
 
-      // Convert stamps array to objects for display
       setStamps(userStamps.map((stamp, index) => ({
         id: index.toString(),
-        name: stamp
+        name: stamp,
       })));
 
-      // Convert achievements array to objects for display
-      setAchievements(userAchievements.map((achievement, index) => ({
-        id: index.toString(),
-        name: achievement
+      setAchievements(userAchievements.map((a, i) => ({
+        id: i.toString(),
+        name: a,
       })));
+
+      setLists([
+        { id: '1', name: 'SoHo Cast-Iron Tour' },
+        { id: '2', name: 'Midtown Modern Marvels' },
+        { id: '3', name: 'Brutalist Favorites' },
+        { id: '4', name: 'Art Deco Gems' },
+      ]);
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -92,12 +94,10 @@ const PassportScreen = ({ navigation }) => {
 
   const handleCardPress = (category) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
     if (category === 'Past Walks') {
       navigation.navigate('PastWalksNolli', {});
       return;
     }
-
     console.log(`Pressed ${category}`);
   };
 
@@ -106,7 +106,6 @@ const PassportScreen = ({ navigation }) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await supabase.auth.signOut();
       logout();
-      // Navigation will be handled by auth state listener
     } catch (error) {
       console.error('Error logging out:', error);
     }
@@ -178,13 +177,9 @@ const PassportScreen = ({ navigation }) => {
               : 'Complete quests or scan buildings to earn stamps'}
           </Text>
           {stamps.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.stampScrollContainer}
-            >
-              {stamps.slice(0, 5).map((stamp, index) => (
-                <PassportStamp key={stamp.id} stamp={stamp.name} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stampScrollContainer}>
+              {stamps.slice(0, 5).map((stamp) => (
+                <PassportStamp key={stamp.id} stamp={stamp.name} date="2025" />
               ))}
               {stamps.length > 5 && (
                 <View style={styles.moreStampsIndicator}>
@@ -218,14 +213,53 @@ const PassportScreen = ({ navigation }) => {
           </Text>
           {achievements.length > 0 && (
             <View style={styles.previewContainer}>
-              {achievements.slice(0, 3).map((achievement, index) => (
-                <View key={achievement.id} style={styles.achievementPreview}>
-                  <Text style={styles.achievementPreviewText}>{achievement.name.substring(0, 8)}</Text>
+              {achievements.slice(0, 3).map((a) => (
+                <View key={a.id} style={styles.achievementPreview}>
+                  <Text style={styles.achievementPreviewText}>{a.name.substring(0, 8)}</Text>
                 </View>
               ))}
               {achievements.length > 3 && (
                 <View style={styles.achievementPreview}>
                   <Text style={styles.achievementPreviewText}>+{achievements.length - 3}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* LISTS CARD */}
+        <TouchableOpacity
+          style={[styles.categoryCard, styles.listsCard]}
+          onPress={() => handleCardPress('Lists')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <Ionicons name="list" size={24} color="#1ABC9C" />
+              <Text style={[styles.cardType, { color: '#1ABC9C' }]}>LISTS</Text>
+            </View>
+            <View style={styles.countBadge}>
+              <Text style={styles.countText}>{lists.length}</Text>
+            </View>
+          </View>
+          <Text style={styles.cardTitle}>Saved Lists</Text>
+          <Text style={styles.cardDescription}>
+            {lists.length > 0
+              ? `${lists.length} list${lists.length !== 1 ? 's' : ''} saved`
+              : 'Create lists to plan future walks or study themes'}
+          </Text>
+          {lists.length > 0 && (
+            <View style={styles.listPreviewContainer}>
+              {lists.slice(0, 3).map((lst) => (
+                <View key={lst.id} style={styles.listPreviewItem}>
+                  <Ionicons name="checkbox-outline" size={14} color="#666" />
+                  <Text numberOfLines={1} style={styles.listPreviewText}>{lst.name}</Text>
+                </View>
+              ))}
+              {lists.length > 3 && (
+                <View style={styles.listPreviewItem}>
+                  <Ionicons name="add-circle-outline" size={14} color="#666" />
+                  <Text style={styles.listPreviewText}>+{lists.length - 3} more</Text>
                 </View>
               )}
             </View>
@@ -252,7 +286,7 @@ const PassportScreen = ({ navigation }) => {
             {visas.length} district{visas.length !== 1 ? 's' : ''} authorized for exploration
           </Text>
           <View style={styles.visaPreviewContainer}>
-            {visas.map((visa, index) => (
+            {visas.map((visa) => (
               <View key={visa.id} style={styles.visaItem}>
                 <View style={styles.visaHeader}>
                   <Ionicons name="document-text" size={16} color="#3498DB" />
@@ -285,11 +319,15 @@ const PassportScreen = ({ navigation }) => {
           <View style={styles.listPreviewContainer}>
             <View style={styles.listPreviewItem}>
               <Ionicons name="trail-sign" size={14} color="#666" />
-              <Text style={styles.listPreviewText}>A Walk Through SoHo's Cast-Iron District</Text>
+              <Text style={styles.listPreviewText}>
+                A Walk Through SoHo's Cast-Iron District
+              </Text>
             </View>
             <View style={styles.listPreviewItem}>
               <Ionicons name="trail-sign" size={14} color="#666" />
-              <Text style={styles.listPreviewText}>Midtown's Modernist Marvels</Text>
+              <Text style={styles.listPreviewText}>
+                Midtown's Modernist Marvels
+              </Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -297,14 +335,8 @@ const PassportScreen = ({ navigation }) => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Passport Cover Header */}
-      <PassportHeader
-        passportNumber={userId}
-        issueDate={issueDate}
-        onLogout={handleLogout}
-      />
+      <PassportHeader passportNumber={userId} issueDate={issueDate} onLogout={handleLogout} />
 
-      {/* XP Detail Modal */}
       <XPDetailModal
         visible={xpModalVisible}
         onClose={() => setXpModalVisible(false)}
@@ -317,16 +349,8 @@ const PassportScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F8F8',
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 160,
-    paddingBottom: 20,
-  },
-  // XP Card Styles
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 160, paddingBottom: 20 },
   epCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -342,68 +366,17 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFD700',
   },
-  epCardLeft: {
-    marginRight: 16,
-  },
-  epCardContent: {
-    flex: 1,
-  },
-  epCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  epCardType: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFD700',
-    letterSpacing: 1.5,
-    marginLeft: 6,
-  },
-  epCardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  bearerInfo: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 4,
-    gap: 6,
-  },
-  bearerLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#888',
-    letterSpacing: 0.5,
-  },
-  bearerValue: {
-    fontSize: 12,
-    color: '#333',
-    fontWeight: '500',
-  },
-  epCardDescription: {
-    fontSize: 14,
-    color: '#555',
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FFD700',
-    borderRadius: 4,
-  },
-  chevron: {
-    marginLeft: 8,
-  },
-  // Category Card Styles (similar to QuestCard)
+  epCardLeft: { marginRight: 16 },
+  epCardContent: { flex: 1 },
+  epCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  epCardType: { fontSize: 10, fontWeight: 'bold', color: '#FFD700', marginLeft: 6 },
+  epCardTitle: { fontSize: 16, fontWeight: 'bold', color: '#000', marginBottom: 8 },
+  bearerInfo: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4, gap: 6 },
+  bearerLabel: { fontSize: 9, fontWeight: '600', color: '#888' },
+  bearerValue: { fontSize: 12, color: '#333', fontWeight: '500' },
+  progressBar: { height: 8, backgroundColor: '#E0E0E0', borderRadius: 4 },
+  progressFill: { height: '100%', backgroundColor: '#FFD700', borderRadius: 4 },
+  chevron: { marginLeft: 8 },
   categoryCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -416,82 +389,25 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 2,
   },
-  stampsCard: {
-    borderColor: '#E74C3C',
-  },
-  achievementsCard: {
-    borderColor: '#9B59B6',
-  },
-  visasCard: {
-    borderColor: '#3498DB',
-  },
-  walksCard: {
-    borderColor: '#2ECC71',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardType: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    marginLeft: 8,
-  },
-  countBadge: {
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  cardDescription: {
-    fontSize: 14,
-    color: '#555',
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  // Preview Styles
-  previewContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  stampScrollContainer: {
-    marginTop: 8,
-  },
+  stampsCard: { borderColor: '#E74C3C' },
+  achievementsCard: { borderColor: '#9B59B6' },
+  visasCard: { borderColor: '#3498DB' },
+  walksCard: { borderColor: '#2ECC71' },
+  listsCard: { borderColor: '#1ABC9C' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  cardHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
+  cardType: { fontSize: 12, fontWeight: 'bold', marginLeft: 8 },
+  countBadge: { backgroundColor: '#F0F0F0', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
+  countText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#000', marginBottom: 8 },
+  cardDescription: { fontSize: 14, color: '#555', marginBottom: 16 },
+  stampScrollContainer: { marginTop: 8 },
   moreStampsIndicator: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 2,
-    borderColor: '#E74C3C',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    width: 90, height: 90, borderRadius: 45, borderWidth: 2, borderColor: '#E74C3C',
+    borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  moreStampsText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#E74C3C',
-  },
+  moreStampsText: { fontSize: 12, fontWeight: 'bold', color: '#E74C3C' },
+  previewContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   achievementPreview: {
     backgroundColor: '#F5F0FF',
     paddingHorizontal: 12,
@@ -500,29 +416,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#9B59B6',
   },
-  achievementPreviewText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9B59B6',
-  },
-  listPreviewContainer: {
-    gap: 8,
-  },
-  listPreviewItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  listPreviewText: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 8,
-    flex: 1,
-  },
-  // Visa Styles
-  visaPreviewContainer: {
-    gap: 12,
-  },
+  achievementPreviewText: { fontSize: 12, fontWeight: '600', color: '#9B59B6' },
+  listPreviewContainer: { gap: 8 },
+  listPreviewItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  listPreviewText: { fontSize: 13, color: '#666', marginLeft: 8, flex: 1 },
+  visaPreviewContainer: { gap: 12 },
   visaItem: {
     backgroundColor: '#F0F8FF',
     padding: 12,
@@ -530,12 +428,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#3498DB',
   },
-  visaHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
+  visaHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   visaName: {
     fontSize: 14,
     fontWeight: 'bold',
@@ -543,16 +436,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  visaDistrict: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  visaValidity: {
-    fontSize: 10,
-    color: '#999',
-    fontStyle: 'italic',
-  },
+  visaDistrict: { fontSize: 12, color: '#666', marginBottom: 2 },
+  visaValidity: { fontSize: 10, color: '#999', fontStyle: 'italic' },
 });
 
 export default PassportScreen;
+
