@@ -83,7 +83,7 @@ function OrbContent({ envAsset, tintColor, colorA, colorB, colorC }: OrbContentP
       <group ref={envHolder}>
         <GyroLightRig target={envHolder} />
         {/* Inner smoke sphere - renders first */}
-        <SmokeOrb colorA={colorA} colorB={colorB} colorC={colorC} scale={0.92} />
+        <SmokeOrb colorA={colorA} colorB={colorB} colorC={colorC} scale={1.30} />
         {/* Rainbow refraction layer - creates chromatic sparkles */}
         <RainbowLayer />
         {/* Outer glass shell */}

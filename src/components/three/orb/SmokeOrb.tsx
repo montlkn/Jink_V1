@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { extend, ReactThreeFiber, useFrame, useLoader } from "@react-three/fiber";
-import * as THREE from "three";
 import React, { useEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
 import { Color, ShaderMaterial, TextureLoader, Vector2 } from "three";
 
 const SMOKE_ATLAS = require("../../../../assets/textures/smoke_atlas.png");
@@ -161,7 +161,7 @@ export function SmokeOrb({
             const float cols = 14.0;
             const float rows = 10.0;
             const float totalFrames = 134.0;
-            const float fps = 24.0;
+            const float fps = 16.0;
 
             float frame = mod(floor(uTime * fps), totalFrames);
 
@@ -183,7 +183,7 @@ export function SmokeOrb({
 
             vec2 centeredUv = zoomed * 2.0 - 1.0;
             float r = length(centeredUv);
-            float edgeFade = smoothstep(0.9, 0.4, r);
+            float edgeFade = smoothstep(0.9, 0.25, r);
 
             float normalized = clamp((d - 0.1) / 0.75, 0.0, 1.0);
             float density = pow(normalized, 0.6);
