@@ -1,7 +1,7 @@
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, SafeAreaView, StyleSheet, View } from "react-native";
 import { getNearbyPlaces } from "../../api/buildingsApi.js";
 import StreamingInstructionText from "../../components/walk/StreamingInstructionText";
@@ -11,8 +11,71 @@ import { useOrbTransition } from "../../state/orbTransitionContext";
 
 const WalkStartScreen = ({ navigation }) => {
   const { orbData } = useOrbTransition();
-  const entryScale = useRef(new Animated.Value(0.85)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const entryProgress = useRef(new Animated.Value(0)).current;
+
+  const sliderScale = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 0.4, 1],
+        outputRange: [0.85, 0.95, 1],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const timerOpacity = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 0.12, 1],
+        outputRange: [0, 1, 1],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const sliderOpacity = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 0.1, 1],
+        outputRange: [0, 1, 1],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const instructionOpacity = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 0.18, 1],
+        outputRange: [0, 0.95, 1],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const timerTranslateY = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-14, 0],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const sliderTranslateY = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [12, 0],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const instructionTranslateY = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [16, 0],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
   const [time, setTime] = useState(45);
   const [location, setLocation] = useState({
     latitude: 40.7128,
@@ -63,27 +126,23 @@ const WalkStartScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      entryScale.setValue(0.85);
-      contentOpacity.setValue(0);
-      Animated.spring(entryScale, {
+      entryProgress.stopAnimation();
+      entryProgress.setValue(0);
+
+      const animation = Animated.spring(entryProgress, {
         toValue: 1,
         speed: 20,
-        bounciness: 4,
+        bounciness: 5,
         useNativeDriver: true,
-      }).start();
+      });
 
-      Animated.timing(contentOpacity, {
-        toValue: 1,
-        duration: 220,
-        delay: 60,
-        useNativeDriver: true,
-      }).start();
+      animation.start();
 
       return () => {
-        entryScale.stopAnimation();
-        contentOpacity.stopAnimation();
+        animation.stop();
+        entryProgress.stopAnimation();
       };
-    }, [entryScale, contentOpacity])
+    }, [entryProgress])
   );
 
   useEffect(() => {
@@ -148,11 +207,17 @@ const WalkStartScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Animated.View style={[styles.timerDisplay, { opacity: contentOpacity }]}> 
+        <Animated.View style={[styles.timerDisplay, { opacity: timerOpacity, transform: [{ translateY: timerTranslateY }] }]}>
           <TimerDisplay value={time} label="minutes" />
         </Animated.View>
         <Animated.View
-          style={[styles.sliderOrbWrapper, { opacity: contentOpacity }]}
+          style={[
+            styles.sliderOrbWrapper,
+            {
+              opacity: sliderOpacity,
+              transform: [{ scale: sliderScale }, { translateY: sliderTranslateY }],
+            },
+          ]}
           pointerEvents="box-none"
         >
           <TimeSlider
@@ -166,7 +231,12 @@ const WalkStartScreen = ({ navigation }) => {
           />
           {/* Orb is rendered by global overlay and pinned while on Jink */}
         </Animated.View>
-        <Animated.View style={[styles.instructionTextWrapper, { opacity: contentOpacity }]}> 
+        <Animated.View
+          style={[
+            styles.instructionTextWrapper,
+            { opacity: instructionOpacity, transform: [{ translateY: instructionTranslateY }] },
+          ]}
+        >
           <StreamingInstructionText
             text={isFetching ? "Generating your jink..." : "Press orb to start jink"}
             duration={2600}

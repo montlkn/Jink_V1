@@ -59,6 +59,64 @@ export function SmokeOrb({
   const [loopTexture, setLoopTexture] = useState<Texture>(() => fallbackLoopTexture);
   const [startupTexture, setStartupTexture] = useState<Texture>(() => fallbackStartupTexture);
 
+  useEffect(() => {
+    let isMounted = true;
+    let loadedTexture: Texture | null = null;
+
+    const loadLoop = async () => {
+      const result = await loadKtx2TextureFromAsset(renderer, SMOKE_ATLAS_KTX2);
+      if (!result) {
+        return;
+      }
+
+      if (!isMounted) {
+        result.texture.dispose();
+        return;
+      }
+
+      loadedTexture = result.texture;
+      setLoopTexture(result.texture);
+    };
+
+    loadLoop();
+
+    return () => {
+      isMounted = false;
+      if (loadedTexture) {
+        loadedTexture.dispose();
+      }
+    };
+  }, [renderer]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let loadedTexture: Texture | null = null;
+
+    const loadStartup = async () => {
+      const result = await loadKtx2TextureFromAsset(renderer, SMOKE_ATLAS_STARTUP_KTX2);
+      if (!result) {
+        return;
+      }
+
+      if (!isMounted) {
+        result.texture.dispose();
+        return;
+      }
+
+      loadedTexture = result.texture;
+      setStartupTexture(result.texture);
+    };
+
+    loadStartup();
+
+    return () => {
+      isMounted = false;
+      if (loadedTexture) {
+        loadedTexture.dispose();
+      }
+    };
+  }, [renderer]);
+
   const resolvedColors = useMemo(() => {
     try {
       return {
@@ -153,27 +211,31 @@ export function SmokeOrb({
   });
 
   useEffect(() => {
-    if (texture) {
-      // Texture wrapping settings
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
-
-      // Disable mipmaps to prevent bleeding between atlas tiles
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.generateMipmaps = false;
-
-      // Light anisotropy for quality
-      const maxAniso = (texture as any)?.manager?.renderer?.capabilities?.getMaxAnisotropy?.() ?? 4;
-      texture.anisotropy = Math.min(maxAniso, 2);
-
-      texture.needsUpdate = true;
-
-      if (matRef.current && texture.image?.width && texture.image?.height) {
-        matRef.current.uniforms.uAtlasSize.value.set(texture.image.width, texture.image.height);
-      }
+    if (!loopTexture) {
+      return;
     }
-  }, [texture]);
+
+    const texture = loopTexture;
+
+    // Texture wrapping settings
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+
+    // Disable mipmaps to prevent bleeding between atlas tiles
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+
+    // Light anisotropy for quality
+    const maxAniso = (texture as any)?.manager?.renderer?.capabilities?.getMaxAnisotropy?.() ?? 4;
+    texture.anisotropy = Math.min(maxAniso, 2);
+
+    texture.needsUpdate = true;
+
+    if (matRef.current && texture.image?.width && texture.image?.height) {
+      matRef.current.uniforms.uAtlasSize.value.set(texture.image.width, texture.image.height);
+    }
+  }, [loopTexture]);
 
   useEffect(() => {
     if (startupTexture) {
