@@ -3,15 +3,29 @@ import * as Location from "expo-location";
 import { Magnetometer } from "expo-sensors";
 import React, { useEffect, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
+import Svg, {
+  Circle,
+  Defs,
+  G,
+  Line,
+  LinearGradient,
+  Path,
+  Polygon,
+  RadialGradient,
+  Stop,
+  Text as SvgText,
+} from "react-native-svg";
 
 /**
- * Minimal black & white compass (no shadows).
- * - Dial rotates with device heading
- * - Needle ALWAYS points to the FIRST building's coordinates
- * - Fixed black triangle at the top (12 o'clock)
- * - Red rim triangle + red rim dot that rotate with the needle (point to target)
- * - NEW: distance to target readout
+ * Glass compass styled to match the Jink art direction.
+ * - Dial rotates with device heading.
+ * - Red rim pointer tracks true north.
+ * - Green glass arrow points toward the active building relative to heading.
+ * - Status block shows bearing/heading/distance metadata.
  */
+
+const TICK_COUNT = 120;
+const LABEL_VALUES = Array.from({ length: 12 }, (_, idx) => idx * 30);
 
 export default function Compass({ buildings = [], size = 280, buildingIndex }) {
   const target = buildings[buildingIndex] ?? null;
@@ -84,152 +98,275 @@ export default function Compass({ buildings = [], size = 280, buildingIndex }) {
   }, [pos, target]);
 
   const dialRotation = -heading;
-  const needleRotation = normalizeDeg(bearing - heading);
-  const radius = (size - 20) / 2;
+  const northRotation = normalizeDeg(-heading);
+  const targetRotation = normalizeDeg(bearing - heading);
+  const center = size / 2;
+  const rimRadius = center - size * 0.012;
+  const dialRadius = rimRadius - size * 0.06;
+  const majorTickLength = size * 0.07;
+  const mediumTickLength = size * 0.045;
+  const minorTickLength = size * 0.025;
+  const arrowScale = (dialRadius * 1.6) / 206;
+  const arrowWidth = 116 * arrowScale;
+  const arrowX = center - arrowWidth / 2;
+  const arrowY = center - dialRadius + size * 0.01;
+
+  const tickElements = useMemo(() => {
+    const list = [];
+    for (let i = 0; i < TICK_COUNT; i += 1) {
+      const angle = i * (360 / TICK_COUNT);
+      const rad = ((angle - 90) * Math.PI) / 180;
+      const isMajor = i % 10 === 0;
+      const isMedium = !isMajor && i % 5 === 0;
+      const length = isMajor
+        ? majorTickLength
+        : isMedium
+        ? mediumTickLength
+        : minorTickLength;
+      const innerRadius = dialRadius - length;
+      list.push(
+        <Line
+          key={`tick-${i}`}
+          x1={center + Math.cos(rad) * innerRadius}
+          y1={center + Math.sin(rad) * innerRadius}
+          x2={center + Math.cos(rad) * dialRadius}
+          y2={center + Math.sin(rad) * dialRadius}
+          stroke="#111"
+          strokeWidth={
+            isMajor ? size * 0.006 : isMedium ? size * 0.004 : size * 0.0025
+          }
+          strokeLinecap="round"
+          opacity={isMajor ? 0.88 : isMedium ? 0.65 : 0.35}
+        />
+      );
+    }
+    return list;
+  }, [
+    center,
+    dialRadius,
+    majorTickLength,
+    mediumTickLength,
+    minorTickLength,
+    size,
+  ]);
+
+  const labelElements = useMemo(() => {
+    const labelRadius = dialRadius - majorTickLength - size * 0.06;
+    return LABEL_VALUES.map((angle) => {
+      const rad = ((angle - 90) * Math.PI) / 180;
+      const x = center + Math.cos(rad) * labelRadius;
+      const y = center + Math.sin(rad) * labelRadius;
+      return (
+        <SvgText
+          key={`label-${angle}`}
+          x={x}
+          y={y}
+          fontSize={size * 0.06}
+          fill="#1B1B1B"
+          fontWeight="600"
+          opacity={0.75}
+          textAnchor="middle"
+          alignmentBaseline="middle"
+        >
+          {angle === 0 ? "0" : angle.toString()}
+        </SvgText>
+      );
+    });
+  }, [center, dialRadius, majorTickLength, size]);
+
+  const arrowGradientId = useMemo(
+    () => `compassArrow-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
+  const faceGradientId = useMemo(
+    () => `compassFace-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
+  const glowGradientId = useMemo(
+    () => `compassGlow-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
+  const rimGradientId = useMemo(
+    () => `compassRim-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
+  const centerGradientId = useMemo(
+    () => `compassCenter-${Math.random().toString(36).slice(2, 10)}`,
+    []
+  );
+
+  const bearingDegrees = Number.isFinite(bearing) ? Math.round(bearing) : null;
+  const headingDegrees = Number.isFinite(heading) ? Math.round(heading) : null;
+  const directionLabel =
+    bearingDegrees != null ? bearingToCardinal(bearingDegrees) : null;
+  const distanceText = distanceM != null ? formatDistance(distanceM) : null;
+  const buildingName =
+    target?.des_addres ?? target?.name ?? target?.title ?? target?.label ?? "";
 
   return (
-    <View style={{ alignItems: "center", justifyContent: "center" }}>
+    <View style={styles.container}>
       <View
         style={[
-          styles.wrap,
+          styles.dialOuter,
           { width: size, height: size, borderRadius: size / 2 },
         ]}
       >
-        <View style={[styles.outer, { borderRadius: size / 2 }]}>
-          <View
-            style={[
-              styles.inner,
-              { borderRadius: radius, width: size - 20, height: size - 20 },
-            ]}
-          >
-            {/* Fixed black top marker (12 o'clock) */}
-            <View pointerEvents="none" style={styles.topMarkerOverlay}>
-              <View style={styles.topMarkerTriangleBlack} />
-            </View>
-
-            {/* Rotating dial (letters + ticks) */}
-            <View
-              style={[
-                styles.dial,
-                { transform: [{ rotate: `${dialRotation}deg` }] },
-              ]}
+        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <Defs>
+            <RadialGradient
+              id={glowGradientId}
+              cx="50%"
+              cy="50%"
+              r="50%"
+              fx="50%"
+              fy="50%"
             >
-              <Text style={[styles.cardinal, styles.north]}>N</Text>
-              <Text style={[styles.cardinal, styles.south]}>S</Text>
-              <Text style={[styles.cardinal, styles.east]}>E</Text>
-              <Text style={[styles.cardinal, styles.west]}>W</Text>
-
-              {Array.from({ length: 12 }).map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.tick,
-                    {
-                      transform: [
-                        { rotate: `${i * 30}deg` },
-                        { translateY: -radius + 10 },
-                      ],
-                      width: i % 3 === 0 ? 3 : 1,
-                      height: i % 3 === 0 ? 14 : 8,
-                      backgroundColor: "#000",
-                      opacity: i % 3 === 0 ? 0.8 : 0.4,
-                    },
-                  ]}
-                />
-              ))}
-            </View>
-
-            {/* Red rim triangle (points to target) */}
-            <View
-              style={[
-                styles.rimPointerOverlay,
-                { transform: [{ rotate: `${needleRotation}deg` }] },
-              ]}
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.9} />
+              <Stop offset="70%" stopColor="#F4F6F8" stopOpacity={0.95} />
+              <Stop offset="100%" stopColor="#E8EBEE" stopOpacity={1} />
+            </RadialGradient>
+            <LinearGradient
+              id={rimGradientId}
+              x1="50%"
+              y1="0%"
+              x2="50%"
+              y2="100%"
             >
-              <View
-                style={[
-                  styles.rimTriangleRed,
-                  { transform: [{ translateY: -radius + 4 }] },
-                ]}
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.9} />
+              <Stop offset="100%" stopColor="#CBD1D8" stopOpacity={0.9} />
+            </LinearGradient>
+            <RadialGradient
+              id={faceGradientId}
+              cx="50%"
+              cy="50%"
+              r="65%"
+              fx="50%"
+              fy="45%"
+            >
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={1} />
+              <Stop offset="60%" stopColor="#FAFBFC" stopOpacity={1} />
+              <Stop offset="100%" stopColor="#ECEFF2" stopOpacity={1} />
+            </RadialGradient>
+            <LinearGradient
+              id={arrowGradientId}
+              x1="50%"
+              y1="0%"
+              x2="50%"
+              y2="100%"
+            >
+              <Stop offset="0%" stopColor="#8EFF78" stopOpacity={1} />
+              <Stop offset="100%" stopColor="#F5F5F5" stopOpacity={0.15} />
+            </LinearGradient>
+            <RadialGradient
+              id={centerGradientId}
+              cx="50%"
+              cy="50%"
+              r="50%"
+              fx="50%"
+              fy="50%"
+            >
+              <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={1} />
+              <Stop offset="100%" stopColor="#D4D8DD" stopOpacity={1} />
+            </RadialGradient>
+          </Defs>
+
+          <Circle
+            cx={center}
+            cy={center}
+            r={rimRadius}
+            fill={`url(#${glowGradientId})`}
+          />
+          <Circle
+            cx={center}
+            cy={center}
+            r={rimRadius}
+            stroke={`url(#${rimGradientId})`}
+            strokeWidth={size * 0.018}
+            fill="rgba(255,255,255,0.7)"
+          />
+          <Circle
+            cx={center}
+            cy={center}
+            r={dialRadius}
+            fill={`url(#${faceGradientId})`}
+            stroke="rgba(255,255,255,0.9)"
+            strokeWidth={size * 0.012}
+          />
+
+          <G transform={`rotate(${dialRotation} ${center} ${center})`}>
+            {tickElements}
+            {labelElements}
+          </G>
+
+          <G transform={`rotate(${northRotation} ${center} ${center})`}>
+            <Polygon
+              points={`${center},${
+                center - rimRadius + size * 0.012
+              } ${center - size * 0.036},${center - dialRadius - size * 0.002} ${
+                center + size * 0.036
+              },${center - dialRadius - size * 0.002}`}
+              fill="#FF6B6B"
+              opacity={0.82}
+            />
+            <Circle
+              cx={center}
+              cy={center - rimRadius - size * 0.018}
+              r={size * 0.018}
+              fill="#FF5A5F"
+              stroke="#FFFFFF"
+              strokeWidth={size * 0.004}
+            />
+          </G>
+
+          <G transform={`rotate(${targetRotation} ${center} ${center})`}>
+            <G transform={`translate(${arrowX} ${arrowY}) scale(${arrowScale})`}>
+              <Path
+                d="M47.735 196C47.735 201.523 52.2121 206 57.735 206C63.2578 206 67.735 201.523 67.735 196L57.735 196L47.735 196ZM57.735 0L-4.09833e-05 100L115.47 100L57.735 0ZM57.735 196L67.735 196L67.735 90L57.735 90L47.735 90L47.735 196L57.735 196Z"
+                fill={`url(#${arrowGradientId})`}
               />
-            </View>
+            </G>
+          </G>
 
-            {/* Red rim dot (aligned with needle) */}
-            <View
-              style={[
-                styles.rimDotOverlay,
-                { transform: [{ rotate: `${needleRotation}deg` }] },
-              ]}
-            >
-              <View
-                style={[
-                  styles.rimDot,
-                  { transform: [{ translateY: -radius + 6 }] },
-                ]}
-              />
-            </View>
+          <Circle
+            cx={center}
+            cy={center}
+            r={size * 0.05}
+            fill={`url(#${centerGradientId})`}
+            stroke="rgba(120, 126, 135, 0.3)"
+            strokeWidth={size * 0.004}
+          />
+        </Svg>
+      </View>
 
-            {/* Needle (points to target) */}
-            <View style={styles.needleOverlay}>
-              <View style={{ transform: [{ rotate: `${needleRotation}deg` }] }}>
-                <View
-                  style={{
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 6,
-                    borderRightWidth: 6,
-                    borderBottomWidth: size * 0.35,
-                    borderLeftColor: "transparent",
-                    borderRightColor: "transparent",
-                    borderBottomColor: "#000",
-                    alignSelf: "center",
-                  }}
-                />
-                <View
-                  style={{
-                    width: 3,
-                    height: size * 0.18,
-                    backgroundColor: "#000",
-                    borderRadius: 1.5,
-                    alignSelf: "center",
-                    marginTop: 6,
-                  }}
-                />
-              </View>
-            </View>
-
-            {/* Center cap */}
-            <View style={styles.cap} />
-          </View>
-        </View>
-
-        {/* Minimal status (now includes distance) */}
-        <View style={{ alignItems: "center", marginTop: 10 }}>
-          {perm === "denied" ? (
-            <Text style={styles.note}>Location permission denied</Text>
-          ) : target ? (
-            <>
-              <Text style={styles.note}>
-                heading {isFinite(heading) ? Math.round(heading) : "—"}°
-                {Platform.OS === "android" ? " (mag)" : ""}
+      <View style={styles.statusBlock}>
+        {perm === "denied" ? (
+          <Text style={styles.statusNote}>Location permission denied</Text>
+        ) : !target ? (
+          <Text style={styles.statusNote}>Add at least one building</Text>
+        ) : (
+          <>
+            <Text style={styles.statusPrimary}>
+              {bearingDegrees != null
+                ? `${bearingDegrees}°${
+                    directionLabel ? ` ${directionLabel}` : ""
+                  }`
+                : "Calibrating"}
+              {distanceText ? ` · ${distanceText}` : ""}
+            </Text>
+            <Text style={styles.statusSecondary}>
+              {headingDegrees != null
+                ? `Heading ${headingDegrees}°${
+                    Platform.OS === "android" ? " (mag)" : ""
+                  }`
+                : "Aligning sensors..."}
+            </Text>
+            {buildingName ? (
+              <Text style={styles.statusSecondary} numberOfLines={2}>
+                Next: {buildingName}
               </Text>
-              {pos && (
-                <>
-                  <Text style={styles.note}>
-                    bearing {Math.round(bearing)}°
-                  </Text>
-                  {distanceM != null && (
-                    <Text style={styles.note}>
-                      distance {formatDistance(distanceM)}
-                    </Text>
-                  )}
-                </>
-              )}
-            </>
-          ) : (
-            <Text style={styles.note}>Add at least one building</Text>
-          )}
-        </View>
+            ) : null}
+          </>
+        )}
       </View>
     </View>
   );
@@ -278,137 +415,54 @@ function magnetometerToHeading({ x = 0, y = 0 }) {
   return normalizeDeg(angle);
 }
 
-/* ---------- styles (BW minimal, no shadows) ---------- */
+const CARDINAL_DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+
+function bearingToCardinal(degrees) {
+  if (!Number.isFinite(degrees)) return null;
+  const normalized = normalizeDeg(degrees);
+  const index = Math.round(normalized / 45) % CARDINAL_DIRECTIONS.length;
+  return CARDINAL_DIRECTIONS[index];
+}
+
 const styles = StyleSheet.create({
-  wrap: {
-    margin: 20,
+  container: {
     alignItems: "center",
     justifyContent: "center",
   },
-  outer: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#000",
-  },
-  inner: {
-    backgroundColor: "#fff",
+  dialOuter: {
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#000",
-    position: "relative",
-    overflow: "hidden",
+    backgroundColor: "transparent",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 18 },
+    elevation: 12,
   },
-
-  // Rotating dial
-  dial: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+  statusBlock: {
+    marginTop: 24,
     alignItems: "center",
-    justifyContent: "center",
+    paddingHorizontal: 16,
   },
-
-  // Fixed black top marker
-  topMarkerOverlay: {
-    position: "absolute",
-    top: 2,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 5,
-    pointerEvents: "none",
+  statusPrimary: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1B1B1B",
+    textAlign: "center",
   },
-  topMarkerTriangleBlack: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 12, // points downward into dial
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: "#000",
+  statusSecondary: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#3C3C43",
+    opacity: 0.72,
+    textAlign: "center",
   },
-
-  // Red rim triangle (rotates with needle)
-  rimPointerOverlay: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 3,
-    pointerEvents: "none",
+  statusNote: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#3C3C43",
+    opacity: 0.72,
+    textAlign: "center",
   },
-  rimTriangleRed: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 12, // inward-pointing triangle
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderBottomColor: "#E11D48", // red
-  },
-
-  // Red rim dot (rotates with needle)
-  rimDotOverlay: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center", // center, then translate Y to rim
-    zIndex: 4,
-    pointerEvents: "none",
-  },
-  rimDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#E11D48", // red
-    borderWidth: 2,
-    borderColor: "#fff", // change to "#000" if your dial background is dark
-  },
-
-  // Needle overlay
-  needleOverlay: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-    pointerEvents: "none",
-  },
-
-  // Center cap
-  cap: {
-    position: "absolute",
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#000",
-    zIndex: 6,
-  },
-
-  // Cardinal labels
-  cardinal: {
-    position: "absolute",
-    color: "#000",
-    fontWeight: "600",
-    letterSpacing: 0.5,
-  },
-  north: { top: 8, fontSize: 14 },
-  south: { bottom: 8, fontSize: 14 },
-  east: { right: 10, fontSize: 12 },
-  west: { left: 10, fontSize: 12 },
-
-  // Ticks
-  tick: { position: "absolute", borderRadius: 1 },
-
-  // Status
-  note: { color: "#555", fontSize: 12, marginTop: 2 },
 });

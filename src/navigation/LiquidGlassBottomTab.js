@@ -43,6 +43,13 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
   const { startHomeToJinkTransition, pinToJink } = useOrbTransition();
   const focusedRouteName = routes[focusIndex]?.name;
   const isJinkFocused = focusedRouteName === "Jink";
+  const jinkRoute = routes.find((route) => route.name === "Jink");
+  const jinkStackIndex = jinkRoute?.state?.index ?? 0;
+  const jinkStackScreen =
+    jinkRoute?.state?.routes?.[jinkStackIndex]?.name ??
+    jinkRoute?.params?.screen ??
+    "WalkStartScreen";
+  const hideForWalkNav = isJinkFocused && jinkStackScreen === "WalkNavScreen";
 
   const pillWidth = Math.min(SCREEN_WIDTH * 0.8, SCREEN_WIDTH - 120);
   const pillLeft = EDGE;
@@ -257,25 +264,8 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
     outputRange: [1, 0],
   });
 
-  if (isJinkFocused) {
-    return (
-      <View
-        pointerEvents="box-none"
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center" }}
-      >
-        <View style={[styles.singleBackWrapper, { bottom: 20 }]}>
-          <BlurView intensity={60} tint="light" style={styles.singleBackBlur}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Home")}
-              style={styles.singleBackButton}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="chevron-back" size={24} color="#000" />
-            </TouchableOpacity>
-          </BlurView>
-        </View>
-      </View>
-    );
+  if (hideForWalkNav) {
+    return null;
   }
 
   return (
@@ -390,26 +380,6 @@ function TabButton({ label, icon, focused, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  // Single back mode for Jink
-  singleBackWrapper: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  singleBackBlur: {
-    width: PILL_HEIGHT,
-    height: PILL_HEIGHT,
-    borderRadius: PILL_HEIGHT / 2,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  singleBackButton: {
-    width: PILL_HEIGHT,
-    height: PILL_HEIGHT,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   // TAB BAR
   pillWrapper: {
     position: "absolute",
