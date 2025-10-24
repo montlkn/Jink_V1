@@ -20,6 +20,8 @@ config.resolver.assetExts = [
   'hdr',
   'exr',
   'ktx2',
+  'wasm',
+  'dat',
 ];
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules || {}),

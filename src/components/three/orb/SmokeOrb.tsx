@@ -1,11 +1,15 @@
 // @ts-nocheck
-import { extend, ReactThreeFiber, useFrame, useLoader } from "@react-three/fiber";
-import React, { useEffect, useMemo, useRef } from "react";
+import { extend, ReactThreeFiber, useFrame, useLoader, useThree } from "@react-three/fiber";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Color, ShaderMaterial, TextureLoader, Vector2 } from "three";
+import { Color, ShaderMaterial, Texture, TextureLoader, Vector2 } from "three";
+import { loadKtx2TextureFromAsset } from "../../../utils/three/loadKtx2Texture";
 
-const SMOKE_ATLAS = require("../../../../assets/textures/smoke_atlas.png");
-const SMOKE_ATLAS_STARTUP = require("../../../../assets/textures/smoke_atlas_startup.png");
+const SMOKE_ATLAS_KTX2 = require("../../../../assets/textures/smoke_atlas.ktx2");
+const SMOKE_ATLAS_STARTUP_KTX2 = require("../../../../assets/textures/smoke_atlas_startup.ktx2");
+
+const SMOKE_ATLAS_FALLBACK = require("../../../../assets/textures/smoke_atlas_4k.png");
+const SMOKE_ATLAS_STARTUP_FALLBACK = require("../../../../assets/textures/smoke_atlas_startup_4k.png");
 extend({ ShaderMaterial });
 
 declare global {
@@ -48,8 +52,13 @@ export function SmokeOrb({
   const startTimeRef = useRef<number | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
 
-  const texture = useLoader(TextureLoader, SMOKE_ATLAS);
-  const startupTexture = useLoader(TextureLoader, SMOKE_ATLAS_STARTUP);
+  const renderer = useThree((state) => state.gl as THREE.WebGLRenderer);
+  const fallbackLoopTexture = useLoader(TextureLoader, SMOKE_ATLAS_FALLBACK);
+  const fallbackStartupTexture = useLoader(TextureLoader, SMOKE_ATLAS_STARTUP_FALLBACK);
+
+  const [loopTexture, setLoopTexture] = useState<Texture>(() => fallbackLoopTexture);
+  const [startupTexture, setStartupTexture] = useState<Texture>(() => fallbackStartupTexture);
+
   const resolvedColors = useMemo(() => {
     try {
       return {
@@ -69,7 +78,7 @@ export function SmokeOrb({
 
   const uniforms = useMemo(
     () => ({
-      uSmokeAtlas: { value: texture },
+      uSmokeAtlas: { value: loopTexture },
       uStartupAtlas: { value: startupTexture },
       uTime: { value: 0 },
       uAtlasSize: { value: new Vector2(2048, 2048) },
@@ -87,7 +96,7 @@ export function SmokeOrb({
       uColorC: { value: resolvedColors.c.clone() },
     }),
     [
-      texture,
+      loopTexture,
       startupTexture,
       resolvedColors,
       opacity,
@@ -109,7 +118,7 @@ export function SmokeOrb({
   useEffect(() => {
     hasInitializedRef.current = false;
     startTimeRef.current = null;
-  }, [texture, startupTexture, startupDuration, transitionDuration]);
+  }, [loopTexture, startupTexture, startupDuration, transitionDuration]);
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -121,7 +130,7 @@ export function SmokeOrb({
     }
 
     const texturesReady =
-      Boolean((texture as any)?.image?.width) && Boolean((startupTexture as any)?.image?.width);
+      Boolean((loopTexture as any)?.image?.width) && Boolean((startupTexture as any)?.image?.width);
 
     if (!texturesReady) {
       // Wait until both atlases have loaded before starting timeline
