@@ -5,6 +5,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Text,
   View
 } from 'react-native';
 import { getUserAestheticProfile } from '../../api/quizApi';
@@ -16,6 +17,7 @@ import XPGlassBadge from '../../components/passport/XPGlassBadge';
 import QuestCard from '../../components/quests/QuestCard';
 import QuestDetailModal from '../../components/quests/QuestDetailModal';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
+import { getRecentTasteSummary } from '../../services/recentTasteSummaryService';
 import { useOrbTransition } from '../../state/orbTransitionContext';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 import { extractTopArchetypesFromScores } from '../../utils/archetypeColorBlend';
@@ -36,6 +38,8 @@ export default function HomeScreen({ navigation }) {
   const [userXP, setUserXP] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [xpForNextLevel, setXpForNextLevel] = useState(100);
+  const [tasteSummary, setTasteSummary] = useState("");
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const {
     registerHomeOrbLayout,
@@ -73,9 +77,52 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     if (archetypeData.length) {
       setOrbData(archetypeData);
+
+      const hydrateSummary = async () => {
+        try {
+          if (isMounted) {
+            setSummaryLoading(true);
+            setTasteSummary("");
+          }
+
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session || !isMounted) {
+            return;
+          }
+
+          const summary = await getRecentTasteSummary({
+            userId: session.user.id,
+            archetypes: archetypeData,
+          });
+
+          if (isMounted) {
+            setTasteSummary(summary?.text || "");
+          }
+        } catch (error) {
+          console.error("Error building taste summary:", error);
+          if (isMounted) {
+            setTasteSummary("");
+          }
+        } finally {
+          if (isMounted) {
+            setSummaryLoading(false);
+          }
+        }
+      };
+
+      hydrateSummary();
+    } else {
+      setTasteSummary("");
+      setSummaryLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [archetypeData, setOrbData]);
 
   // Load quests from Supabase
@@ -227,6 +274,15 @@ export default function HomeScreen({ navigation }) {
             />
           </View>
         </Animated.View>
+        {(summaryLoading || tasteSummary) && (
+          <Animated.View style={[styles.summaryContainer, { opacity: contentFade }]}>
+            {summaryLoading ? (
+              <Text style={styles.summaryLoadingText}>Calibrating your recent focus…</Text>
+            ) : (
+              <Text style={styles.summaryText}>{tasteSummary}</Text>
+            )}
+          </Animated.View>
+        )}
 
         <Animated.View style={{ opacity: contentFade }}>
           {/* Daily Quest Section */}
@@ -330,6 +386,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111',
     marginTop: 12,
+  },
+  summaryContainer: {
+    marginTop: 24,
+    marginHorizontal: 32,
+    maxWidth: 340,
+    alignSelf: 'center',
+  },
+  summaryText: {
+    fontSize: 17,
+    lineHeight: 24,
+    color: '#1A1A1A',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  summaryLoadingText: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   section: {
     marginHorizontal: 20,
