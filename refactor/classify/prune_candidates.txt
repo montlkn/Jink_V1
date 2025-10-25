@@ -1,0 +1,7 @@
+@react-navigation/elements
+@react-navigation/stack
+@react-three/drei
+basisu
+d3-shape
+expo-status-bar
+ktx2tools
