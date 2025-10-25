@@ -19,7 +19,7 @@ import QuestDetailModal from '../../components/quests/QuestDetailModal';
 import { getActiveDailyQuest, getActiveWeeklyQuest, getUserXP, getXPForNextLevel } from '../../services/questService';
 import { getRecentTasteSummary } from '../../services/recentTasteSummaryService';
 import { useOrbTransition } from '../../state/orbTransitionContext';
-import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
+import { getTimeUntilMidnight, getTimeUntilMonday } from '@jink/core-foundation/questTimers';
 import { extractTopArchetypesFromScores } from '../../utils/archetypeColorBlend';
 
 const ORB_SIZE = 360;
