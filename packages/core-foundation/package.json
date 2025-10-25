@@ -1,0 +1,13 @@
+{
+  "name": "@jink/core-foundation",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint 'src/**/*.{ts,tsx,js,jsx}'",
+    "test": "jest --runInBand"
+  }
+}

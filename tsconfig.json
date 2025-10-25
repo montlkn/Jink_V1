@@ -8,7 +8,9 @@
     "skipLibCheck": true,
     "types": ["expo", "@react-three/fiber"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@jink/core-foundation": ["packages/core-foundation/src"],
+      "@jink/core-foundation/*": ["packages/core-foundation/src/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
