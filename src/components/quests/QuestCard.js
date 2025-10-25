@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
+import { getTimeUntilMidnight, getTimeUntilMonday } from '@jink/core-foundation/questTimers';
 
 const QuestCard = ({
   type = 'daily', // 'daily' or 'weekly'
