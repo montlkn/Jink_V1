@@ -27,3 +27,10 @@ Each wave should:
 - Add package skeleton with barrel exports and README.
 - Copy existing implementation, add unit/integration tests, then codemod imports to consume the new package API.
 - Run `npm test`, `npm run lint`, `npm run typecheck`, and `npx madge --circular` before merging.
+
+## Core-foundation next actions
+- [ ] Mirror `src/constants/colors.ts`, `src/constants/typography.ts`, and `src/config/colors.js` into `packages/core-foundation/src`.
+- [ ] Promote shared formatters (`src/utils/normalize.js`, `src/utils/questTimers.js`) and convert to TypeScript where needed.
+- [ ] Use `refactor/codemods/replace-core-foundation-imports.js` to rewrite imports, then fix any alias edge cases manually.
+- [ ] Add focused unit tests under `packages/core-foundation/src/__tests__/` for exported helpers.
+- [ ] Update documentation to reference `@jink/core-foundation` for shared utilities.
