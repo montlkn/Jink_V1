@@ -4,6 +4,30 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+ 
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "require": "./src/index.ts"
+    },
+    "./colors": {
+      "import": "./src/colors.ts",
+      "require": "./src/colors.ts"
+    },
+    "./normalize": {
+      "import": "./src/normalize.ts",
+      "require": "./src/normalize.ts"
+    },
+    "./divergence": {
+      "import": "./src/divergence.ts",
+      "require": "./src/divergence.ts"
+    },
+    "./questTimers": {
+      "import": "./src/questTimers.ts",
+      "require": "./src/questTimers.ts"
+    }
+  },
+
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
