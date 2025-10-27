@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import * as Linking from "expo-linking";
-import { supabase } from "../../api/supabaseClient";
+import { supabaseGateway as supabase } from "@/services/gateways";
 import { upsertProfileFromSession } from "../../auth/profileSync";
 import { useAuth } from "../../auth/authProvider";
 

@@ -1,7 +1,7 @@
 /**
  * API functions for the architectural aesthetic quiz
  */
-import { supabase } from './supabaseClient';
+import { supabaseGateway as supabase } from "@/services/gateways";
 
 /**
  * Fetch all quiz questions with their options

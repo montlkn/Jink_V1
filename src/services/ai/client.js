@@ -2,29 +2,20 @@
  * Gemini AI client with two-tier fallback strategy
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AI_CONFIG, selectModel } from '../../config/aiConfig';
+import { selectModel } from "../../config/aiConfig";
 import {
   buildSystemPrompt,
   parseAndValidateResponse,
   sanitizeGeneratedText,
   stripPII,
 } from './prompt';
-
-let genAI = null;
+import { getGeminiClient, getGeminiModel } from "@/services/gateways";
 
 /**
  * Initialize Gemini API client
  */
 export function initializeGemini() {
-  if (genAI) return genAI;
-
-  if (!AI_CONFIG.apiKey) {
-    throw new Error('GEMINI_API_KEY not configured');
-  }
-
-  genAI = new GoogleGenerativeAI(AI_CONFIG.apiKey);
-  return genAI;
+  return getGeminiClient();
 }
 
 /**
@@ -46,8 +37,7 @@ export async function generateSummary(aestheticData, options = {}) {
   );
 
   try {
-    const client = initializeGemini();
-    const model = client.getGenerativeModel({ model: modelConfig.name });
+    const model = getGeminiModel(modelConfig.name);
 
     // Build prompts with safety checks
     const sanitizedData = stripPII(aestheticData);
@@ -180,8 +170,7 @@ export async function generateSummary(aestheticData, options = {}) {
  */
 export async function checkGeminiHealth() {
   try {
-    const client = initializeGemini();
-    const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
+    const model = getGeminiModel('gemini-2.0-flash-lite');
 
     // Simple test generation
     const response = await model.generateContent({

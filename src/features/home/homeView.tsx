@@ -1,3 +1,11 @@
+import ArchetypeOrb from "@/components/ArchetypeOrb";
+import AuraBreakdownModal from "@/components/modals/AuraBreakdownModal";
+import XPDetailModal from "@/components/modals/XPDetailModal";
+import XPGlassBadge from "@/components/passport/XPGlassBadge";
+import QuestCard from "@/components/quests/QuestCard";
+import QuestDetailModal from "@/components/quests/QuestDetailModal";
+import { useOrbTransition } from "@/state/orbTransitionContext";
+import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,15 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import ArchetypeOrb from "@/components/ArchetypeOrb";
-import AuraBreakdownModal from "@/components/modals/AuraBreakdownModal";
-import XPDetailModal from "@/components/modals/XPDetailModal";
-import XPGlassBadge from "@/components/passport/XPGlassBadge";
-import QuestCard from "@/components/quests/QuestCard";
-import QuestDetailModal from "@/components/quests/QuestDetailModal";
-import { useOrbTransition } from "@/state/orbTransitionContext";
-import type { HomeQuest } from "./useHomeData";
+import type { HomeQuest } from "./homeSelectors";
 import { useHomeData } from "./useHomeData";
 
 const ORB_SIZE = 360;
@@ -37,16 +37,20 @@ export function HomeView(): JSX.Element {
   } = useOrbTransition();
   const orbContainerRef = useRef<any>(null);
 
+  const isReady = dataState.status === "ready";
+  const readyValue = isReady ? dataState.value : null;
+  const readyArchetypes = readyValue?.archetypeData ?? null;
+
   useEffect(() => {
-    if (dataState.status !== "ready") {
+    if (!isReady) {
       return;
     }
-    setOrbData(dataState.value.archetypeData);
-  }, [dataState, setOrbData]);
+    setOrbData(Array.isArray(readyArchetypes) ? readyArchetypes : []);
+  }, [isReady, readyArchetypes, setOrbData]);
 
   const { summaryLoading, summaryText, archetypeData, userData, quests, timers } =
     useMemo(() => {
-      if (dataState.status !== "ready") {
+      if (!readyValue) {
         return {
           summaryLoading: false,
           summaryText: "",
@@ -58,24 +62,24 @@ export function HomeView(): JSX.Element {
       }
 
       const summaryTextValue =
-        dataState.value.tasteSummary.text || dataState.value.tasteSummary.title || "";
+        readyValue.tasteSummary.text || readyValue.tasteSummary.title || "";
 
       return {
-        summaryLoading: dataState.value.summaryLoading,
+        summaryLoading: readyValue.summaryLoading,
         summaryText: summaryTextValue,
-        archetypeData: dataState.value.archetypeData,
+        archetypeData: readyValue.archetypeData,
         userData: {
-          xp: dataState.value.userXP,
-          level: dataState.value.userLevel,
-          xpForNextLevel: dataState.value.xpForNextLevel,
+          xp: readyValue.userXP,
+          level: readyValue.userLevel,
+          xpForNextLevel: readyValue.xpForNextLevel,
         },
         quests: {
-          daily: dataState.value.quests.daily,
-          weekly: dataState.value.quests.weekly,
+          daily: readyValue.quests.daily,
+          weekly: readyValue.quests.weekly,
         },
-        timers: dataState.value.timers,
+        timers: readyValue.timers,
       };
-    }, [dataState]);
+    }, [readyValue]);
 
   const handleQuestPress = useCallback((quest: HomeQuest | null) => {
     if (!quest) return;
@@ -283,10 +287,11 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   summaryText: {
-    fontSize: 17,
+    fontSize: 15,
+    fontStyle: "italic",
     lineHeight: 24,
     color: "#1A1A1A",
-    textAlign: "center",
+    textAlign: "justify",
     fontWeight: "500",
   },
   summaryLoadingText: {

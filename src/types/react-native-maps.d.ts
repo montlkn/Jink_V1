@@ -28,7 +28,7 @@ declare module "react-native-maps" {
 
   export interface MapViewProps extends ViewProps {
     provider?: "google" | "apple";
-    customMapStyle?: Array<Record<string, unknown>>;
+    customMapStyle?: Record<string, unknown>[];
     initialRegion?: Region;
     onMapReady?: () => void;
     onRegionChange?: (region: Region) => void;

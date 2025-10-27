@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { supabase } from '../../api/supabaseClient';
+import { supabaseGateway as supabase } from "@/services/gateways";
 import XPDetailModal from '../../components/modals/XPDetailModal';
 import PassportHeader from '../../components/passport/PassportHeader';
 import PassportStamp from '../../components/passport/PassportStamp';
@@ -441,4 +441,3 @@ const styles = StyleSheet.create({
 });
 
 export default PassportScreen;
-

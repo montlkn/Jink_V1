@@ -1,3 +1,6 @@
+import { registerRootComponent } from "expo";
+import App from "./App";
+
 const scope = (typeof globalThis !== "undefined" && globalThis)
   || (typeof global !== "undefined" && global)
   || (typeof self !== "undefined" && self);
@@ -49,9 +52,6 @@ if (scope) {
     doc.body.contains = () => false;
   }
 }
-
-import { registerRootComponent } from "expo";
-import App from "./App";
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,

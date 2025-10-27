@@ -6,6 +6,13 @@
 
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
 // MUST be before importing expo-three
+import "expo-three";
+import React, { useEffect } from "react";
+import { AuthProvider } from "./src/auth/authProvider";
+import AppNavigator from "./src/navigation/AppNavigator";
+import { OrbTransitionProvider } from "./src/state/orbTransitionContext";
+import { Asset } from "expo-asset";
+
 if (typeof global !== 'undefined') {
   const primitiveStoreSymbol = Symbol.for("__weakmapPrimitiveStore");
   const primitiveLogSymbol = Symbol.for("__weakmapPrimitiveLog");
@@ -131,13 +138,6 @@ if (typeof global !== 'undefined') {
   }
 
 }
-
-import "expo-three";
-import React, { useEffect } from "react";
-import { AuthProvider } from "./src/auth/authProvider";
-import AppNavigator from "./src/navigation/AppNavigator";
-import { OrbTransitionProvider } from "./src/state/orbTransitionContext";
-import { Asset } from "expo-asset";
 // This is our global color and theme configuration
 
 const AppTheme = {

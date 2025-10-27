@@ -1,44 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/api/supabaseClient";
 import { getUserAestheticProfile } from "@/api/quizApi";
-import {
-  getActiveDailyQuest,
-  getActiveWeeklyQuest,
-  getUserXP,
-  getXPForNextLevel,
-} from "@/services/questService";
+import { supabaseGateway as supabase } from "@/services/gateways";
+import { getActiveQuests, getUserXP, getXPForNextLevel } from "@/services/questService";
 import { getRecentTasteSummary } from "@/services/recentTasteSummaryService";
 import { extractTopArchetypesFromScores } from "@/utils/archetypeColorBlend";
 import { getTimeUntilMidnight, getTimeUntilMonday } from "@/utils/questTimers";
-import { toUiProfile, toUiQuests, toUiTaste } from "./homeSelectors";
+import {
+  EMPTY_HOME_QUESTS,
+  toUiProfile,
+  toUiQuests,
+  toUiTaste,
+  type HomeQuestSet,
+} from "./homeSelectors";
 
-export type HomeQuestReward = {
-  type: string;
-  icon: string;
-  label: string;
-};
-
-export type HomeQuest = {
-  type: "daily" | "weekly";
-  questType: string | null;
-  title: string | null;
-  description: string | null;
-  xpReward: number;
-  additionalRewards: HomeQuestReward[];
-  progress: number;
-  total: number | null;
-  completed: boolean;
-};
-
-export type HomeData = {
+type HomeData = {
   profile: ReturnType<typeof toUiProfile>;
-  archetypeData: Array<Record<string, unknown>>;
+  archetypeData: Record<string, unknown>[];
   tasteSummary: ReturnType<typeof toUiTaste>;
   summaryLoading: boolean;
-  quests: ReturnType<typeof toUiQuests> & {
-    daily: HomeQuest | null;
-    weekly: HomeQuest | null;
-  };
+  quests: HomeQuestSet;
   userXP: number;
   userLevel: number;
   xpForNextLevel: number;
@@ -48,42 +28,43 @@ export type HomeData = {
   };
 };
 
-export type LoadingState = { status: "loading" };
-export type ErrorState = { status: "error"; error: unknown };
-export type ReadyState<T> = { status: "ready"; value: T };
-export type HomeDataState = LoadingState | ErrorState | ReadyState<HomeData>;
+export type HomeDataState =
+  | { status: "loading" }
+  | { status: "error"; error: unknown }
+  | { status: "ready"; value: HomeData };
 
 export function useHomeData(): HomeDataState {
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [profileRaw, setProfileRaw] = useState<any>(null);
-  const [archetypeData, setArchetypeData] = useState<Array<Record<string, unknown>>>([]);
-  const [tasteSummaryRaw, setTasteSummaryRaw] = useState<any>(null);
+  const [profileRaw, setProfileRaw] = useState<unknown>(null);
+  const [archetypeData, setArchetypeData] = useState<Record<string, unknown>[]>([]);
+  const [tasteSummaryRaw, setTasteSummaryRaw] = useState<unknown>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [dailyQuest, setDailyQuest] = useState<HomeQuest | null>(null);
-  const [weeklyQuest, setWeeklyQuest] = useState<HomeQuest | null>(null);
+  const [quests, setQuests] = useState<HomeQuestSet>(EMPTY_HOME_QUESTS);
   const [userXP, setUserXP] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [xpForNextLevelState, setXpForNextLevelState] = useState(100);
-  const [timers, setTimers] = useState<{ daily: string; weekly: string }>({
-    daily: "",
-    weekly: "",
-  });
+  const [timers, setTimers] = useState({ daily: "", weekly: "" });
   const [error, setError] = useState<unknown>(null);
   const timersInitialized = useRef(false);
 
   useEffect(() => {
-    let isMounted = true;
-    async function fetchProfile() {
+    let alive = true;
+
+    (async () => {
       try {
         setLoadingProfile(true);
         const { data } = await supabase.auth.getSession();
         const session = data?.session;
+
         if (!session) {
           throw new Error("No session");
         }
+
         const profile = await getUserAestheticProfile(session.user.id);
-        if (!isMounted) return;
+        if (!alive) return;
+
         setProfileRaw(profile);
+
         if (profile?.archetype_scores) {
           const sorted = extractTopArchetypesFromScores(profile.archetype_scores);
           setArchetypeData(sorted);
@@ -92,32 +73,34 @@ export function useHomeData(): HomeDataState {
         }
       } catch (err) {
         console.error("Error fetching archetypes:", err);
-        if (isMounted) {
+        if (alive) {
           setError((prev) => prev ?? err);
           setArchetypeData([]);
         }
       } finally {
-        if (isMounted) {
+        if (alive) {
           setLoadingProfile(false);
         }
       }
-    }
-    fetchProfile();
+    })();
+
     return () => {
-      isMounted = false;
+      alive = false;
     };
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    let alive = true;
 
-    async function hydrateSummary() {
-      if (!archetypeData.length) {
-        setTasteSummaryRaw(null);
-        setSummaryLoading(false);
-        return;
-      }
+    if (!archetypeData.length) {
+      setTasteSummaryRaw(null);
+      setSummaryLoading(false);
+      return () => {
+        alive = false;
+      };
+    }
 
+    (async () => {
       try {
         setSummaryLoading(true);
         setTasteSummaryRaw(null);
@@ -133,122 +116,58 @@ export function useHomeData(): HomeDataState {
           archetypes: archetypeData,
         });
 
-        if (isMounted) {
+        if (alive) {
           setTasteSummaryRaw(summary);
         }
       } catch (err) {
         console.error("Error building taste summary:", err);
-        if (isMounted) {
+        if (alive) {
           setError((prev) => prev ?? err);
           setTasteSummaryRaw(null);
         }
       } finally {
-        if (isMounted) {
+        if (alive) {
           setSummaryLoading(false);
         }
       }
-    }
-
-    hydrateSummary();
+    })();
 
     return () => {
-      isMounted = false;
+      alive = false;
     };
   }, [archetypeData]);
 
   useEffect(() => {
-    let isMounted = true;
+    let alive = true;
 
-    async function loadQuests() {
+    (async () => {
       try {
-        const [daily, weekly, xpData] = await Promise.all([
-          getActiveDailyQuest(),
-          getActiveWeeklyQuest(),
+        const [{ daily, weekly }, xpSnapshot] = await Promise.all([
+          getActiveQuests(),
           getUserXP(),
         ]);
 
-        if (!isMounted) return;
+        if (!alive) return;
 
-        const xpValue = xpData?.ep ?? xpData?.xp ?? 0;
-        const levelValue = xpData?.level ?? 1;
+        setQuests(toUiQuests({ daily, weekly }));
+
+        const xpValue = xpSnapshot?.ep ?? xpSnapshot?.xp ?? 0;
+        const levelValue = xpSnapshot?.level ?? 1;
 
         setUserXP(xpValue);
         setUserLevel(levelValue);
         setXpForNextLevelState(getXPForNextLevel(levelValue));
-
-        if (daily) {
-          setDailyQuest({
-            type: "daily",
-            questType: daily.quest_type ?? null,
-            title: daily.title ?? null,
-            description: daily.description ?? null,
-            xpReward: daily.xp_reward ?? 0,
-            additionalRewards: [
-              ...(Array.isArray(daily.rewards?.stamps)
-                ? daily.rewards.stamps.map((stamp: string) => ({
-                    type: "stamp",
-                    icon: "bookmark",
-                    label: stamp,
-                  }))
-                : []),
-              ...(Array.isArray(daily.rewards?.achievements)
-                ? daily.rewards.achievements.map((achievement: string) => ({
-                    type: "achievement",
-                    icon: "ribbon",
-                    label: achievement,
-                  }))
-                : []),
-            ],
-            progress: daily.progress ?? 0,
-            total: typeof daily.target_count === "number" ? daily.target_count : 0,
-            completed: Boolean(daily.completed),
-          });
-        } else {
-          setDailyQuest(null);
-        }
-
-        if (weekly) {
-          setWeeklyQuest({
-            type: "weekly",
-            questType: weekly.quest_type ?? null,
-            title: weekly.title ?? null,
-            description: weekly.description ?? null,
-            xpReward: weekly.xp_reward ?? 0,
-            additionalRewards: [
-              ...(Array.isArray(weekly.rewards?.stamps)
-                ? weekly.rewards.stamps.map((stamp: string) => ({
-                    type: "stamp",
-                    icon: "bookmark",
-                    label: stamp,
-                  }))
-                : []),
-              ...(Array.isArray(weekly.rewards?.achievements)
-                ? weekly.rewards.achievements.map((achievement: string) => ({
-                    type: "achievement",
-                    icon: "ribbon",
-                    label: achievement,
-                  }))
-                : []),
-            ],
-            progress: weekly.progress ?? 0,
-            total: typeof weekly.target_count === "number" ? weekly.target_count : 0,
-            completed: Boolean(weekly.completed),
-          });
-        } else {
-          setWeeklyQuest(null);
-        }
       } catch (err) {
         console.error("Error loading quests:", err);
-        if (isMounted) {
+        if (alive) {
           setError((prev) => prev ?? err);
+          setQuests(EMPTY_HOME_QUESTS);
         }
       }
-    }
-
-    loadQuests();
+    })();
 
     return () => {
-      isMounted = false;
+      alive = false;
     };
   }, []);
 
@@ -273,7 +192,7 @@ export function useHomeData(): HomeDataState {
     };
   }, []);
 
-  const state = useMemo<HomeDataState>(() => {
+  return useMemo<HomeDataState>(() => {
     if (loadingProfile) {
       return { status: "loading" };
     }
@@ -289,13 +208,7 @@ export function useHomeData(): HomeDataState {
         archetypeData,
         tasteSummary: toUiTaste(tasteSummaryRaw),
         summaryLoading,
-        quests: {
-          ...toUiQuests(
-            [dailyQuest, weeklyQuest].filter(Boolean) as Array<HomeQuest>
-          ),
-          daily: dailyQuest,
-          weekly: weeklyQuest,
-        },
+        quests,
         userXP,
         userLevel,
         xpForNextLevel: xpForNextLevelState,
@@ -304,18 +217,15 @@ export function useHomeData(): HomeDataState {
     };
   }, [
     archetypeData,
-    dailyQuest,
     error,
     loadingProfile,
     profileRaw,
+    quests,
     summaryLoading,
     tasteSummaryRaw,
     timers,
     userLevel,
     userXP,
-    weeklyQuest,
     xpForNextLevelState,
   ]);
-
-  return state;
 }

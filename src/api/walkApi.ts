@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
 import type { GeoJsonFeature, WalkGeometry, WalkSummary } from "../types/walks";
-import { supabase } from "./supabaseClient";
+import { supabaseGateway as supabase } from "@/services/gateways";
 
 const FALLBACK_SUMMARIES: WalkSummary[] = [
   {

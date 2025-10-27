@@ -1,4 +1,4 @@
-import { supabase } from "./supabaseClient";
+import { supabaseGateway as supabase } from "@/services/gateways";
 
 export async function getNearbyPlaces(latitude, longitude, radius) {
   const { data, error } = await supabase.functions.invoke("nearby-buildings", {

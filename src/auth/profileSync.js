@@ -2,7 +2,7 @@
   Description: Ensures profiles table has a row for SSO users on first login
   Creates or updates profile with sensible defaults from OAuth provider metadata
 */
-import { supabase } from "../api/supabaseClient";
+import { supabaseGateway as supabase } from "@/services/gateways";
 
 /**
  * Upsert user profile on first SSO login

@@ -1,6 +1,22 @@
 {
   "root": true,
   "extends": ["expo"],
+  "env": {
+    "es6": true,
+    "browser": true,
+    "node": true
+  },
+  "globals": {
+    "__DEV__": "readonly"
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": {
+        "project": "./tsconfig.json"
+      }
+    }
+  },
+  "ignorePatterns": ["patches/**", "dist/**", "build/**", "coverage/**"],
   "rules": {
     "no-restricted-imports": [
       "error",
@@ -39,6 +55,18 @@
       {
         "name": "dgram",
         "message": "❌ Node.js 'dgram' module not available in React Native."
+      },
+      {
+        "name": "@supabase/supabase-js",
+        "message": "Use supabaseGateway instead of importing the SDK directly."
+      },
+      {
+        "name": "@google/generative-ai",
+        "message": "Use aiGateway instead of importing the SDK directly."
+      },
+      {
+        "name": "axios",
+        "message": "Use httpGateway instead of importing axios directly."
       }
     ],
     "no-restricted-modules": [
@@ -61,18 +89,85 @@
           "error",
           {
             "patterns": [
-              "*/workers/*",
-              "*/middleware/rateLimitBreaker*",
-              "*/lib/queue*",
-              "*/api/routes/*",
-              "*/services/summary/generate*",
-              "@myorg/server*",
-              "../server/*",
-              "../../backend/*"
-            ],
-            "message": "❌ Server-only code detected. Do not import backend modules from mobile app. Call HTTP API instead."
+              {
+                "group": [
+                  "*/workers/*",
+                  "*/middleware/rateLimitBreaker*",
+                  "*/lib/queue*",
+                  "*/api/routes/*",
+                  "*/services/summary/generate*",
+                  "@myorg/server*",
+                  "../server/*",
+                  "../../backend/*"
+                ],
+                "message": "❌ Server-only code detected. Do not import backend modules from mobile app. Call HTTP API instead."
+              }
+            ]
           }
         ]
+      }
+    },
+    {
+      "files": [
+        "src/screens/**/*.js",
+        "src/screens/**/*.jsx",
+        "src/screens/**/*.ts",
+        "src/screens/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "*/workers/*",
+                  "*/middleware/rateLimitBreaker*",
+                  "*/lib/queue*",
+                  "*/api/routes/*",
+                  "*/services/summary/generate*",
+                  "@myorg/server*",
+                  "../server/*",
+                  "../../backend/*"
+                ],
+                "message": "❌ Screen layer must stay UI-only. Use @/features facades instead of backend or low-level modules."
+              },
+              {
+                "group": ["@/components/**", "@/services/**", "@/state/**"],
+                "message": "Screens must use @/features/* facades"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "env": {
+        "jest": true
+      }
+    },
+    {
+      "files": ["App.{js,jsx,ts,tsx}"],
+      "globals": {
+        "__DEV__": "readonly"
+      }
+    },
+    {
+      "files": ["src/services/gateways/**/*", "src/api/supabaseClient.js"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": [
+        "apps/server/**/*",
+        "supabase/functions/**/*",
+        "patches/**/*",
+        "app-example/**/*"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
       }
     }
   ]

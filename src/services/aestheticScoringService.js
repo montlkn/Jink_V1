@@ -4,6 +4,11 @@
  */
 
 // Scoring constants from the framework
+/**
+ * Get archetype display information
+ */
+import { getArchetypeColor } from '../constants/archetypeColors';
+
 export const SCORING = {
   primary: 5,
   secondary: 2,
@@ -126,11 +131,6 @@ export const calculateClientSideProfile = (responses, questions) => {
     isComplete: responses.length >= questions.length
   };
 };
-
-/**
- * Get archetype display information
- */
-import { getArchetypeColor } from '../constants/archetypeColors';
 
 export const getArchetypeInfo = (archetype) => {
   const archetypeData = {

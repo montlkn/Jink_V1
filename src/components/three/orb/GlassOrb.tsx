@@ -13,7 +13,7 @@ type Props = {
   colorA?: string;
   colorB?: string;
   colorC?: string;
-  palette?: Array<{ color: string; weight: number }>;
+  palette?: { color: string; weight: number }[];
 };
 
 type OrbContentProps = {

@@ -2,7 +2,7 @@
  * Client-side API for profile summary endpoints
  */
 
-import { supabase } from "./supabaseClient";
+import { supabaseGateway as supabase } from "@/services/gateways";
 
 // Use environment variable API_URL if available, otherwise use relative path
 const API_BASE = process.env.EXPO_PUBLIC_API_URL

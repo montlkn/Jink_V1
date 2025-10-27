@@ -1,4 +1,4 @@
-import { supabase } from '../api/supabaseClient';
+import { supabaseGateway as supabase } from "@/services/gateways";
 
 /**
  * Quest Service
@@ -145,6 +145,17 @@ export const getActiveWeeklyQuest = async () => {
     console.error('Error getting weekly quest:', error);
     return null;
   }
+};
+
+/**
+ * Convenience helper to fetch both daily and weekly quests in parallel.
+ */
+export const getActiveQuests = async () => {
+  const [daily, weekly] = await Promise.all([
+    getActiveDailyQuest(),
+    getActiveWeeklyQuest(),
+  ]);
+  return { daily, weekly };
 };
 
 /**
