@@ -153,7 +153,7 @@ const AppTheme = {
 };
 
 const ORB_ASSETS = [
-  require("./assets/env/qwantani_moon_noon_puresky_1k.png"),
+  require("./assets/env/qwantani_moon_noon_puresky_1080.jpg"),
   require("./assets/textures/smoke_atlas.png"),
 ];
 

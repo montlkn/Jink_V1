@@ -9,6 +9,10 @@ import type { DataTexture as ThreeDataTexture, WebGLRenderer } from "three";
 type BasisModuleType = {
   initializeBasis: () => void;
   KTX2File: new (data: Uint8Array) => any;
+  TranscoderTextureFormat?: {
+    RGBA32?: number;
+    RGBA32S?: number;
+  };
 };
 
 const BASIS_JS = require("../../../assets/basis/basis_transcoder.js.dat");
@@ -41,6 +45,28 @@ function decodeBase64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+function uint8ArrayToUtf8(bytes: Uint8Array): string {
+  let result = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    result += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return result;
+}
+
+function decodeBase64ToUtf8(base64: string): string {
+  const bytes = decodeBase64ToUint8Array(base64);
+  if (typeof TextDecoder !== "undefined") {
+    try {
+      return new TextDecoder("utf-8").decode(bytes);
+    } catch {
+      // Fall back to manual decoding below.
+    }
+  }
+  return uint8ArrayToUtf8(bytes);
+}
+
 async function loadTextAsset(moduleRef: number): Promise<string> {
   const asset = Asset.fromModule(moduleRef);
   if (!asset.downloaded) {
@@ -49,10 +75,13 @@ async function loadTextAsset(moduleRef: number): Promise<string> {
   const uri = asset.localUri ?? asset.uri;
   if (!uri) throw new Error("[loadKtx2Texture] Unable to resolve asset URI");
 
-  return FileSystem.readAsStringAsync(uri);
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  return decodeBase64ToUtf8(base64);
 }
 
-async function loadBinaryAsset(moduleRef: number): Promise<ArrayBuffer> {
+async function loadBinaryAsset(moduleRef: number): Promise<Uint8Array> {
   const asset = Asset.fromModule(moduleRef);
   if (!asset.downloaded) {
     await asset.downloadAsync();
@@ -61,7 +90,7 @@ async function loadBinaryAsset(moduleRef: number): Promise<ArrayBuffer> {
   if (!uri) throw new Error("[loadKtx2Texture] Unable to resolve binary asset URI");
 
   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-  return decodeBase64ToUint8Array(base64).buffer;
+  return decodeBase64ToUint8Array(base64);
 }
 
 async function ensureBasisModule(): Promise<BasisModuleType> {
@@ -80,9 +109,10 @@ async function ensureBasisModule(): Promise<BasisModuleType> {
       }
     }
 
-    let factory: (module: any) => any;
+    let createBasis: ((module?: any) => BasisModuleType) | null = null;
     try {
-      factory = Function("Module", `${jsSource}; return BASIS;`) as (module: any) => any;
+      const makeFactory = Function(`${jsSource}; return BASIS;`) as () => (module?: any) => BasisModuleType;
+      createBasis = makeFactory?.();
     } finally {
       if (previousProcess) {
         // @ts-ignore
@@ -90,12 +120,16 @@ async function ensureBasisModule(): Promise<BasisModuleType> {
       }
     }
 
+    if (!createBasis) {
+      throw new Error("[loadKtx2Texture] Failed to resolve Basis factory");
+    }
+
     const module: BasisModuleType = await new Promise((resolve) => {
-      const Module = {
+      const Module: any = {
         wasmBinary,
         onRuntimeInitialized: () => resolve(Module),
       };
-      factory?.(Module);
+      createBasis(Module);
     });
 
     module.initializeBasis();
@@ -123,11 +157,14 @@ export async function loadKtx2TextureFromAsset(
       await asset.downloadAsync();
     }
     const uri = asset.localUri ?? asset.uri;
-    if (!uri) throw new Error("[loadKtx2Texture] Unable to resolve KTX2 asset URI");
+    if (!uri) {
+      throw new Error("[loadKtx2Texture] Unable to resolve KTX2 asset URI");
+    }
 
-    const response = await fetch(uri);
-    const buffer = await response.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const bytes = decodeBase64ToUint8Array(base64);
 
     const ktx2File = new basisModule.KTX2File(bytes);
 
@@ -143,6 +180,26 @@ export async function loadKtx2TextureFromAsset(
 
     const width = ktx2File.getWidth();
     const height = ktx2File.getHeight();
+    const supercompression =
+      typeof ktx2File.getSupercompressionScheme === "function"
+        ? ktx2File.getSupercompressionScheme()
+        : -1;
+
+    if (__DEV__) {
+      console.log("[loadKtx2Texture] Prepared KTX2 asset", {
+        name: asset.name ?? asset.hash ?? "unknown",
+        width,
+        height,
+        levels: typeof ktx2File.getLevels === "function" ? ktx2File.getLevels() : undefined,
+        supercompression,
+      });
+    }
+
+    if (supercompression === 2) {
+      console.warn(
+        "[loadKtx2Texture] ZSTD supercompression detected. Ensure the Basis transcoder build includes ZSTD support."
+      );
+    }
 
     if (!ktx2File.startTranscoding()) {
       cleanup();
@@ -152,16 +209,29 @@ export async function loadKtx2TextureFromAsset(
     const level = 0;
     const layer = 0;
     const face = 0;
-    const size = ktx2File.getImageTranscodedSizeInBytes(level, layer, face, TRANSCODER_FORMAT_RGBA32);
+    const transcoderFormat =
+      (basisModule as any)?.TranscoderTextureFormat?.RGBA32 ??
+      (basisModule as any)?.TranscoderTextureFormat?.RGBA32S ??
+      TRANSCODER_FORMAT_RGBA32;
+    const size = ktx2File.getImageTranscodedSizeInBytes(level, layer, face, transcoderFormat);
     const dst = new Uint8Array(size);
 
-    const ok = ktx2File.transcodeImage(dst, level, layer, face, TRANSCODER_FORMAT_RGBA32, 0, 0, 0);
+    const ok = ktx2File.transcodeImage(dst, level, layer, face, transcoderFormat, 0, 0, 0);
     if (!ok) {
       cleanup();
-      throw new Error("[loadKtx2Texture] transcodeImage failed");
+      throw new Error(
+        `[loadKtx2Texture] transcodeImage failed (format ${transcoderFormat}, size ${width}x${height})`
+      );
     }
 
     cleanup();
+
+    if (__DEV__) {
+      console.log(
+        "[loadKtx2Texture] Loaded KTX2 texture",
+        { width, height, format: transcoderFormat, bytes: dst.byteLength }
+      );
+    }
 
     const texture = new DataTexture(dst, width, height, RGBAFormat);
     texture.needsUpdate = true;
@@ -172,7 +242,15 @@ export async function loadKtx2TextureFromAsset(
 
     return { texture };
   } catch (error) {
-    console.warn("[loadKtx2Texture] Failed to load KTX2 texture", error);
+    if (error instanceof Error) {
+      console.warn(
+        "[loadKtx2Texture] Failed to load KTX2 texture:",
+        error.message || error.toString(),
+        error.stack ? `\n${error.stack}` : ""
+      );
+    } else {
+      console.warn("[loadKtx2Texture] Failed to load KTX2 texture:", error);
+    }
     return null;
   }
 }

@@ -98,6 +98,11 @@ const XPDetailModal = ({
             </View>
 
             <View style={styles.statRow}>
+              <Text style={styles.statLabel}>Current Daily Streak</Text>
+            <Text style={styles.statValue}> Days </Text> 
+            </View>
+
+            <View style={styles.statRow}>
               <Text style={styles.statLabel}>Total XP</Text>
               <Text style={styles.statValue}>{currentXP.toLocaleString()} XP</Text>
             </View>

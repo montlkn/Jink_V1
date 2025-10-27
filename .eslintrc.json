@@ -133,7 +133,13 @@
                 "message": "❌ Screen layer must stay UI-only. Use @/features facades instead of backend or low-level modules."
               },
               {
-                "group": ["@/components/**", "@/services/**", "@/state/**"],
+                "group": [
+                  "@/components/**",
+                  "@/services/**",
+                  "@/state/**",
+                  "@/api/**",
+                  "@/features/*/*/**"
+                ],
                 "message": "Screens must use @/features/* facades"
               }
             ]

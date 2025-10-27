@@ -2,8 +2,9 @@ import ArchetypeOrb from "@/components/ArchetypeOrb";
 import AuraBreakdownModal from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
-import QuestCard from "@/components/quests/QuestCard";
 import QuestDetailModal from "@/components/quests/QuestDetailModal";
+import QuestCard from "@/components/quests/QuestCard";
+import type { QuestItem } from "@/features/quests";
 import { useOrbTransition } from "@/state/orbTransitionContext";
 import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,7 +17,6 @@ import {
   Text,
   View,
 } from "react-native";
-import type { HomeQuest } from "./homeSelectors";
 import { useHomeData } from "./useHomeData";
 
 const ORB_SIZE = 360;
@@ -26,7 +26,7 @@ export function HomeView(): JSX.Element {
   const dataState = useHomeData();
   const [auraVisible, setAuraVisible] = useState(false);
   const [xpModalVisible, setXpModalVisible] = useState(false);
-  const [selectedQuest, setSelectedQuest] = useState<HomeQuest | null>(null);
+  const [selectedQuest, setSelectedQuest] = useState<QuestItem | null>(null);
   const [questModalVisible, setQuestModalVisible] = useState(false);
 
   const {
@@ -48,44 +48,92 @@ export function HomeView(): JSX.Element {
     setOrbData(Array.isArray(readyArchetypes) ? readyArchetypes : []);
   }, [isReady, readyArchetypes, setOrbData]);
 
-  const { summaryLoading, summaryText, archetypeData, userData, quests, timers } =
-    useMemo(() => {
-      if (!readyValue) {
-        return {
-          summaryLoading: false,
-          summaryText: "",
-          archetypeData: [],
-          userData: { xp: 0, level: 1, xpForNextLevel: 100 },
-          quests: { daily: null, weekly: null },
-          timers: { daily: "", weekly: "" },
-        };
-      }
-
-      const summaryTextValue =
-        readyValue.tasteSummary.text || readyValue.tasteSummary.title || "";
-
+  const { summaryLoading, summaryText, archetypeData, userData, timers, questCollection } = useMemo(() => {
+    if (!readyValue) {
       return {
-        summaryLoading: readyValue.summaryLoading,
-        summaryText: summaryTextValue,
-        archetypeData: readyValue.archetypeData,
-        userData: {
-          xp: readyValue.userXP,
-          level: readyValue.userLevel,
-          xpForNextLevel: readyValue.xpForNextLevel,
-        },
-        quests: {
-          daily: readyValue.quests.daily,
-          weekly: readyValue.quests.weekly,
-        },
-        timers: readyValue.timers,
+        summaryLoading: false,
+        summaryText: "",
+        archetypeData: [],
+        userData: { xp: 0, level: 1, xpForNextLevel: 100 },
+        timers: { daily: "", weekly: "" },
+        questCollection: null,
       };
-    }, [readyValue]);
+    }
 
-  const handleQuestPress = useCallback((quest: HomeQuest | null) => {
-    if (!quest) return;
+    const summaryTextValue =
+      readyValue.tasteSummary.text || readyValue.tasteSummary.title || "";
+
+    return {
+      summaryLoading: readyValue.summaryLoading,
+      summaryText: summaryTextValue,
+      archetypeData: readyValue.archetypeData,
+      userData: {
+        xp: readyValue.userXP,
+        level: readyValue.userLevel,
+        xpForNextLevel: readyValue.xpForNextLevel,
+      },
+      timers: readyValue.timers,
+      questCollection: readyValue.quests,
+    };
+  }, [readyValue]);
+
+  const questItems = useMemo<QuestItem[]>(() => {
+    if (!questCollection?.items?.length) {
+      return [];
+    }
+
+    return questCollection.items.map((quest) => ({
+      id: quest.id,
+      type: quest.type,
+      questType: quest.questType,
+      title: quest.title,
+      description: quest.description,
+      xpReward: quest.xpReward,
+      additionalRewards: quest.additionalRewards,
+      progress: quest.progress,
+      total: quest.total || 1,
+      completed: quest.completed,
+    }));
+  }, [questCollection]);
+
+  const fallbackQuests = useMemo<QuestItem[]>(() => {
+    return [
+      {
+        id: "daily-placeholder",
+        type: "daily",
+        questType: "placeholder",
+        title: "Sync up for today's quest",
+        description: "We'll drop a fresh daily objective once your profile is calibrated.",
+        xpReward: 0,
+        additionalRewards: [],
+        progress: 0,
+        total: 1,
+        completed: false,
+      },
+      {
+        id: "weekly-placeholder",
+        type: "weekly",
+        questType: "placeholder",
+        title: "Weekly expedition incoming",
+        description: "Stick around—weekly quests unlock after your first daily streak.",
+        xpReward: 0,
+        additionalRewards: [],
+        progress: 0,
+        total: 1,
+        completed: false,
+      },
+    ];
+  }, []);
+
+  const questsToRender = questItems.length ? questItems : fallbackQuests;
+
+  const handleQuestPress = (quest: QuestItem | null) => {
+    if (!quest) {
+      return;
+    }
     setSelectedQuest(quest);
     setQuestModalVisible(true);
-  }, []);
+  };
 
   const handleStartQuest = useCallback(
     (screen: string) => {
@@ -129,7 +177,6 @@ export function HomeView(): JSX.Element {
     }
     return selectedQuest.type === "daily" ? timers.daily : timers.weekly;
   }, [selectedQuest, timers.daily, timers.weekly]);
-
   if (dataState.status === "loading") {
     return (
       <SafeAreaView style={styles.center}>
@@ -191,39 +238,24 @@ export function HomeView(): JSX.Element {
         )}
 
         <Animated.View style={{ opacity: contentFade }}>
-          {quests.daily && (
-            <View style={styles.section}>
-              <QuestCard
-                type="daily"
-                title={quests.daily.title ?? ""}
-                description={quests.daily.description ?? ""}
-                epReward={quests.daily.xpReward}
-                xpReward={quests.daily.xpReward}
-                additionalRewards={quests.daily.additionalRewards}
-                progress={quests.daily.progress}
-                total={quests.daily.total ?? 0}
-                completed={quests.daily.completed}
-                onPress={() => handleQuestPress(quests.daily)}
-              />
-            </View>
-          )}
-
-          {quests.weekly && (
-            <View style={styles.section}>
-              <QuestCard
-                type="weekly"
-                title={quests.weekly.title ?? ""}
-                description={quests.weekly.description ?? ""}
-                epReward={quests.weekly.xpReward}
-                xpReward={quests.weekly.xpReward}
-                additionalRewards={quests.weekly.additionalRewards}
-                progress={quests.weekly.progress}
-                total={quests.weekly.total ?? 0}
-                completed={quests.weekly.completed}
-                onPress={() => handleQuestPress(quests.weekly)}
-              />
-            </View>
-          )}
+          <View style={styles.section}>
+            {questsToRender.map((quest) => (
+              <View key={`${quest.type}-${quest.id ?? "unknown"}`} style={styles.questCardWrapper}>
+                <QuestCard
+                  type={quest.type}
+                  title={quest.title ?? ""}
+                  description={quest.description ?? ""}
+                  epReward={quest.xpReward}
+                  xpReward={quest.xpReward}
+                  progress={quest.progress}
+                  total={quest.total || 1}
+                  additionalRewards={quest.additionalRewards}
+                  completed={quest.completed}
+                  onPress={() => handleQuestPress(quest)}
+                />
+              </View>
+            ))}
+          </View>
         </Animated.View>
       </ScrollView>
 
@@ -304,6 +336,9 @@ const styles = StyleSheet.create({
   section: {
     marginHorizontal: 20,
     marginTop: 12,
+  },
+  questCardWrapper: {
+    marginBottom: 12,
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   errorText: {

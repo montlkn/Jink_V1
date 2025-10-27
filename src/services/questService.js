@@ -1,4 +1,8 @@
-import { supabaseGateway as supabase } from "@/services/gateways";
+import {
+  supabaseGateway as supabase,
+  fetchActiveQuests,
+  fetchXpSummary,
+} from "@/services/gateways";
 
 /**
  * Quest Service
@@ -14,66 +18,15 @@ import { supabaseGateway as supabase } from "@/services/gateways";
  */
 export const getActiveDailyQuest = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No user logged in');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No user logged in");
 
-    // Get user's profile to see their assigned daily quest
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('daily_quest_id, daily_quest_progress, daily_quest_completed')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError) throw profileError;
-    console
-    // If no quest assigned or completed, get a new one
-    if (!profile.daily_quest_id || profile.daily_quest_completed) {
-      const { data: newQuest } = await supabase
-        .from('quests')
-        .select('*')
-        .eq('type', 'daily')
-        .gte('active_until', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (newQuest) {
-        // Assign new quest to user
-        await supabase
-          .from('profiles')
-          .update({
-            daily_quest_id: newQuest.id,
-            daily_quest_progress: 0,
-            daily_quest_completed: false
-          })
-          .eq('id', user.id);
-
-        return {
-          ...newQuest,
-          progress: 0,
-          completed: false
-        };
-      }
-    }
-
-    // Return existing quest
-    if (profile.daily_quest_id) {
-      const { data: quest } = await supabase
-        .from('quests')
-        .select('*')
-        .eq('id', profile.daily_quest_id)
-        .single();
-
-      return {
-        ...quest,
-        progress: profile.daily_quest_progress,
-        completed: profile.daily_quest_completed
-      };
-    }
-
-    return null;
+    const { daily } = await fetchActiveQuests(user.id);
+    return daily ?? null;
   } catch (error) {
-    console.error('Error getting daily quest:', error);
+    console.error("Error getting daily quest:", error);
     return null;
   }
 };
@@ -83,66 +36,15 @@ export const getActiveDailyQuest = async () => {
  */
 export const getActiveWeeklyQuest = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No user logged in');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No user logged in");
 
-    // Get user's profile to see their assigned weekly quest
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('weekly_quest_id, weekly_quest_progress, weekly_quest_completed')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError) throw profileError;
-
-    // If no quest assigned or completed, get a new one
-    if (!profile.weekly_quest_id || profile.weekly_quest_completed) {
-      const { data: newQuest } = await supabase
-        .from('quests')
-        .select('*')
-        .eq('type', 'weekly')
-        .gte('active_until', new Date().toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (newQuest) {
-        // Assign new quest to user
-        await supabase
-          .from('profiles')
-          .update({
-            weekly_quest_id: newQuest.id,
-            weekly_quest_progress: 0,
-            weekly_quest_completed: false
-          })
-          .eq('id', user.id);
-
-        return {
-          ...newQuest,
-          progress: 0,
-          completed: false
-        };
-      }
-    }
-
-    // Return existing quest
-    if (profile.weekly_quest_id) {
-      const { data: quest } = await supabase
-        .from('quests')
-        .select('*')
-        .eq('id', profile.weekly_quest_id)
-        .single();
-
-      return {
-        ...quest,
-        progress: profile.weekly_quest_progress,
-        completed: profile.weekly_quest_completed
-      };
-    }
-
-    return null;
+    const { weekly } = await fetchActiveQuests(user.id);
+    return weekly ?? null;
   } catch (error) {
-    console.error('Error getting weekly quest:', error);
+    console.error("Error getting weekly quest:", error);
     return null;
   }
 };
@@ -151,11 +53,17 @@ export const getActiveWeeklyQuest = async () => {
  * Convenience helper to fetch both daily and weekly quests in parallel.
  */
 export const getActiveQuests = async () => {
-  const [daily, weekly] = await Promise.all([
-    getActiveDailyQuest(),
-    getActiveWeeklyQuest(),
-  ]);
-  return { daily, weekly };
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No user logged in");
+
+    return await fetchActiveQuests(user.id);
+  } catch (error) {
+    console.error("Error getting active quests:", error);
+    return { daily: null, weekly: null };
+  }
 };
 
 /**
@@ -192,24 +100,19 @@ export const updateQuestProgress = async (questType, increment = 1) => {
  */
 export const getUserXP = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No user logged in');
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error("No user logged in");
 
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('xp, level, xp_spent')
-      .eq('id', user.id)
-      .single();
-
-    if (error) throw error;
-
+    const snapshot = await fetchXpSummary(user.id);
     return {
-      ep: profile.xp || 0,
-      level: profile.level || 1,
-      epSpent: profile.xp_spent || 0
+      ep: snapshot.xp,
+      level: snapshot.level,
+      epSpent: snapshot.xpSpent,
     };
   } catch (error) {
-    console.error('Error getting user XP:', error);
+    console.error("Error getting user XP:", error);
     return { ep: 0, level: 1, epSpent: 0 };
   }
 };

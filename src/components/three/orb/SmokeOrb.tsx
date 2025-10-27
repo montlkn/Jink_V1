@@ -8,8 +8,8 @@ import { loadKtx2TextureFromAsset } from "../../../utils/three/loadKtx2Texture";
 const SMOKE_ATLAS_KTX2 = require("../../../../assets/textures/smoke_atlas.ktx2");
 const SMOKE_ATLAS_STARTUP_KTX2 = require("../../../../assets/textures/smoke_atlas_startup.ktx2");
 
-const SMOKE_ATLAS_FALLBACK = require("../../../../assets/textures/smoke_atlas_4k.png");
-const SMOKE_ATLAS_STARTUP_FALLBACK = require("../../../../assets/textures/smoke_atlas_startup_4k.png");
+const SMOKE_ATLAS_FALLBACK = require("../../../../assets/textures/smoke_atlas_1080.png");
+const SMOKE_ATLAS_STARTUP_FALLBACK = require("../../../../assets/textures/smoke_atlas_startup_1080.png");
 extend({ ShaderMaterial });
 
 declare global {
@@ -44,7 +44,7 @@ export function SmokeOrb({
   startupAtlasCols = 14,
   startupAtlasRows = 10,
   startupAtlasTotalFrames = 134,
-  startupDuration = 3.0, // How long the startup animation plays
+  startupDuration = 3.0, // Startup animation duration in seconds
   transitionDuration = 1.0, // How long to crossfade between startup and loop
 }: Props) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -351,16 +351,18 @@ export function SmokeOrb({
           }
 
           void main() {
-            const float loopCols = 14.0;
-            const float loopRows = 10.0;
-            const float loopTotalFrames = 134.0;
-            const float startupFps = 24.0;
-            const float loopFps = 24.0;
+          const float loopCols = 14.0;
+          const float loopRows = 10.0;
+          const float loopTotalFrames = 134.0;
+          const float startupFps = 24.0;
+          const float loopFps = 24.0;
+          float startupPlaybackSpeed = max(uAnimationSpeed, 0.01);
+          float startupFramesShown = min(uStartupDuration * startupFps * startupPlaybackSpeed, uStartupAtlasTotalFrames - 1.0);
 
-            vec2 zoomed = (vUv - 0.5) * uZoom + 0.5;
-            if (any(lessThan(zoomed, vec2(0.0))) || any(greaterThan(zoomed, vec2(1.0)))) {
-              discard;
-            }
+          vec2 zoomed = (vUv - 0.5) * uZoom + 0.5;
+          if (any(lessThan(zoomed, vec2(0.0))) || any(greaterThan(zoomed, vec2(1.0)))) {
+            discard;
+          }
 
             // Determine which phase we're in
             float transitionStart = uStartupDuration;
@@ -370,9 +372,7 @@ export function SmokeOrb({
 
             if (uTime < transitionStart) {
               // Phase 1: Only startup animation (plays once)
-              float startupFrameFloat = uTime * startupFps;
-              // Clamp to last frame when startup finishes
-              startupFrameFloat = min(startupFrameFloat, uStartupAtlasTotalFrames - 1.0);
+              float startupFrameFloat = min(uTime * startupFps * startupPlaybackSpeed, startupFramesShown);
               texSample = sampleAtlas(uStartupAtlas, startupFrameFloat, uStartupAtlasCols, uStartupAtlasRows, uStartupAtlasTotalFrames, uStartupAtlasSize, zoomed);
             } else if (uTime < transitionEnd) {
               // Phase 2: Crossfade from startup to loop
@@ -380,20 +380,18 @@ export function SmokeOrb({
               transitionProgress = smoothstep(0.0, 1.0, clamp(transitionProgress, 0.0, 1.0));
 
               // Sample startup (hold on last frame)
-              float startupFrameFloat = uStartupAtlasTotalFrames - 1.0;
-              vec4 startupSample = sampleAtlas(uStartupAtlas, startupFrameFloat, uStartupAtlasCols, uStartupAtlasRows, uStartupAtlasTotalFrames, uStartupAtlasSize, zoomed);
+              float startupHoldFrame = startupFramesShown;
+              vec4 startupSample = sampleAtlas(uStartupAtlas, startupHoldFrame, uStartupAtlasCols, uStartupAtlasRows, uStartupAtlasTotalFrames, uStartupAtlasSize, zoomed);
 
               // Sample loop (start from beginning)
-              float loopTime = uTime - transitionStart;
-              float loopFrameFloat = mod(loopTime * loopFps * uAnimationSpeed, loopTotalFrames);
+              float loopFrameFloat = mod(uTime * loopFps * uAnimationSpeed, loopTotalFrames);
               vec4 loopSample = sampleAtlas(uSmokeAtlas, loopFrameFloat, loopCols, loopRows, loopTotalFrames, uAtlasSize, zoomed);
 
               // Crossfade
               texSample = mix(startupSample, loopSample, transitionProgress);
             } else {
               // Phase 3: Only loop animation
-              float loopTime = uTime - transitionStart;
-              float loopFrameFloat = mod(loopTime * loopFps * uAnimationSpeed, loopTotalFrames);
+              float loopFrameFloat = mod(uTime * loopFps * uAnimationSpeed, loopTotalFrames);
               vec4 loopSample = sampleAtlas(uSmokeAtlas, loopFrameFloat, loopCols, loopRows, loopTotalFrames, uAtlasSize, zoomed);
               texSample = loopSample;
             }
@@ -402,8 +400,9 @@ export function SmokeOrb({
 
             vec2 centeredUv = zoomed * 2.0 - 1.0;
             float r = length(centeredUv);
-            float edgeFade = smoothstep(0.85, 0.3, r);
-            float rimMix = pow(edgeFade, 1.35);
+            float rim = smoothstep(0.35, 0.85, r);
+            float edgeFade = 1.0 - rim;
+            float rimMix = pow(rim, 1.35);
 
             float normalized = clamp((d - 0.1) / 0.75, 0.0, 1.0);
             float density = pow(normalized, 0.6);
@@ -419,7 +418,7 @@ export function SmokeOrb({
             }
 
             // Keep color brightness, only fade alpha (so it looks white when fading out)
-            vec3 brightColor = color * 1.4;
+            vec3 brightColor = color * 1.25;
             float finalAlpha = clamp(alpha * uOpacity, 0.0, 1.0);
             gl_FragColor = vec4(brightColor, finalAlpha);
           }

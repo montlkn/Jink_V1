@@ -1,6 +1,6 @@
 import { Asset } from "expo-asset";
 
-const ENV = require("../../assets/env/qwantani_moon_noon_puresky_1k.png");
+const ENV = require("../../assets/env/qwantani_moon_noon_puresky_1080.jpg");
 const SMOKE_ATLAS = require("../../assets/textures/smoke_atlas.png");
 const SMOKE_ATLAS_STARTUP = require("../../assets/textures/smoke_atlas_startup.png");
 
@@ -22,4 +22,3 @@ export function preloadOrbAssets() {
   })();
   return promise;
 }
-

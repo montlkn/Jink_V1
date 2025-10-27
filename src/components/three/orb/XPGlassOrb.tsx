@@ -5,7 +5,7 @@ import { useEnvMap } from "./env/envLoader";
 import { GyroLightRig } from "./GyroLightRig";
 import { RainbowLayer } from "./RainbowLayer";
 
-const ENV = require("../../../../assets/env/qwantani_moon_noon_puresky_1k.png");
+const ENV = require("../../../../assets/env/qwantani_moon_noon_puresky_1080.jpg");
 
 type Props = {
   size?: number;

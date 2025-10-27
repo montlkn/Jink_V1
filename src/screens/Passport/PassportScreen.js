@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { supabaseGateway as supabase } from "@/services/gateways";
+import { getSession, signOut } from "@/services/gateways/supabaseGateway";
 import XPDetailModal from '../../components/modals/XPDetailModal';
 import PassportHeader from '../../components/passport/PassportHeader';
 import PassportStamp from '../../components/passport/PassportStamp';
@@ -41,7 +41,7 @@ const PassportScreen = ({ navigation }) => {
   const loadUserData = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = await getSession();
 
       if (session?.user?.id) {
         const id = session.user.id.replace(/-/g, '').toUpperCase();
@@ -104,7 +104,7 @@ const PassportScreen = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await supabase.auth.signOut();
+      await signOut();
       logout();
     } catch (error) {
       console.error('Error logging out:', error);

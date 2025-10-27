@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import * as Linking from "expo-linking";
-import { supabaseGateway as supabase } from "@/services/gateways";
+import { exchangeCodeForSession, getSession, setSession } from "@/services/gateways/supabaseGateway";
 import { upsertProfileFromSession } from "../../auth/profileSync";
 import { useAuth } from "../../auth/authProvider";
 
@@ -37,7 +37,7 @@ export default function AuthCallbackScreen({ navigation }) {
         if (!url) {
           console.log("AuthCallback: No URL provided, checking for existing session");
           // Check if we have a session
-          const { data: { session: existingSession } } = await supabase.auth.getSession();
+          const existingSession = await getSession();
           console.log("AuthCallback: Existing session found:", existingSession ? "Yes" : "No");
           if (existingSession) {
             console.log("AuthCallback: Found existing session, redirecting to Main");
@@ -80,7 +80,7 @@ export default function AuthCallbackScreen({ navigation }) {
         let sessionResult = null;
         if (params.code) {
           console.log("AuthCallback: Exchanging authorization code");
-          const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(params.code);
+          const { session: exchangeData, error: exchangeError } = await exchangeCodeForSession({ code: params.code });
           if (exchangeError) {
             console.error("Exchange error:", exchangeError);
             throw exchangeError;
@@ -88,9 +88,9 @@ export default function AuthCallbackScreen({ navigation }) {
           sessionResult = exchangeData;
         } else if (params.access_token && params.refresh_token) {
           console.log("AuthCallback: Using implicit grant tokens");
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: params.access_token,
-            refresh_token: params.refresh_token,
+          const { session: sessionData, error: sessionError } = await setSession({
+            accessToken: params.access_token,
+            refreshToken: params.refresh_token,
           });
           if (sessionError) {
             console.error("Session set error:", sessionError);
@@ -101,16 +101,16 @@ export default function AuthCallbackScreen({ navigation }) {
           throw new Error("No authorization code or tokens found in redirect");
         }
 
-        if (!sessionResult?.session) {
+        if (!sessionResult) {
           throw new Error("No session returned from exchange");
         }
 
         console.log("AuthCallback: Session created successfully");
-        console.log("AuthCallback: User ID:", sessionResult.session.user.id);
-        console.log("AuthCallback: User email:", sessionResult.session.user.email);
+        console.log("AuthCallback: User ID:", sessionResult.user.id);
+        console.log("AuthCallback: User email:", sessionResult.user.email);
 
         // Create or update profile for SSO user
-        await upsertProfileFromSession(sessionResult.session);
+        await upsertProfileFromSession(sessionResult);
 
         console.log("AuthCallback: Profile synced successfully");
 
@@ -166,7 +166,7 @@ export default function AuthCallbackScreen({ navigation }) {
       console.log("AuthCallback: Timeout waiting for provider redirect");
 
       try {
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        const existingSession = await getSession();
         if (existingSession) {
           console.log("AuthCallback: Session materialized during timeout, redirecting");
           handledRef.current = true;
