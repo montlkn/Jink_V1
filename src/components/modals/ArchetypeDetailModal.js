@@ -4,11 +4,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   SafeAreaView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
   if (!archetype) return null;

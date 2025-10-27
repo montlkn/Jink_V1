@@ -143,7 +143,7 @@ describe('Context Safety Validation', () => {
     expect(() => validateContextSafety(context)).not.toThrow();
   });
 
-  test('throws on email in string field', () => {
+  test('ignores email in non-allowlisted field', () => {
     const context = {
       aestheticBreakdown: { modern: 40 },
       primaryArchetype: 'modernist',
@@ -151,8 +151,7 @@ describe('Context Safety Validation', () => {
       someField: 'contact@example.com', // PII in disallowed field doesn't block, but would be filtered
     };
 
-    // This shouldn't throw because someField gets filtered out by allowlist
-    // But let's test a field that IS allowed
+    expect(() => validateContextSafety(context)).not.toThrow();
   });
 
   test('throws on PII in allowed field', () => {

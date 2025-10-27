@@ -1,5 +1,10 @@
 import * as Linking from "expo-linking";
-import { supabaseGateway as supabase } from "@/services/gateways";
+import {
+  exchangeCodeForSession as exchangeSessionCode,
+  getSession as getSessionFromGateway,
+  setSession as setSessionOnGateway,
+  supabaseGateway as supabase,
+} from "@/services/gateways";
 
 const buildRedirectUrl = () => Linking.createURL("auth/callback");
 
@@ -30,6 +35,14 @@ export const signOut = async () => {
     throw error;
   }
 };
+
+export const getSession = () => getSessionFromGateway();
+
+export const exchangeCodeForSession = (params: { code: string }) =>
+  exchangeSessionCode(params);
+
+export const setSession = (params: { accessToken: string; refreshToken: string }) =>
+  setSessionOnGateway(params);
 
 export const signInWithProvider = async (provider: "google" | "apple" | "github") => {
   const redirectTo = buildRedirectUrl();
@@ -85,4 +98,7 @@ export const authActions = {
   signInWithProvider,
   signInWithPhone: sendPhoneOtp,
   verifyPhoneOtp,
+  getSession,
+  exchangeCodeForSession,
+  setSession,
 };

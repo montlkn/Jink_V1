@@ -1,9 +1,6 @@
-import { Platform } from "react-native";
+import type { WalkGeometry, WalkSummary } from "@/types/walks";
 
-import type { GeoJsonFeature, WalkGeometry, WalkSummary } from "../types/walks";
-import { supabaseGateway as supabase } from "@/services/gateways";
-
-const FALLBACK_SUMMARIES: WalkSummary[] = [
+export const DEMO_WALK_SUMMARIES: WalkSummary[] = [
   {
     id: "demo-soho",
     startedAt: "2024-02-10T14:05:00Z",
@@ -20,7 +17,7 @@ const FALLBACK_SUMMARIES: WalkSummary[] = [
   },
 ];
 
-const FALLBACK_GEOMETRIES: Record<string, WalkGeometry> = {
+const DEMO_WALK_GEOMETRIES: Record<string, WalkGeometry> = {
   "demo-soho": {
     walkId: "demo-soho",
     route: [
@@ -50,7 +47,7 @@ const FALLBACK_GEOMETRIES: Record<string, WalkGeometry> = {
           name: "E. V. Haughwout Building",
           era: "Cast Iron",
         },
-      } as GeoJsonFeature,
+      },
       {
         type: "Feature",
         geometry: {
@@ -69,7 +66,7 @@ const FALLBACK_GEOMETRIES: Record<string, WalkGeometry> = {
           id: "soho-loft",
           name: "SoHo Loft Block",
         },
-      } as GeoJsonFeature,
+      },
     ],
   },
   "demo-midtown": {
@@ -100,13 +97,10 @@ const FALLBACK_GEOMETRIES: Record<string, WalkGeometry> = {
           id: "seagram-building",
           name: "Seagram Building",
         },
-      } as GeoJsonFeature,
+      },
     ],
   },
 };
-
-const SUMMARIES_FUNCTION = "past-walk-summaries";
-const GEOMETRY_FUNCTION = "past-walk-geometry";
 
 const resolveEnv = () => {
   if (typeof globalThis === "undefined") {
@@ -121,55 +115,12 @@ const resolveEnv = () => {
 
 const env = resolveEnv();
 
-const shouldUseDemoWalks =
-  (typeof __DEV__ !== "undefined" && __DEV__) && env.EXPO_PUBLIC_USE_DEMO_WALKS === "1";
+export const SHOULD_USE_DEMO_WALKS =
+  typeof __DEV__ !== "undefined" &&
+  __DEV__ &&
+  env.EXPO_PUBLIC_USE_DEMO_WALKS === "1";
 
-function warnFallback(scope: "summaries" | "geometry", detail: unknown): void {
-  if (typeof __DEV__ !== "undefined" && __DEV__) {
-    console.warn(`[walkApi] Falling back to demo ${scope}.`, detail);
-  }
-}
+export const getDemoWalkSummaries = () => DEMO_WALK_SUMMARIES;
 
-export async function getPastWalkSummaries(userId?: string | null): Promise<WalkSummary[]> {
-  if (!userId) {
-    warnFallback("summaries", "Missing user id");
-    return FALLBACK_SUMMARIES;
-  }
-
-  if (shouldUseDemoWalks) {
-    return FALLBACK_SUMMARIES;
-  }
-
-  try {
-    const { data, error } = await supabase.functions.invoke<WalkSummary[]>(SUMMARIES_FUNCTION, {
-      body: { userId, platform: Platform.OS },
-    });
-    if (error) throw error;
-    return Array.isArray(data) && data.length > 0 ? data : [];
-  } catch (error) {
-    warnFallback("summaries", error);
-    return FALLBACK_SUMMARIES;
-  }
-}
-
-export async function getPastWalkGeometry(walkId: string): Promise<WalkGeometry> {
-  if (!walkId) {
-    throw new Error("walkId is required");
-  }
-
-  if (shouldUseDemoWalks) {
-    return FALLBACK_GEOMETRIES[walkId] ?? FALLBACK_GEOMETRIES["demo-soho"];
-  }
-
-  try {
-    const { data, error } = await supabase.functions.invoke<WalkGeometry>(GEOMETRY_FUNCTION, {
-      body: { walkId, platform: Platform.OS, tolerance: 0.00005 },
-    });
-    if (error) throw error;
-    if (!data) throw new Error("No geometry returned");
-    return data;
-  } catch (error) {
-    warnFallback("geometry", error);
-    return FALLBACK_GEOMETRIES[walkId] ?? FALLBACK_GEOMETRIES["demo-soho"];
-  }
-}
+export const getDemoWalkGeometry = (walkId: string): WalkGeometry =>
+  DEMO_WALK_GEOMETRIES[walkId] ?? DEMO_WALK_GEOMETRIES["demo-soho"];

@@ -1,9 +1,6 @@
-import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 const WalkTypeButton = ({ title, color, onPress }) => {
-  const navigator = useNavigation();
-
   return (
     <TouchableOpacity
       style={[styles.button, { backgroundColor: color }]}

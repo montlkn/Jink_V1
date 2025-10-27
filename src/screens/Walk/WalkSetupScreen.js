@@ -15,8 +15,7 @@ const WalkSetupScreen = ({ navigation }) => {
     longitude: -74.006,
   }); // Default location
 
-  const [time, SetTime] = useState(45);
-  const [data, setData] = useState([]);
+  const [time, setTime] = useState(45);
 
   useEffect(() => {
     (async () => {
@@ -44,10 +43,10 @@ const WalkSetupScreen = ({ navigation }) => {
         location.longitude,
         1000
       ); // 1000 meters radius
-      setData(nearbyPlaces);
       navigation.navigate("WalkNavScreen", {
         places: nearbyPlaces,
-        location: location,
+        location,
+        durationMinutes: time,
       });
     } catch (error) {
       console.error("Error fetching nearby places:", error);
@@ -57,7 +56,7 @@ const WalkSetupScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <TimeSlider min={5} max={90} initialValue={time} />
+        <TimeSlider min={5} max={90} initialValue={time} setValue={setTime} />
         <View style={styles.buttonsContainer}>
           <WalkTypeButton
             title="RANDOM"

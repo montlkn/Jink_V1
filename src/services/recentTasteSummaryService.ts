@@ -1,4 +1,10 @@
-import { fetchPastWalkSummaries } from "./walkHistoryService";
+import { Platform } from "react-native";
+
+import { fetchWalkSummaries } from "@/services/gateways/supabaseGateway";
+import {
+  SHOULD_USE_DEMO_WALKS,
+  getDemoWalkSummaries,
+} from "@/lib/walks/demoData";
 import { getArchetypeInfo } from "./aestheticScoringService";
 import type { WalkSummary } from "../types/walks";
 
@@ -143,7 +149,9 @@ function buildArchetypePhrase(
   };
 }
 
-function formatContextLead(walk: WalkSummary | null): { noun: string; prefix: string; source: "activity" | "profile" } {
+function formatContextLead(
+  walk: WalkSummary | null
+): { noun: string; prefix: string; source: "activity" | "profile" } {
   if (!walk) {
     return {
       noun: "taste",
@@ -162,6 +170,33 @@ function formatContextLead(walk: WalkSummary | null): { noun: string; prefix: st
   };
 }
 
+const getLatestWalk = async (userId: string | null | undefined): Promise<WalkSummary | null> => {
+  if (!userId) {
+    return getDemoWalkSummaries()[0] ?? null;
+  }
+
+  if (SHOULD_USE_DEMO_WALKS) {
+    return getDemoWalkSummaries()[0] ?? null;
+  }
+
+  try {
+    const summaries = await fetchWalkSummaries({
+      userId,
+      platform: Platform.OS,
+    });
+    if (Array.isArray(summaries) && summaries.length > 0) {
+      return summaries[0] ?? null;
+    }
+  } catch (error) {
+    console.warn(
+      "[recentTasteSummary] Failed to load walk summaries",
+      (error as Error)?.message
+    );
+  }
+
+  return getDemoWalkSummaries()[0] ?? null;
+};
+
 export async function getRecentTasteSummary(
   options: SummaryOptions
 ): Promise<SummaryResult | null> {
@@ -175,16 +210,7 @@ export async function getRecentTasteSummary(
 
   let latestWalk: WalkSummary | null = null;
   if (options.userId) {
-    try {
-      const summaries = await fetchPastWalkSummaries(options.userId, {
-        forceRefresh: options.forceRefresh,
-      });
-      if (Array.isArray(summaries) && summaries.length) {
-        latestWalk = summaries[0];
-      }
-    } catch (error) {
-      console.warn("[recentTasteSummary] Failed to load walk summaries", (error as Error)?.message);
-    }
+    latestWalk = await getLatestWalk(options.userId);
   }
 
   const primaryId = normalizeArchetypeId(primaryEntry);
@@ -196,46 +222,38 @@ export async function getRecentTasteSummary(
 
   const context = formatContextLead(latestWalk);
 
-  const intensity = typeof primaryEntry?.percentage === "number"
-    ? primaryEntry.percentage
-    : typeof primaryEntry?.score === "number"
-      ? primaryEntry.score
-      : null;
-
-  const leaningVerb =
-    intensity !== null && intensity >= 65
-      ? "have been anchored in"
-      : intensity !== null && intensity <= 40
-        ? "have been flirting with"
-        : "have leaned into";
-
-  const primaryDescriptorsPhrase = joinPhrases(primaryPhrase.descriptors);
-
-  const parts: string[] = [];
-  parts.push(
-    `${context.prefix} ${leaningVerb} ${primaryPhrase.label} moods—${primaryDescriptorsPhrase}`
-  );
+  const intensity =
+    typeof primaryEntry?.percentage === "number"
+      ? primaryEntry.percentage
+      : primaryEntry?.score ?? 0;
 
   const secondaryId = normalizeArchetypeId(secondaryEntry);
-  const secondaryPhrase = buildArchetypePhrase(secondaryId, 2);
-
-  if (secondaryPhrase?.descriptors.length) {
-    const secondaryDescriptorsPhrase = joinPhrases(secondaryPhrase.descriptors);
-    parts.push(
-      `with ${secondaryDescriptorsPhrase} coming from your ${secondaryPhrase.label.toLowerCase()} side`
-    );
-  }
-
-  const sentence = `${parts.join(", ")}.`;
+  const secondaryPhrase = buildArchetypePhrase(secondaryId, 1);
 
   const keywords = [
-    primaryPhrase.label,
-    ...primaryPhrase.descriptors,
-    ...(secondaryPhrase?.descriptors ?? []),
+    primaryPhrase.label.toLowerCase(),
+    ...(primaryPhrase.descriptors ?? []),
+  ];
+
+  if (secondaryPhrase) {
+    keywords.push(secondaryPhrase.label.toLowerCase());
+  }
+
+  const modifiers = [
+    `leaning ${primaryPhrase.label.toLowerCase()}`,
+    joinPhrases(primaryPhrase.descriptors),
   ].filter(Boolean);
 
+  const secondaryText = secondaryPhrase
+    ? ` Secondary notes hint at ${joinPhrases(secondaryPhrase.descriptors)} from ${secondaryPhrase.label}.`
+    : "";
+
+  const text = `${context.prefix} are aligning around ${modifiers[0]} — ${modifiers[1]}.${
+    intensity ? ` You're expressing it at roughly ${Math.round(intensity)}% intensity.` : ""
+  }${secondaryText}`;
+
   return {
-    text: sentence,
+    text,
     keywords,
     source: context.source,
   };

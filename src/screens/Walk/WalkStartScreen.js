@@ -10,7 +10,7 @@ import TimerDisplay from "../../components/walk/TimerDisplay";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 
 const WalkStartScreen = ({ navigation }) => {
-  const { orbData, pinToJink } = useOrbTransition();
+  const { pinToJink } = useOrbTransition();
   const entryProgress = useRef(new Animated.Value(0)).current;
 
   const sliderScale = useMemo(
@@ -209,7 +209,7 @@ const WalkStartScreen = ({ navigation }) => {
         hapticsCancelRef.current = null;
       }
     }
-  }, [isFetching, location, navigation, pinToJink, time]);
+  }, [isFetching, location, navigation, pinToJink, startLaunchHaptics, time]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import * as Linking from "expo-linking";
-import { exchangeCodeForSession, getSession, setSession } from "@/services/gateways/supabaseGateway";
+import { authActions } from "@/features/auth";
 import { upsertProfileFromSession } from "../../auth/profileSync";
 import { useAuth } from "../../auth/authProvider";
 
@@ -37,7 +37,7 @@ export default function AuthCallbackScreen({ navigation }) {
         if (!url) {
           console.log("AuthCallback: No URL provided, checking for existing session");
           // Check if we have a session
-          const existingSession = await getSession();
+          const existingSession = await authActions.getSession();
           console.log("AuthCallback: Existing session found:", existingSession ? "Yes" : "No");
           if (existingSession) {
             console.log("AuthCallback: Found existing session, redirecting to Main");
@@ -80,7 +80,7 @@ export default function AuthCallbackScreen({ navigation }) {
         let sessionResult = null;
         if (params.code) {
           console.log("AuthCallback: Exchanging authorization code");
-          const { session: exchangeData, error: exchangeError } = await exchangeCodeForSession({ code: params.code });
+          const { session: exchangeData, error: exchangeError } = await authActions.exchangeCodeForSession({ code: params.code });
           if (exchangeError) {
             console.error("Exchange error:", exchangeError);
             throw exchangeError;
@@ -88,7 +88,7 @@ export default function AuthCallbackScreen({ navigation }) {
           sessionResult = exchangeData;
         } else if (params.access_token && params.refresh_token) {
           console.log("AuthCallback: Using implicit grant tokens");
-          const { session: sessionData, error: sessionError } = await setSession({
+          const { session: sessionData, error: sessionError } = await authActions.setSession({
             accessToken: params.access_token,
             refreshToken: params.refresh_token,
           });
@@ -166,7 +166,7 @@ export default function AuthCallbackScreen({ navigation }) {
       console.log("AuthCallback: Timeout waiting for provider redirect");
 
       try {
-        const existingSession = await getSession();
+        const existingSession = await authActions.getSession();
         if (existingSession) {
           console.log("AuthCallback: Session materialized during timeout, redirecting");
           handledRef.current = true;

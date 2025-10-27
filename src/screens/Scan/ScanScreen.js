@@ -16,11 +16,9 @@ export default function ScanScreen({ navigation }) {
   const [position, setPosition] = useState(null);
   const [heading, setHeading] = useState(0);
   const [altitude, setAltitude] = useState(null);
-  const [floor, setFloor] = useState(0);
   const [confidence, setConfidence] = useState(0);
   const [movementType, setMovementType] = useState('stationary');
   const [isScanning, setIsScanning] = useState(false);
-  const [result, setResult] = useState(null);
 
   const fusionRef = useRef(null);
   const lastGPSTime = useRef(Date.now());
@@ -77,7 +75,7 @@ export default function ScanScreen({ navigation }) {
       const conf = calculatePositionConfidence({
         hasGPS: position !== null,
         gpsAccuracy: 10,
-        hasBarometer: altitude !== null,
+        hasBarometer: false,
         hasIMU: true,
         timeSinceLastGPS: timeSinceGPS,
       });
@@ -85,7 +83,7 @@ export default function ScanScreen({ navigation }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [position, altitude]);
+  }, [position]);
 
   // Barometer (Altitude/Floor detection) - DISABLED
   // Crashes on this device - floor will default to 0
@@ -155,6 +153,7 @@ export default function ScanScreen({ navigation }) {
           }
 
           setPosition(initial.coords);
+          setAltitude(initial.coords.altitude ?? null);
           lastGPSTime.current = Date.now();
 
           // Watch for position updates
@@ -176,6 +175,7 @@ export default function ScanScreen({ navigation }) {
               }
 
               setPosition(loc.coords);
+              setAltitude(loc.coords.altitude ?? null);
               lastGPSTime.current = Date.now();
             }
           );
@@ -228,7 +228,6 @@ export default function ScanScreen({ navigation }) {
       formData.append('phone_pitch', '0');
       formData.append('phone_roll', '0');
       formData.append('altitude', (altitude || 0).toString());
-      formData.append('floor', floor.toString());
       formData.append('confidence', Math.round(confidence).toString());
       formData.append('movement_type', movementType);
       formData.append('gps_accuracy', (position.accuracy || 10).toString());
@@ -320,7 +319,7 @@ export default function ScanScreen({ navigation }) {
           🧭 Heading: {Math.round(heading)}°
         </Text>
         <Text style={styles.sensorText}>
-          📏 Floor: {floor} ({altitude ? `${altitude.toFixed(1)}m` : '—'})
+          🗻 Altitude: {altitude != null ? `${altitude.toFixed(1)}m` : '—'}
         </Text>
         <Text style={styles.sensorText}>
           🎯 Confidence: {confidence}%

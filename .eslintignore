@@ -1,0 +1,8 @@
+apps/**
+supabase/functions/**
+server/**
+scripts/**
+patches/**
+dist/**
+build/**
+coverage/**

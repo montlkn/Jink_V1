@@ -2,7 +2,7 @@
   Description: A reusable list item row with a bottom border.
 */
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 const ListItem = ({ text, onPress }) => {
   return (

@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import PillButton from '../common/PillButton';
 
 const PassportHeader = ({ passportNumber, issueDate, onLogout }) => {

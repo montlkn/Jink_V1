@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  Share,
   View,
 } from "react-native";
 
@@ -55,9 +56,13 @@ export default function BuildingDetailsScreen({ route }) {
     else Alert.alert("Unable to open maps");
   };
 
-  const copyAddress = async () => {
-    await Clipboard.setStringAsync(address);
-    Alert.alert("Copied", "Address copied to clipboard.");
+  const shareAddress = async () => {
+    try {
+      await Share.share({ message: address });
+    } catch (error) {
+      console.warn("Unable to share address", error);
+      Alert.alert("Share failed", "We couldn't share the address.");
+    }
   };
 
   return (
@@ -67,7 +72,7 @@ export default function BuildingDetailsScreen({ route }) {
       <View style={styles.addrRow}>
         <Text style={styles.address}>{address}</Text>
         <View style={styles.addrActions}>
-          <Chip onPress={copyAddress} label="Copy" />
+          <Chip onPress={shareAddress} label="Share" />
           <Chip onPress={openInMaps} label="Open in Maps" />
         </View>
       </View>

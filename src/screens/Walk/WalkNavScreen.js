@@ -1,6 +1,5 @@
 import { useFocusEffect } from "@react-navigation/native";
-import Compass from "@/components/walk/Compass";
-import PausePillButton from "@/components/walk/PausePillButton";
+import { Compass, PausePillButton } from "@/features/walks";
 import React, { useMemo, useState, useCallback } from "react";
 import {
   ActivityIndicator,
@@ -39,7 +38,7 @@ const WalkNavScreen = ({ route, navigation }) => {
     return deriveBuildingOrder(places, formattedLocation);
   }, [route.params?.location, route.params?.places]);
 
-  const routeStops = tsp.route ?? [];
+  const routeStops = useMemo(() => tsp.route ?? [], [tsp.route]);
   const hasRoute = routeStops.length > 0;
   const currentIndex = hasRoute
     ? Math.min(buildingIndex, routeStops.length - 1)
@@ -49,15 +48,14 @@ const WalkNavScreen = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       pinToJink(false);
-      return () => {
-        pinToJink(false);
-      };
+      return () => {};
     }, [pinToJink])
   );
 
   const handlePause = useCallback(() => {
+    pinToJink(true);
     navigation.goBack();
-  }, [navigation]);
+  }, [navigation, pinToJink]);
 
   const handleArrived = useCallback(() => {
     if (!hasRoute) return;

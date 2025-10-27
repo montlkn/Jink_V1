@@ -19,7 +19,7 @@ async function getAuthHeaders() {
     try {
       const { data: refreshed } = await supabase.auth.refreshSession();
       token = refreshed?.session?.access_token || token;
-    } catch (e) {
+    } catch (_error) {
       // ignore and let the caller handle missing token
     }
   }

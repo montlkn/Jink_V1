@@ -28,7 +28,7 @@ const projectLatLng = async (
   try {
     const point = await map.pointForCoordinate({ latitude, longitude });
     return { x: point.x, y: point.y };
-  } catch (error) {
+  } catch {
     return null;
   }
 };

@@ -68,7 +68,7 @@ const TimeSlider = ({
       const rounded = Math.round(clamped);
       const hasChanged = rounded !== lastNotifiedValueRef.current;
       if (hasChanged) {
-        // Haptic on notches while dragging: light for 5-min, medium for 15-min
+        // Haptic on notch hits while dragging
         if (trackingActiveRef.current) {
           try {
             if (rounded % 15 === 0) {
@@ -76,7 +76,7 @@ const TimeSlider = ({
             } else if (rounded % 5 === 0) {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
-          } catch (e) {}
+          } catch (_error) {}
         }
         lastNotifiedValueRef.current = rounded;
         if (shouldNotify && setValue) {
@@ -110,7 +110,7 @@ const TimeSlider = ({
             // Immediate haptic feedback for center press
             try {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            } catch (e) {}
+            } catch (_error) {}
           }
         },
         onPanResponderMove: (event) => {
@@ -142,7 +142,7 @@ const TimeSlider = ({
           if (pressEligibleRef.current && onPress) {
             try {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            } catch (e) {}
+            } catch (_error) {}
             onPress();
           }
           trackingActiveRef.current = false;

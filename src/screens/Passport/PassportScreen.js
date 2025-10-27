@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getSession, signOut } from "@/services/gateways/supabaseGateway";
+import { authActions } from "@/features/auth";
 import XPDetailModal from '../../components/modals/XPDetailModal';
 import PassportHeader from '../../components/passport/PassportHeader';
 import PassportStamp from '../../components/passport/PassportStamp';
@@ -25,7 +25,6 @@ const PassportScreen = ({ navigation }) => {
   const [stamps, setStamps] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [lists, setLists] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [xpModalVisible, setXpModalVisible] = useState(false);
   const [userXP, setUserXP] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
@@ -39,9 +38,8 @@ const PassportScreen = ({ navigation }) => {
   }, []);
 
   const loadUserData = async () => {
-    setLoading(true);
     try {
-      const session = await getSession();
+      const session = await authActions.getSession();
 
       if (session?.user?.id) {
         const id = session.user.id.replace(/-/g, '').toUpperCase();
@@ -87,8 +85,6 @@ const PassportScreen = ({ navigation }) => {
       ]);
     } catch (error) {
       console.error('Error loading user data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -104,7 +100,7 @@ const PassportScreen = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await signOut();
+      await authActions.signOut();
       logout();
     } catch (error) {
       console.error('Error logging out:', error);

@@ -3,8 +3,8 @@
  * Run with: jest src/utils/__tests__/normalize.test.js
  */
 
-import { normalize, totalVariation } from '../normalize';
-import { checkDivergence } from '../divergence';
+import { normalize } from '../normalize';
+import { checkDivergence, totalVariation } from '../divergence';
 
 describe('Normalization', () => {
   test('normalizes to 100.0', () => {

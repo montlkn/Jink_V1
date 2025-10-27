@@ -1,5 +1,6 @@
 import type { AuthError, Session } from "@supabase/supabase-js";
 import { supabase } from "@/api/supabaseClient";
+import type { WalkGeometry, WalkSummary } from "@/types/walks";
 
 type QuestType = "daily" | "weekly";
 
@@ -413,4 +414,116 @@ export async function completeQuest(
   };
 }
 
-export type { QuestWithState, FetchActiveQuestsResult, FetchXpSummaryResult, CompleteQuestResult };
+const WALK_SUMMARIES_FUNCTION = "past-walk-summaries";
+const WALK_GEOMETRY_FUNCTION = "past-walk-geometry";
+
+type FetchWalkSummariesParams = {
+  userId?: string | null;
+  platform?: string;
+};
+
+export async function fetchWalkSummaries(
+  params: FetchWalkSummariesParams
+): Promise<WalkSummary[]> {
+  if (!params?.userId) {
+    return [];
+  }
+
+  const { data, error } = await supabase.functions.invoke<WalkSummary[]>(
+    WALK_SUMMARIES_FUNCTION,
+    {
+      body: {
+        userId: params.userId,
+        platform: params.platform,
+      },
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+type FetchWalkDetailParams = {
+  walkId: string;
+  platform?: string;
+  tolerance?: number;
+};
+
+export async function fetchWalkDetail(
+  params: FetchWalkDetailParams
+): Promise<WalkGeometry> {
+  if (!params.walkId) {
+    throw new Error("walkId is required to fetch walk detail.");
+  }
+
+  const { data, error } = await supabase.functions.invoke<WalkGeometry>(
+    WALK_GEOMETRY_FUNCTION,
+    {
+      body: {
+        walkId: params.walkId,
+        platform: params.platform,
+        tolerance: params.tolerance,
+      },
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error(`No geometry returned for walk ${params.walkId}.`);
+  }
+
+  return data;
+}
+
+type CompleteWalkParams = {
+  userId: string;
+  walkId: string;
+  now?: number;
+};
+
+type CompleteWalkResult = {
+  walkId: string;
+  userId: string;
+  completedAt: string;
+};
+
+export async function completeWalk(
+  params: CompleteWalkParams
+): Promise<CompleteWalkResult> {
+  const { userId, walkId, now } = params;
+  if (!userId || !walkId) {
+    throw new Error("userId and walkId are required to complete a walk.");
+  }
+
+  const completedAtIso = new Date(typeof now === "number" ? now : Date.now()).toISOString();
+
+  const { error } = await supabase.rpc("complete_walk_session", {
+    p_user_id: userId,
+    p_walk_id: walkId,
+    p_completed_at: completedAtIso,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    walkId,
+    userId,
+    completedAt: completedAtIso,
+  };
+}
+
+export type {
+  QuestWithState,
+  FetchActiveQuestsResult,
+  FetchXpSummaryResult,
+  CompleteQuestResult,
+  CompleteWalkResult,
+};

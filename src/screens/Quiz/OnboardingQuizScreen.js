@@ -42,14 +42,14 @@ const OnboardingQuizScreen = ({ navigation }) => {
     // Reset whether to show the per-question header image
     const imgUrl = questions?.[currentQuestionIndex]?.image_url;
     setShowQuestionImage(Boolean(imgUrl));
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, questions]);
 
   const loadQuestions = async () => {
     try {
       const quizQuestions = await fetchQuizQuestions();
       setQuestions(quizQuestions);
       setLoading(false);
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('Error', 'Failed to load quiz questions. Please try again.');
       setLoading(false);
     }

@@ -175,6 +175,14 @@
       "rules": {
         "no-restricted-imports": "off"
       }
+    },
+    {
+      "files": [
+        "src/components/three/**/*.{js,jsx,ts,tsx}"
+      ],
+      "rules": {
+        "react/no-unknown-property": "off"
+      }
     }
   ]
 }

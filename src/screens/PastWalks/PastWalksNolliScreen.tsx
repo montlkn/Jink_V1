@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -9,22 +8,14 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
-import MapView, { MapViewProps, Polygon, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import MapView, { MapViewProps, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
 
-import { useAuth } from "../../auth/authProvider";
+import { useWalksData } from "@/features/walks";
 import { PAST_WALKS_NOLLI_MAP_STYLE } from "../../constants/mapStyles";
-import {
-  hydrateWalkHistoryDataset
-} from "../../services/walkHistoryService";
-import type { GeoJsonFeature, LatLng, WalkGeometry, WalkSummary } from "../../types/walks";
-import {
-  projectFeatureToScreen,
-  projectRouteToScreen,
-  screenPointsToPath,
-  screenPointsToPolyline,
-} from "../../utils/mapProjection";
+import type { GeoJsonFeature, WalkGeometry } from "../../types/walks";
+import { projectFeatureToScreen, screenPointsToPath } from "../../utils/mapProjection";
 
 type PastWalksStackParamList = {
   PastWalksNolli: { walkId?: string } | undefined;
@@ -39,95 +30,33 @@ const DEFAULT_REGION = {
   longitudeDelta: 0.0421,
 };
 
-const FEATHER_STEPS = [
-  { strokeWidth: 30, opacity: 0.18 },
-  { strokeWidth: 20, opacity: 0.28 },
-  { strokeWidth: 10, opacity: 0.5 },
-];
-
-const FOG_COLOR = "rgba(0, 0, 0, 0.72)";
-const MASK_ID = "pastWalksMask";
-const MIN_LAT_LNG_DELTA = 0.005;
-const ROUTE_PADDING_FACTOR = 0.2;
-
 type ProjectedPolygon = {
   id: string;
   rings: string[];
 };
 
-type MapPolygon = {
-  id: string;
-  coordinates: { latitude: number; longitude: number }[];
-  holes?: { latitude: number; longitude: number }[][];
-};
-
-const createRegionForRoute = (coordinates: LatLng[], paddingFactor = ROUTE_PADDING_FACTOR): Region | null => {
-  if (!Array.isArray(coordinates) || coordinates.length === 0) return null;
-
-  let minLat = Number.POSITIVE_INFINITY;
-  let maxLat = Number.NEGATIVE_INFINITY;
-  let minLng = Number.POSITIVE_INFINITY;
-  let maxLng = Number.NEGATIVE_INFINITY;
-
-  coordinates.forEach((point) => {
-    if (!point) return;
-    const { latitude, longitude } = point;
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-    if (latitude < minLat) minLat = latitude;
-    if (latitude > maxLat) maxLat = latitude;
-    if (longitude < minLng) minLng = longitude;
-    if (longitude > maxLng) maxLng = longitude;
-  });
-
-  const latitudeDelta = Math.max((maxLat - minLat) * (1 + paddingFactor), MIN_LAT_LNG_DELTA);
-  const longitudeDelta = Math.max((maxLng - minLng) * (1 + paddingFactor), MIN_LAT_LNG_DELTA);
-
-  return {
-    latitude: (maxLat + minLat) / 2,
-    longitude: (maxLng + minLng) / 2,
-    latitudeDelta,
-    longitudeDelta,
-  };
-};
-
-const formatSummaryTitle = (summary: WalkSummary): string => {
-  const startedAt = summary.startedAt
-    ? new Date(summary.startedAt).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    : null;
-  const parts: string[] = [];
-  if (startedAt) parts.push(startedAt);
-  if (summary.borough) parts.push(summary.borough);
-  if (Number.isFinite(summary.distanceKm)) parts.push(`${summary.distanceKm.toFixed(1)} km`);
-  return parts.join(" · ") || "Past Walk";
-};
-
 const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
   const { walkId } = route.params ?? {};
   const mapRef = useRef<MapView>(null);
-  const { session } = useAuth() as { session?: { user?: { id?: string } } };
-  // Require Google Maps on both platforms for custom styling
   const mapProvider = useMemo(() => PROVIDER_GOOGLE, []);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [summaries, setSummaries] = useState<WalkSummary[]>([]);
-  const [selectedWalk, setSelectedWalk] = useState<WalkGeometry | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [isSelectingWalk, setIsSelectingWalk] = useState(false);
   const [mapLayout, setMapLayout] = useState({ width: 0, height: 0 });
   const [projectedPolygons, setProjectedPolygons] = useState<ProjectedPolygon[]>([]);
-  const [routePolyline, setRoutePolyline] = useState("");
-  const userId = session?.user?.id ?? null;
   const projectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedWalkRef = useRef<WalkGeometry | null>(null);
 
-  const updateSelectedWalk = useCallback((geometry: WalkGeometry | null) => {
-    selectedWalkRef.current = geometry;
-    setSelectedWalk(geometry);
-  }, []);
+  const walksState = useWalksData();
+  const selectWalk = walksState.select;
+
+  const readyValue = walksState.status === "ready" ? walksState.value : null;
+  const selectedWalk = readyValue?.selectedWalk ?? null;
+  const selectedWalkId = readyValue?.selectedWalkId ?? null;
+  const isSelecting = readyValue?.isSelecting ?? false;
+  const isLoading = walksState.status === "loading";
+  const errorMessage =
+    walksState.status === "error"
+      ? "Unable to load walk history."
+      : null;
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
 
@@ -135,16 +64,11 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
     setIsMapReady(true);
   }, []);
 
-  const handleFitToWalk = useCallback(() => {}, []);
-
   const projectGeometry = useCallback(async (geometry: WalkGeometry | null) => {
     const map = mapRef.current;
     if (!map || !geometry || mapLayout.width <= 0 || mapLayout.height <= 0) return;
 
     try {
-      const routePoints = await projectRouteToScreen(map, geometry.route);
-      const routePolylineString = screenPointsToPolyline(routePoints);
-
       const polygonResults: ProjectedPolygon[] = [];
       for (let i = 0; i < geometry.buildings.length; i += 1) {
         const feature = geometry.buildings[i] as GeoJsonFeature;
@@ -159,7 +83,6 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
 
       if (selectedWalkRef.current?.walkId !== geometry.walkId) return;
 
-      setRoutePolyline(routePolylineString);
       setProjectedPolygons(polygonResults);
     } catch (error) {
       console.error("[PastWalksNolli] Projection failed", error);
@@ -172,42 +95,40 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
       projectionTimeoutRef.current = null;
     }
     if (!geometry || !mapRef.current) {
-      setRoutePolyline("");
       setProjectedPolygons([]);
       return;
     }
     projectionTimeoutRef.current = setTimeout(() => projectGeometry(geometry), delay);
   }, [projectGeometry]);
 
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-      setIsLoadingData(true);
-      setLoadingError(null);
+  useEffect(() => {
+    selectedWalkRef.current = selectedWalk;
+    if (selectedWalk) {
+      scheduleProjection(selectedWalk, 0);
+    } else {
+      setProjectedPolygons([]);
+    }
+  }, [selectedWalk, scheduleProjection]);
 
-      hydrateWalkHistoryDataset(userId, walkId)
-        .then((dataset) => {
-          if (!isActive) return;
-          setSummaries(dataset.summaries);
-          updateSelectedWalk(dataset.selectedWalk ?? null);
-          scheduleProjection(dataset.selectedWalk ?? null, 0);
-        })
-        .catch((error) => {
-          console.error("[PastWalksNolli] Failed to load walk history", error);
-          setLoadingError("Unable to load walk history.");
-          setSummaries([]);
-          updateSelectedWalk(null);
-        })
-        .finally(() => {
-          if (!isActive) return;
-          setIsLoadingData(false);
-        });
+  useEffect(() => {
+    if (selectedWalk) {
+      scheduleProjection(selectedWalk, 0);
+    }
+  }, [mapLayout.height, mapLayout.width, scheduleProjection, selectedWalk]);
 
-      return () => {
-        isActive = false;
-      };
-    }, [updateSelectedWalk, userId, walkId, scheduleProjection])
-  );
+  useEffect(() => {
+    if (!walkId || walksState.status !== "ready") {
+      return;
+    }
+
+    if (selectedWalkId === walkId || isSelecting) {
+      return;
+    }
+
+    selectWalk(walkId).catch((error) => {
+      console.error("[PastWalksNolli] Failed to select walk from route param", error);
+    });
+  }, [walkId, walksState.status, selectedWalkId, isSelecting, selectWalk]);
 
   useEffect(() => {
     return () => {
@@ -233,6 +154,12 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
       </SafeAreaView>
+
+      {errorMessage ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.mapContainer} onLayout={(e) => setMapLayout(e.nativeEvent.layout)}>
         <MapView
@@ -271,7 +198,7 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
             )}
         </MapView>
 
-        {(!isMapReady || isLoadingData) && (
+        {(!isMapReady || isLoading || isSelecting) && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="small" color="#2ECC71" />
           </View>
@@ -312,5 +239,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.8)",
+  },
+  errorBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: "rgba(220, 38, 38, 0.12)",
+  },
+  errorText: {
+    color: "#991B1B",
+    fontSize: 13,
+    textAlign: "center",
   },
 });

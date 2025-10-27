@@ -1,7 +1,7 @@
-import { NavigationContainer, useFocusEffect } from "@react-navigation/native";
+import { NavigationContainer } from "@react-navigation/native";
 import * as Linking from "expo-linking";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { preloadOrbAssets } from "../services/orbAssets";
 

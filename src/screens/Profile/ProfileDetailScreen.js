@@ -333,7 +333,7 @@ const ProfileDetailScreen = ({ navigation }) => {
     }
 
     fallbackToLocalSummary(profileData);
-  }, [fallbackToLocalSummary, triggerManualRegeneration]);
+  }, [commitSummary, fallbackToLocalSummary, triggerManualRegeneration]);
 
   const loadUserProfile = async () => {
     if (!session?.user?.id) {

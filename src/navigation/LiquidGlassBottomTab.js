@@ -154,7 +154,7 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
         useNativeDriver: true,
       }),
     ]).start();
-  }, [focusIndex]);
+  }, [focusIndex, targetX, bubbleX, bubbleScale]);
 
   const startSearch = () => {
     Haptics.selectionAsync();

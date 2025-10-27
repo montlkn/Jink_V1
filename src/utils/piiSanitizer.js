@@ -100,7 +100,7 @@ export function redactPII(text) {
   let redacted = text;
 
   // Replace each pattern type
-  for (const [type, pattern] of Object.entries(PII_PATTERNS)) {
+  for (const [, pattern] of Object.entries(PII_PATTERNS)) {
     redacted = redacted.replace(pattern, '[REDACTED]');
   }
 
