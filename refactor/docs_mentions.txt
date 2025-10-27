@@ -1,0 +1,133 @@
+docs/ARCHITECTURE_SPLIT.md:160:    "@google/generative-ai": "^0.24.1"
+docs/DEPLOYMENT_GUIDE.md:68:    "@google/generative-ai": "^0.24.1",
+docs/HANDOFF.md:11:  - "@react-three/drei": "^10.7.6" (not required right now; can be removed)
+docs/HANDOFF.md:32:   - npm uninstall @react-three/drei
+docs/HANDOFF.md:4:- Mobile app (Expo 54, RN 0.81.4, React 19.1.0, Hermes) with an orb built using @react-three/fiber/native (R3F) and three.
+docs/HANDOFF.md:9:  - "@react-three/fiber": "^9.3.0"
+docs/HANDOFF.md:25:- Brief attempt to pin @react-three/fiber 8.15.17 + three 0.152.2 (known-good native matrix) conflicted with React 19; reverted to current deps.
+docs/HANDOFF.md:47:   - Option A (requires React 18): @react-three/fiber 8.15.17 + three 0.152.2.
+docs/HANDOFF.md:51:   - Keep only @react-three/fiber and three at versions above; remove drei (and thus @react-spring peers) until animation is confirmed.
+docs/HANDOFF.md:77:- Use @react-three/fiber/native (no Web flows) and keep a single three instance. Avoid presenting frames manually with WebGL calls; stick to R3F’s native loop.
+docs/docs2/systems/scanning/orb_signals.md:16:- Rendered with Three.js shaders in @react-three/fiber
+docs/docs2/systems/aesthetic_profile/orb_visualization.md:15:- Use @react-three/fiber with lightweight shader material
+docs/docs2/core/architecture_overview.md:32:React Native + Expo • Three.js / @react-three/fiber • Supabase (Postgres + Edge Functions)  
+docs/ARCHITECTURE_SPLIT.md:159:    "@supabase/supabase-js": "^2.52.1",
+docs/ARCHITECTURE_SPLIT.md:169:    "@supabase/supabase-js": "^2.52.1",  // For auth
+docs/DEPLOYMENT_GUIDE.md:69:    "@supabase/supabase-js": "^2.52.1",
+docs/FINAL_GUARDRAILS.md:30:**File:** `.eslintrc.json`
+docs/FINAL_GUARDRAILS.md:54:npx eslint src/
+docs/FINAL_GUARDRAILS.md:202:git diff --name-only origin/main | xargs npx eslint
+docs/FINAL_GUARDRAILS.md:213:npx eslint src/ || exit 1
+docs/REPO-SLIM-AND-REFACTOR.md:211:* `lint` — `eslint` with `import/no-restricted-paths` to block deep imports into package internals.
+docs/REPO-SLIM-AND-REFACTOR.md:229:* `pre-commit` or Husky to run `eslint --fix`, `prettier`, and a quick `rg` smoke check.
+docs/REPO-SLIM-AND-REFACTOR.md:275:3. **Create packages skeleton & CI rules**: add eslint rules and CI checks. (1 day)
+README.md:132:npx expo start
+docs/HANDOFF.md:33:   - rm -rf node_modules .expo
+docs/HANDOFF.md:36:   - expo run:ios (uninstall app from device/simulator first if needed)
+docs/HANDOFF.md:37:   - npx expo start -c
+docs/HANDOFF.md:41:   - Run the app via Xcode (expo run:ios opens workspace) and capture logs around mount. Look for ExpoGL/EXGL or R3F warnings.
+docs/HANDOFF.md:59:2) npx expo start -c
+docs/HANDOFF.md:80:- Clean + Reinstall: rm -rf node_modules .expo && npm cache clean --force && npm i
+docs/HANDOFF.md:81:- Rebuild iOS: expo run:ios
+docs/HANDOFF.md:82:- Start Metro clean: npx expo start -c
+docs/FINAL_GUARDRAILS.md:173:export async function fetchNewData() {
+docs/FINAL_GUARDRAILS.md:229:### Case 2: Barrel exports
+docs/FINAL_GUARDRAILS.md:233:export * from '../workers/summaryWorker';
+docs/AI_PROFILE_SUMMARY_README.md:371:- Automatic cooloff: 5s→10s→20s (exponential backoff)
+docs/ARCHITECTURE_SPLIT.md:171:    "expo": "^52.0.47",
+docs/ai-profile-summary-implementation-plan.md:45:export type AestheticBreakdown = Record<string, number>;
+docs/ai-profile-summary-implementation-plan.md:47:export interface ProfileSummary {
+docs/ai-profile-summary-implementation-plan.md:62:export interface ProfileSummaryMeta {
+docs/ai-profile-summary-implementation-plan.md:70:export interface AestheticSnapshot {
+docs/ai-profile-summary-implementation-plan.md:180:* Global circuit breaker: trip when upstream 5xx > 15% of last 200 calls; auto‑reset with exponential backoff.
+docs/ai-profile-summary-implementation-plan.md:205:* Retries: jittered exponential backoff, max 3, then mark `needsUpdate=true` and fall back to cached summary.
+docs/ai-profile-summary-implementation-plan.md:258:export function normalize(m: AestheticBreakdown): AestheticBreakdown {
+docs/ai-profile-summary-implementation-plan.md:265:export function totalVariation(oldMap: AestheticBreakdown, newMap: AestheticBreakdown): number {
+docs/ai-profile-summary-implementation-plan.md:272:export function shouldRegenerate(oldMap: AestheticBreakdown, nextMap: AestheticBreakdown, thresholdPct = 6): boolean {
+docs/MODAL_DEPLOYMENT.md:46:During the image build Modal will install Node.js, copy `apps/server`, install dependencies, and expose three HTTP endpoints:
+docs/PRODUCTION_GATE_CHECKLIST.md:66:- [x] Cooldown: 5s exponential backoff (5s → 10s → 20s → ...)
+docs/PRODUCTION_GATE_CHECKLIST.md:186:- [x] Retry with exponential backoff (2s delay)
+docs/docs2/systems/xp_system/economy_tuning.md:8:2. Avoid exponential grind; prioritize steady curiosity.
+docs/docs2/systems/xp_system/milestone_unlocks.md:30:  "aesthetic_export": false,
+docs/docs2/frontend/walk_summary_and_citymap.md:69:- Option to export current map view as image for sharing.
+docs/supabase_schema_safe_updates.sql:410:('industrialist', 'The Industrialist', 'Finds beauty in the raw, utilitarian, and exposed. Values honesty, durability, and character from use and age.', ARRAY['Raw', 'Utilitarian', 'Edgy', 'Exposed', 'Functional', 'Urban', 'Authentic'], '#A0522D', 'Converted warehouses, exposed infrastructure, industrial districts, working waterfronts'),
+docs/REPO-SLIM-AND-REFACTOR.md:148:2. **Create package skeleton** (e.g., `packages/<module>`). Add `index.(ts|js)` that exports a small stable API.
+docs/REPO-SLIM-AND-REFACTOR.md:199:5. Run full build + tests: `npm test`, `expo start`, and `gradlew assembleDebug` / Xcode run (or CI emulator).
+docs/HEALTHZ_ENDPOINT.md:129:export default router;
+docs/docs2/systems/scanning/overview.md:12:| Camera Module | Built with `expo-camera` and `react-native-vision-camera`. Captures image and orientation. |
+docs/docs2/systems/scanning/overview.md:43:expo-camera, expo-sensors, expo-location, Supabase Edge Functions, CLIP API, Zustand, React Three Fiber.
+docs/docs2/systems/aesthetic_profile/archetypes_framework.md:11:- Industrialist: exposed structure, utility, patina
+docs/docs2/meta/privacy_data_policy.md:5:- User control: export + delete.
+docs/docs2/systems/scanning/overview.md:12:| Camera Module | Built with `expo-camera` and `react-native-vision-camera`. Captures image and orientation. |
+docs/docs2/systems/scanning/overview.md:43:expo-camera, expo-sensors, expo-location, Supabase Edge Functions, CLIP API, Zustand, React Three Fiber.
+docs/docs2/systems/scanning/overview.md:43:expo-camera, expo-sensors, expo-location, Supabase Edge Functions, CLIP API, Zustand, React Three Fiber.
+docs/docs2/systems/scanning/overview.md:43:expo-camera, expo-sensors, expo-location, Supabase Edge Functions, CLIP API, Zustand, React Three Fiber.
+docs/HANDOFF.md:4:- Mobile app (Expo 54, RN 0.81.4, React 19.1.0, Hermes) with an orb built using @react-three/fiber/native (R3F) and three.
+docs/HANDOFF.md:9:  - "@react-three/fiber": "^9.3.0"
+docs/HANDOFF.md:11:  - "@react-three/drei": "^10.7.6" (not required right now; can be removed)
+docs/HANDOFF.md:25:- Brief attempt to pin @react-three/fiber 8.15.17 + three 0.152.2 (known-good native matrix) conflicted with React 19; reverted to current deps.
+docs/HANDOFF.md:32:   - npm uninstall @react-three/drei
+docs/HANDOFF.md:47:   - Option A (requires React 18): @react-three/fiber 8.15.17 + three 0.152.2.
+docs/HANDOFF.md:51:   - Keep only @react-three/fiber and three at versions above; remove drei (and thus @react-spring peers) until animation is confirmed.
+docs/HANDOFF.md:77:- Use @react-three/fiber/native (no Web flows) and keep a single three instance. Avoid presenting frames manually with WebGL calls; stick to R3F’s native loop.
+docs/ARCHITECTURE_SPLIT.md:170:    "react-native": "0.76.9",
+docs/QUIZ_TESTING_GUIDE.md:7:npm install react-native-svg
+docs/QUIZ_TESTING_GUIDE.md:62:1. **SVG not rendering**: Make sure react-native-svg is properly installed
+docs/docs2/systems/xp_system/milestone_unlocks.md:20:| 15 000 | Orb Modulation | Orb gains reactive shader layer reflecting your top archetype blend in real time. |
+docs/docs2/systems/scanning/overview.md:4:The scanning system is the sensory core of JINK — where the physical world meets the digital aesthetic engine. It lets users point their phone at a building, capture its image, and instantly identify it through a CLIP-based recognition pipeline enriched by location and orientation data. Each successful scan triggers XP gains, orb reactions, and aesthetic drift.
+docs/docs2/systems/scanning/overview.md:12:| Camera Module | Built with `expo-camera` and `react-native-vision-camera`. Captures image and orientation. |
+docs/docs2/systems/scanning/orb_signals.md:16:- Rendered with Three.js shaders in @react-three/fiber
+docs/docs2/systems/aesthetic_profile/orb_visualization.md:15:- Use @react-three/fiber with lightweight shader material
+docs/docs2/product/mvp_roadmap.md:11:- Orb reactions tied to XP and drift
+docs/docs2/core/architecture_overview.md:32:React Native + Expo • Three.js / @react-three/fiber • Supabase (Postgres + Edge Functions)  
+docs/docs2/backend/event_bus.md:4:Lightweight event topics so subsystems react to user actions consistently without spaghetti dependencies.
+docs/ARCHITECTURE_SPLIT.md:170:    "react-native": "0.76.9",
+docs/QUIZ_TESTING_GUIDE.md:7:npm install react-native-svg
+docs/QUIZ_TESTING_GUIDE.md:62:1. **SVG not rendering**: Make sure react-native-svg is properly installed
+docs/docs2/systems/scanning/overview.md:12:| Camera Module | Built with `expo-camera` and `react-native-vision-camera`. Captures image and orientation. |
+docs/QUIZ_TESTING_GUIDE.md:7:npm install react-native-svg
+docs/QUIZ_TESTING_GUIDE.md:62:1. **SVG not rendering**: Make sure react-native-svg is properly installed
+docs/docs2/systems/scanning/overview.md:12:| Camera Module | Built with `expo-camera` and `react-native-vision-camera`. Captures image and orientation. |
+README.md:124:SUPABASE_URL=your_supabase_url
+README.md:125:SUPABASE_ANON_KEY=your_supabase_anon_key
+docs/PastWalksDataPipeline.md:10:Template code for both functions lives under `supabase/functions/`. Update the TODO block in each function with your production table names.
+docs/PastWalksDataPipeline.md:13:supabase/functions/
+docs/PastWalksDataPipeline.md:22:supabase functions deploy past-walk-summaries
+docs/PastWalksDataPipeline.md:23:supabase functions deploy past-walk-geometry
+docs/PastWalksDataPipeline.md:26:For local `supabase functions serve`, place your hosted project credentials in `supabase/functions/.edge-env` using `EDGE_SUPABASE_URL` and `EDGE_SUPABASE_SERVICE_ROLE_KEY` (the CLI ignores variables that start with `SUPABASE_`).
+docs/AI_PROFILE_SUMMARY_README.md:29:- `supabase/migrations/20251017_create_profile_summaries.sql` - Schema migration
+docs/AI_PROFILE_SUMMARY_README.md:100:supabase migration up
+docs/AI_PROFILE_SUMMARY_README.md:103:# Copy contents of supabase/migrations/20251017_create_profile_summaries.sql
+docs/ARCHITECTURE_SPLIT.md:159:    "@supabase/supabase-js": "^2.52.1",
+docs/ARCHITECTURE_SPLIT.md:169:    "@supabase/supabase-js": "^2.52.1",  // For auth
+docs/QUIZ_TESTING_GUIDE.md:11:Execute the SQL in `supabase_schema_additions.sql` in your Supabase SQL Editor.
+docs/DEPLOYMENT_GUIDE.md:69:    "@supabase/supabase-js": "^2.52.1",
+docs/DEPLOYMENT_GUIDE.md:91:SUPABASE_URL=https://your-project.supabase.co
+docs/DEPLOYMENT_GUIDE.md:186:      const { data: profile, error } = await supabase
+docs/MODAL_DEPLOYMENT.md:32:modal secret create SUPABASE_URL --literal https://your-project.supabase.co
+docs/PRODUCTION_GATE_CHECKLIST.md:113:**Evidence:** `supabase/migrations/20251017_create_profile_summaries.sql:35-53`
+docs/PRODUCTION_GATE_CHECKLIST.md:268:- [ ] Run Supabase migration: `supabase migration up`
+docs/REPO-SLIM-AND-REFACTOR.md:137:  /services       # API clients, infra (supabase, auth)
+docs/HANDOFF.md:4:- Mobile app (Expo 54, RN 0.81.4, React 19.1.0, Hermes) with an orb built using @react-three/fiber/native (R3F) and three.
+docs/HANDOFF.md:9:  - "@react-three/fiber": "^9.3.0"
+docs/HANDOFF.md:10:  - "three": "^0.180.0"
+docs/HANDOFF.md:11:  - "@react-three/drei": "^10.7.6" (not required right now; can be removed)
+docs/HANDOFF.md:13:  - src/components/three/ArchetypeOrbR3F.jsx: minimal R3F Canvas with ambientLight + RotatingDebugBox (useFrame), frameloop="always", DPR [1,1.5], transparent clear color, events disabled, shadows off. global.THREE set once.
+docs/HANDOFF.md:21:- Custom GLView + three renderer calling endFrameEXP each frame → rendered but static on device; dropped in favor of R3F/native Canvas.
+docs/HANDOFF.md:25:- Brief attempt to pin @react-three/fiber 8.15.17 + three 0.152.2 (known-good native matrix) conflicted with React 19; reverted to current deps.
+docs/HANDOFF.md:32:   - npm uninstall @react-three/drei
+docs/HANDOFF.md:46:3) If rebuild doesn’t help — downgrade to a known-good R3F/three matrix
+docs/HANDOFF.md:47:   - Option A (requires React 18): @react-three/fiber 8.15.17 + three 0.152.2.
+docs/HANDOFF.md:51:   - Keep only @react-three/fiber and three at versions above; remove drei (and thus @react-spring peers) until animation is confirmed.
+docs/HANDOFF.md:54:   - src/components/three/ArchetypeOrbR3F.jsx: add back OrbShell (meshBasicMaterial first) and three CloudMesh spheres with additive blending, driven by processArchetypeData().
+docs/HANDOFF.md:64:- Keep a single three instance (global.THREE = THREE is set in ArchetypeOrbR3F.jsx).
+docs/HANDOFF.md:69:- src/components/three/ArchetypeOrbR3F.jsx
+docs/HANDOFF.md:74:- package.json (R3F/three versions)
+docs/HANDOFF.md:77:- Use @react-three/fiber/native (no Web flows) and keep a single three instance. Avoid presenting frames manually with WebGL calls; stick to R3F’s native loop.
+docs/MODAL_DEPLOYMENT.md:46:During the image build Modal will install Node.js, copy `apps/server`, install dependencies, and expose three HTTP endpoints:
+docs/docs2/systems/scanning/orb_signals.md:16:- Rendered with Three.js shaders in @react-three/fiber
+docs/REPO-SLIM-AND-REFACTOR.md:221:      {"target": "./src/screens", "from": "./src/components/*/three"}
+docs/docs2/core/architecture_overview.md:32:React Native + Expo • Three.js / @react-three/fiber • Supabase (Postgres + Edge Functions)  
+docs/docs2/systems/aesthetic_profile/orb_visualization.md:15:- Use @react-three/fiber with lightweight shader material
+docs/FINAL_GUARDRAILS.md:125:```typescript
+docs/HEALTHZ_ENDPOINT.md:60:```typescript

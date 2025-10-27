@@ -1,0 +1,32 @@
+Unused dependencies
+* @react-native-community/blur
+* @react-navigation/elements
+* @react-navigation/stack
+* @react-three/drei
+* @shopify/react-native-skia
+* d3-shape
+* expo-constants
+* expo-dev-client
+* expo-device
+* expo-font
+* expo-image
+* expo-secure-store
+* expo-splash-screen
+* expo-status-bar
+* expo-symbols
+* expo-system-ui
+* expo-web-browser
+* react-native-reanimated
+* react-native-safe-area-context
+* react-native-screens
+* react-native-vision-camera
+Unused devDependencies
+* @babel/core
+* basisu
+* ktx2tools
+* supabase
+* typescript
+Missing dependencies
+* expo-file-system: ./src/utils/three/loadKtx2Texture.ts
+* three-stdlib: ./src/components/three/orb/env/envLoader.ts
+* expo-router: ./app/_layout.tsx

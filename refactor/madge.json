@@ -1,0 +1,229 @@
+{
+  "src/api/buildingsApi.js": [
+    "src/api/supabaseClient.js"
+  ],
+  "src/api/quizApi.js": [
+    "src/api/supabaseClient.js"
+  ],
+  "src/api/summaryApi.js": [
+    "src/api/supabaseClient.js"
+  ],
+  "src/api/supabaseClient.js": [],
+  "src/api/userApi.js": [],
+  "src/auth/authProvider.js": [
+    "src/api/supabaseClient.js",
+    "src/auth/sso.js"
+  ],
+  "src/auth/profileSync.js": [
+    "src/api/supabaseClient.js"
+  ],
+  "src/auth/sso.js": [
+    "src/api/supabaseClient.js"
+  ],
+  "src/components/ArchetypeOrb.js": [
+    "src/utils/archetypeColorBlend.js"
+  ],
+  "src/components/auth/ProviderButton.js": [],
+  "src/components/charts/DonutChart.js": [],
+  "src/components/common/Header.js": [],
+  "src/components/common/ListItem.js": [],
+  "src/components/common/PillButton.js": [],
+  "src/components/common/SectionHeader.js": [],
+  "src/components/common/StyledButton.js": [],
+  "src/components/home/AestheticProfile.js": [
+    "src/components/ArchetypeOrb.js"
+  ],
+  "src/components/home/FeatureCard.js": [
+    "src/components/common/PillButton.js"
+  ],
+  "src/components/home/HomeScreen.js": [],
+  "src/components/home/PastWalks.js": [
+    "src/components/common/ListItem.js",
+    "src/components/common/SectionHeader.js"
+  ],
+  "src/components/modals/ArchetypeDetailModal.js": [],
+  "src/components/modals/AuraBreakdownModal.js": [],
+  "src/components/modals/SegmentModal.js": [],
+  "src/components/modals/XPDetailModal.js": [],
+  "src/components/passport/PassportHeader.js": [
+    "src/components/common/PillButton.js"
+  ],
+  "src/components/passport/PassportStamp.js": [],
+  "src/components/passport/XPCircleBadge.js": [],
+  "src/components/passport/XPMeter.js": [],
+  "src/components/quests/QuestCard.js": [
+    "src/utils/questTimers.js"
+  ],
+  "src/components/quests/QuestDetailModal.js": [],
+  "src/components/walk/Compass.js": [],
+  "src/components/walk/StreamingInstructionText.js": [],
+  "src/components/walk/TimeSlider.js": [],
+  "src/components/walk/TimerDisplay.js": [],
+  "src/components/walk/WalkSummaryArt.js": [],
+  "src/components/walk/WalkTypeButton.js": [],
+  "src/config/aiConfig.js": [],
+  "src/config/colors.js": [],
+  "src/config/typography.js": [],
+  "src/constants/archetypeColors.js": [],
+  "src/hooks/useLocation.js": [],
+  "src/navigation/AppNavigator.js": [
+    "src/api/quizApi.js",
+    "src/auth/authProvider.js",
+    "src/navigation/BottomTabNavigator.js",
+    "src/screens/Auth/AuthCallbackScreen.js",
+    "src/screens/Auth/LoginScreen.js",
+    "src/screens/Profile/ProfileDetailScreen.js",
+    "src/screens/Quiz/OnboardingQuizScreen.js",
+    "src/screens/Scan/BuildingInfoScreen.js",
+    "src/screens/Scan/NotFoundScreen.js",
+    "src/screens/Walk/WalkCameraScreen.js",
+    "src/services/orbAssets.js"
+  ],
+  "src/navigation/BottomTabNavigator.js": [
+    "src/navigation/LiquidGlassBottomTab.js",
+    "src/navigation/WalkStackNavigator.js",
+    "src/screens/Home/HomeScreen.js",
+    "src/screens/Passport/PassportScreen.js",
+    "src/screens/Walk/WalkCameraScreen.js"
+  ],
+  "src/navigation/LiquidGlassBottomTab.js": [
+    "src/state/orbTransitionContext.js"
+  ],
+  "src/navigation/WalkStackNavigator.js": [
+    "src/screens/Walk/WalkNavScreen.js"
+  ],
+  "src/screens/Auth/AuthCallbackScreen.js": [
+    "src/api/supabaseClient.js",
+    "src/auth/authProvider.js",
+    "src/auth/profileSync.js"
+  ],
+  "src/screens/Auth/LoginScreen.js": [
+    "src/auth/authProvider.js",
+    "src/components/auth/ProviderButton.js"
+  ],
+  "src/screens/Home/HomeScreen.js": [
+    "src/api/quizApi.js",
+    "src/api/supabaseClient.js",
+    "src/components/ArchetypeOrb.js",
+    "src/components/modals/AuraBreakdownModal.js",
+    "src/components/modals/XPDetailModal.js",
+    "src/components/quests/QuestCard.js",
+    "src/components/quests/QuestDetailModal.js",
+    "src/services/questService.js",
+    "src/state/orbTransitionContext.js",
+    "src/utils/archetypeColorBlend.js",
+    "src/utils/questTimers.js"
+  ],
+  "src/screens/Passport/ListDetailScreen.js": [],
+  "src/screens/Passport/PassportScreen.js": [
+    "src/api/supabaseClient.js",
+    "src/components/modals/XPDetailModal.js",
+    "src/components/passport/PassportHeader.js",
+    "src/components/passport/PassportStamp.js",
+    "src/components/passport/XPCircleBadge.js",
+    "src/services/questService.js",
+    "src/state/userStore.js"
+  ],
+  "src/screens/Profile/ProfileDetailScreen.js": [
+    "src/api/quizApi.js",
+    "src/api/summaryApi.js",
+    "src/auth/authProvider.js",
+    "src/components/charts/DonutChart.js",
+    "src/components/modals/ArchetypeDetailModal.js",
+    "src/components/modals/SegmentModal.js",
+    "src/constants/archetypeColors.js",
+    "src/services/aestheticScoringService.js",
+    "src/services/ai/localSummary.js",
+    "src/services/archetypeDetailService.js"
+  ],
+  "src/screens/Quiz/OnboardingQuizScreen.js": [
+    "src/api/quizApi.js",
+    "src/api/summaryApi.js",
+    "src/auth/authProvider.js"
+  ],
+  "src/screens/Scan/BuildingInfoScreen.js": [],
+  "src/screens/Scan/CameraScreen.js": [],
+  "src/screens/Scan/ContributionScreen.js": [],
+  "src/screens/Scan/NotFoundScreen.js": [],
+  "src/screens/Scan/ScanScreen.js": [
+    "src/components/ArchetypeOrb.js",
+    "src/services/questService.js",
+    "src/utils/sensorFusion.js"
+  ],
+  "src/screens/Search/SearchScreen.js": [],
+  "src/screens/Walk/BuildingModule.js": [],
+  "src/screens/Walk/TimeSlider.js": [],
+  "src/screens/Walk/WalkCameraScreen.js": [],
+  "src/screens/Walk/WalkNavScreen.js": [
+    "src/state/orbTransitionContext.js",
+    "src/utils/deriveUtils.js"
+  ],
+  "src/screens/Walk/WalkSetupScreen.js": [
+    "src/api/buildingsApi.js",
+    "src/components/walk/TimeSlider.js",
+    "src/components/walk/WalkTypeButton.js"
+  ],
+  "src/screens/Walk/WalkStartScreen.js": [
+    "src/api/buildingsApi.js",
+    "src/components/walk/StreamingInstructionText.js",
+    "src/components/walk/TimeSlider.js",
+    "src/components/walk/TimerDisplay.js",
+    "src/state/orbTransitionContext.js"
+  ],
+  "src/screens/Walk/WalkSummaryScreen.js": [
+    "src/components/walk/TimeSlider.js",
+    "src/components/walk/WalkTypeButton.js"
+  ],
+  "src/screens/Walk/WalkTypeButton.js": [],
+  "src/services/aestheticScoringService.js": [
+    "src/constants/archetypeColors.js"
+  ],
+  "src/services/ai/client.js": [
+    "src/config/aiConfig.js",
+    "src/services/ai/prompt.js"
+  ],
+  "src/services/ai/localSummary.js": [
+    "src/services/aestheticScoringService.js"
+  ],
+  "src/services/ai/prompt.js": [
+    "src/config/aiConfig.js"
+  ],
+  "src/services/archetypeDetailService.js": [
+    "src/constants/archetypeColors.js"
+  ],
+  "src/services/orbAssets.js": [],
+  "src/services/questService.js": [
+    "src/api/supabaseClient.js"
+  ],
+  "src/services/walkGenerator.js": [],
+  "src/state/orbTransitionContext.js": [
+    "src/api/quizApi.js",
+    "src/auth/authProvider.js",
+    "src/components/ArchetypeOrb.js",
+    "src/utils/archetypeColorBlend.js"
+  ],
+  "src/state/userStore.js": [],
+  "src/utils/__tests__/normalize.test.js": [
+    "src/utils/divergence.js",
+    "src/utils/normalize.js"
+  ],
+  "src/utils/__tests__/piiSanitizer.test.js": [
+    "src/utils/piiSanitizer.js"
+  ],
+  "src/utils/archetypeColorBlend.js": [
+    "src/constants/archetypeColors.js"
+  ],
+  "src/utils/archetypeDataTransformer.js": [
+    "src/constants/archetypeColors.js"
+  ],
+  "src/utils/deriveUtils.js": [],
+  "src/utils/divergence.js": [
+    "src/utils/normalize.js"
+  ],
+  "src/utils/expoGLGuards.js": [],
+  "src/utils/normalize.js": [],
+  "src/utils/piiSanitizer.js": [],
+  "src/utils/questTimers.js": [],
+  "src/utils/sensorFusion.js": [],
+  "src/utils/threeNativeRenderer.js": []
+}

@@ -1,0 +1,279 @@
+App.js(89,28): error TS2740: Type '{ now: () => number; }' is missing the following properties from type 'Performance': eventCounts, navigation, onresourcetimingbufferfull, timeOrigin, and 14 more.
+App.js(91,44): error TS2322: Type 'Timeout' is not assignable to type 'number'.
+App.js(99,35): error TS2322: Type 'any[]' is not assignable to type 'HTMLCollectionOf<HTMLElementTagNameMap[K]> | HTMLCollectionOf<SVGElementTagNameMap[K]> | HTMLCollectionOf<...> | HTMLCollectionOf<...> | HTMLCollectionOf<...>'.
+  Type 'any[]' is missing the following properties from type 'HTMLCollectionOf<Element>': item, namedItem
+App.js(100,28): error TS2322: Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is not assignable to type 'HTMLElement | HTMLElementTagNameMap[K] | HTMLElementDeprecatedTagNameMap[K]'.
+  Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is missing the following properties from type 'HTMLElement': accessKey, accessKeyLabel, autocapitalize, autocorrect, and 312 more.
+App.js(105,30): error TS2322: Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is not assignable to type 'HTMLElement | Element | SVGElement | SVGElementTagNameMap[K] | MathMLElementTagNameMap[K] | MathMLElement'.
+  Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is missing the following properties from type 'MathMLElement': attributes, classList, className, clientHeight, and 282 more.
+App.js(117,7): error TS2322: Type '() => void' is not assignable to type '<T extends Node>(node: T) => T'.
+  Type 'void' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'void'.
+App.js(118,7): error TS2322: Type '() => void' is not assignable to type '<T extends Node>(child: T) => T'.
+  Type 'void' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'void'.
+App.js(123,7): error TS2322: Type '() => void' is not assignable to type '<T extends Node>(node: T) => T'.
+  Type 'void' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'void'.
+App.js(126,7): error TS2322: Type '() => void' is not assignable to type '<T extends Node>(child: T) => T'.
+  Type 'void' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'void'.
+App.js(156,11): error TS2307: Cannot find module './assets/env/qwantani_moon_noon_puresky_1k.png' or its corresponding type declarations.
+App.js(157,11): error TS2307: Cannot find module './assets/textures/smoke_atlas.png' or its corresponding type declarations.
+app/_layout.tsx(1,23): error TS2307: Cannot find module 'expo-router' or its corresponding type declarations.
+eslint.config.js(2,34): error TS2307: Cannot find module 'eslint/config' or its corresponding type declarations.
+eslint.config.js(3,28): error TS2307: Cannot find module 'eslint-config-expo/flat' or its corresponding type declarations.
+index.js(7,5): error TS2740: Type '{}' is missing the following properties from type 'Document': URL, alinkColor, all, anchors, and 260 more.
+index.js(13,38): error TS2322: Type 'any[]' is not assignable to type 'HTMLCollectionOf<HTMLElementTagNameMap[K]> | HTMLCollectionOf<SVGElementTagNameMap[K]> | HTMLCollectionOf<...> | HTMLCollectionOf<...> | HTMLCollectionOf<...>'.
+  Type 'any[]' is missing the following properties from type 'HTMLCollectionOf<Element>': item, namedItem
+index.js(17,31): error TS2322: Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is not assignable to type 'HTMLElement | HTMLElementTagNameMap[K] | HTMLElementDeprecatedTagNameMap[K]'.
+  Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is missing the following properties from type 'HTMLElement': accessKey, accessKeyLabel, autocapitalize, autocorrect, and 312 more.
+index.js(25,33): error TS2322: Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is not assignable to type 'HTMLElement | Element | SVGElement | SVGElementTagNameMap[K] | MathMLElementTagNameMap[K] | MathMLElement'.
+  Type '{ style: {}; addEventListener: () => void; removeEventListener: () => void; }' is missing the following properties from type 'MathMLElement': attributes, classList, className, clientHeight, and 282 more.
+index.js(37,5): error TS2740: Type '{}' is missing the following properties from type 'HTMLElement': accessKey, accessKeyLabel, autocapitalize, autocorrect, and 315 more.
+index.js(41,5): error TS2322: Type '() => void' is not assignable to type '<T extends Node>(node: T) => T'.
+  Type 'void' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'void'.
+index.js(45,5): error TS2322: Type '() => void' is not assignable to type '<T extends Node>(child: T) => T'.
+  Type 'void' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'void'.
+index.js(54,17): error TS1149: File name '/Users/lucienmount/Arch_App_V2/architecture-app/App/index.tsx' differs from already included file name '/Users/lucienmount/Arch_App_V2/architecture-app/app/index.tsx' only in casing.
+  The file is in the program because:
+    Matched by include pattern '**/*.tsx' in '/Users/lucienmount/Arch_App_V2/architecture-app/tsconfig.json'
+    Imported via "./App" from file '/Users/lucienmount/Arch_App_V2/architecture-app/index.js'
+metro.config.js(6,7): error TS2322: Type 'InputConfigT' is not assignable to type 'ConfigT'.
+  Types of property 'resolver' are incompatible.
+    Type 'Partial<ResolverConfigT>' is not assignable to type 'Readonly<ResolverConfigT>'.
+      Property 'assetExts' is optional in type 'Partial<ResolverConfigT>' but required in type 'Readonly<ResolverConfigT>'.
+metro.config.js(15,1): error TS2300: Duplicate identifier 'resolver'.
+metro.config.js(15,8): error TS2540: Cannot assign to 'resolver' because it is a read-only property.
+metro.config.js(16,17): error TS2540: Cannot assign to 'sourceExts' because it is a read-only property.
+metro.config.js(17,17): error TS2540: Cannot assign to 'resolverMainFields' because it is a read-only property.
+metro.config.js(18,17): error TS2540: Cannot assign to 'assetExts' because it is a read-only property.
+metro.config.js(26,17): error TS2540: Cannot assign to 'extraNodeModules' because it is a read-only property.
+patches/react-native-maps/src/MapMarkerNativeComponent.ts(3,32): error TS2307: Cannot find module './MapMarker' or its corresponding type declarations.
+patches/react-native-maps/src/MapMarkerNativeComponent.ts(4,27): error TS2307: Cannot find module './sharedTypes' or its corresponding type declarations.
+patches/react-native-maps/src/MapViewNativeComponent.ts(4,40): error TS2307: Cannot find module './MapView.types' or its corresponding type declarations.
+patches/react-native-maps/src/MapViewNativeComponent.ts(5,35): error TS2307: Cannot find module './sharedTypes' or its corresponding type declarations.
+patches/react-native-maps/src/specs/NativeAirMapsModule.ts(4,36): error TS2307: Cannot find module '../MapView.types' or its corresponding type declarations.
+src/api/summaryApi.js(30,9): error TS2339: Property 'code' does not exist on type 'Error'.
+src/auth/authProvider.js(47,53): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/auth/authProvider.js(52,52): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/auth/authProvider.js(57,49): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/auth/sso.js(25,5): error TS2322: Type 'string' is not assignable to type 'Provider'.
+src/auth/sso.js(54,3): error TS2322: Type '{ provider: Provider; url: string; } | { provider: Provider; url: null; }' is not assignable to type 'string'.
+  Type '{ provider: Provider; url: string; }' is not assignable to type 'string'.
+src/components/ArchetypeOrb.js(60,25): error TS2339: Property 'palette' does not exist on type '{ blendedColor: string; colorA: string; colorB: string; colorC: string; }'.
+src/components/modals/AuraBreakdownModal.js(31,25): error TS2769: No overload matches this call.
+  Argument of type '[string]' is not assignable to parameter of type 'never'.
+  Overload 2 of 2, '(options: never): void', gave the following error.
+    Argument of type '"ProfileDetail"' is not assignable to parameter of type 'never'.
+src/components/modals/AuraBreakdownModal.js(82,41): error TS2345: Argument of type '[string, { initialArchetype: any; }]' is not assignable to parameter of type 'never'.
+src/components/three/ArchetypeOrbScene.jsx(71,34): error TS2339: Property 'geometry' does not exist on type 'never'.
+src/components/three/ArchetypeOrbScene.jsx(115,17): error TS2339: Property 'instanceMatrix' does not exist on type 'never'.
+src/components/three/ArchetypeOrbScene.jsx(116,9): error TS18048: 'materialRef.current' is possibly 'undefined'.
+src/components/three/ArchetypeOrbScene.jsx(117,27): error TS2339: Property 'uniforms' does not exist on type 'never'.
+src/components/three/ArchetypeOrbScene.jsx(122,7): error TS2339: Property 'instancedMesh' does not exist on type 'JSX.IntrinsicElements'.
+src/components/three/ArchetypeOrbScene.jsx(128,9): error TS2339: Property 'planeGeometry' does not exist on type 'JSX.IntrinsicElements'.
+src/components/three/ArchetypeOrbScene.jsx(219,7): error TS2339: Property 'instancedMesh' does not exist on type 'JSX.IntrinsicElements'.
+src/components/three/ArchetypeOrbScene.jsx(231,7): error TS2339: Property 'pointLight' does not exist on type 'JSX.IntrinsicElements'.
+src/components/three/orb/env/envLoader.ts(142,23): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/components/three/orb/gyroController.ts(22,15): error TS2345: Argument of type '{ alpha: number; beta: number; gamma: number; }' is not assignable to parameter of type 'Required<{ alpha: number; beta: number; gamma: number; timestamp: number; }>'.
+  Property 'timestamp' is missing in type '{ alpha: number; beta: number; gamma: number; }' but required in type 'Required<{ alpha: number; beta: number; gamma: number; timestamp: number; }>'.
+src/navigation/AppNavigator.js(24,11): error TS2339: Property 'session' does not exist on type '{}'.
+src/navigation/AppNavigator.js(24,20): error TS2339: Property 'loading' does not exist on type '{}'.
+src/navigation/AppNavigator.js(101,24): error TS2322: Type 'string' is not assignable to type 'undefined'.
+src/navigation/BottomTabNavigator.js(16,6): error TS2741: Property 'id' is missing in type '{ children: Element[]; screenOptions: { headerShown: false; }; tabBar: (props: BottomTabBarProps) => Element; }' but required in type '{ id: undefined; }'.
+src/navigation/BottomTabNavigator.js(27,11): error TS2322: Type 'string' is not assignable to type '(props: { focused: boolean; color: string; size: number; }) => ReactNode'.
+src/navigation/BottomTabNavigator.js(35,11): error TS2322: Type 'string' is not assignable to type '(props: { focused: boolean; color: string; size: number; }) => ReactNode'.
+src/navigation/BottomTabNavigator.js(43,11): error TS2322: Type 'string' is not assignable to type '(props: { focused: boolean; color: string; size: number; }) => ReactNode'.
+src/navigation/BottomTabNavigator.js(51,11): error TS2322: Type 'string' is not assignable to type '(props: { focused: boolean; color: string; size: number; }) => ReactNode'.
+src/screens/Auth/AuthCallbackScreen.js(14,11): error TS2339: Property 'session' does not exist on type '{}'.
+src/screens/Auth/AuthCallbackScreen.js(59,23): error TS2339: Property 'fragment' does not exist on type 'ParsedURL'.
+src/screens/Auth/AuthCallbackScreen.js(60,21): error TS2339: Property 'fragment' does not exist on type 'ParsedURL'.
+src/screens/Auth/AuthCallbackScreen.js(74,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(message?: string, options?: ErrorOptions): Error', gave the following error.
+    Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+      Type 'string[]' is not assignable to type 'string'.
+  Overload 2 of 2, '(message?: string): Error', gave the following error.
+    Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+      Type 'string[]' is not assignable to type 'string'.
+src/screens/Auth/AuthCallbackScreen.js(83,107): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/screens/Auth/AuthCallbackScreen.js(92,13): error TS2322: Type 'string | string[]' is not assignable to type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/screens/Auth/AuthCallbackScreen.js(93,13): error TS2322: Type 'string | string[]' is not assignable to type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+src/screens/Auth/LoginScreen.js(36,11): error TS2339: Property 'signIn' does not exist on type '{}'.
+src/screens/Auth/LoginScreen.js(36,19): error TS2339: Property 'signUp' does not exist on type '{}'.
+src/screens/Auth/LoginScreen.js(36,27): error TS2339: Property 'signInWithProvider' does not exist on type '{}'.
+src/screens/Auth/LoginScreen.js(36,47): error TS2339: Property 'signInWithPhone' does not exist on type '{}'.
+src/screens/Auth/LoginScreen.js(36,64): error TS2339: Property 'verifyPhoneOtp' does not exist on type '{}'.
+src/screens/Profile/ProfileDetailScreen.js(185,20): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/Profile/ProfileDetailScreen.js(185,26): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/screens/Profile/ProfileDetailScreen.js(201,11): error TS2339: Property 'session' does not exist on type '{}'.
+src/screens/Profile/ProfileDetailScreen.js(485,44): error TS2339: Property 'initialArchetype' does not exist on type 'object'.
+src/screens/Profile/ProfileDetailScreen.js(496,31): error TS2339: Property 'initialArchetype' does not exist on type 'object'.
+src/screens/Quiz/OnboardingQuizScreen.js(24,11): error TS2339: Property 'session' does not exist on type '{}'.
+src/screens/Quiz/OnboardingQuizScreen.js(24,20): error TS2339: Property 'loading' does not exist on type '{}'.
+src/screens/Scan/ScanScreen.js(216,16): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(name: string, value: string | Blob): void', gave the following error.
+    Object literal may only specify known properties, and 'uri' does not exist in type 'Blob'.
+  Overload 2 of 3, '(name: string, value: string): void', gave the following error.
+    Argument of type '{ uri: any; type: string; name: string; }' is not assignable to parameter of type 'string'.
+  Overload 3 of 3, '(name: string, blobValue: Blob, filename?: string): void', gave the following error.
+    Object literal may only specify known properties, and 'uri' does not exist in type 'Blob'.
+src/screens/Walk/BuildingModule.js(59,21): error TS2339: Property 'setStringAsync' does not exist on type '{ new (): Clipboard; prototype: Clipboard; }'.
+src/screens/Walk/BuildingModule.js(100,31): error TS2339: Property 'muted' does not exist on type '{ container: { padding: number; backgroundColor: string; }; title: { fontSize: number; fontWeight: "700"; color: string; marginBottom: number; }; address: { fontSize: number; color: string; flexShrink: number; }; ... 12 more ...; chipText: { ...; }; }'.
+src/screens/Walk/WalkSetupScreen.js(60,10): error TS2739: Type '{ min: number; max: number; initialValue: number; }' is missing the following properties from type '{ min?: number; max?: number; initialValue?: number; setValue: any; onPress: any; centerLabel?: string; showRangeLabels?: boolean; }': setValue, onPress
+src/screens/Walk/WalkStartScreen.js(218,12): error TS2741: Property 'style' is missing in type '{ value: number; label: string; }' but required in type '{ value?: number; minDigits?: number; size?: number; duration?: number; label: any; style: any; }'.
+src/screens/Walk/WalkSummaryScreen.js(10,10): error TS2739: Type '{ min: number; max: number; initialValue: number; }' is missing the following properties from type '{ min?: number; max?: number; initialValue?: number; setValue: any; onPress: any; centerLabel?: string; showRangeLabels?: boolean; }': setValue, onPress
+src/services/orbAssets.js(3,21): error TS2307: Cannot find module '../../assets/env/qwantani_moon_noon_puresky_1k.png' or its corresponding type declarations.
+src/services/orbAssets.js(4,29): error TS2307: Cannot find module '../../assets/textures/smoke_atlas.png' or its corresponding type declarations.
+src/services/orbAssets.js(5,37): error TS2307: Cannot find module '../../assets/textures/smoke_atlas_startup.png' or its corresponding type declarations.
+src/state/orbTransitionContext.js(59,11): error TS2339: Property 'session' does not exist on type '{}'.
+src/utils/__tests__/normalize.test.js(6,21): error TS2305: Module '"../normalize"' has no exported member 'totalVariation'.
+src/utils/__tests__/normalize.test.js(9,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(10,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(15,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(18,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(22,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(23,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(24,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(27,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(31,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(33,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(36,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(38,30): error TS2345: Argument of type '{}' is not assignable to parameter of type 'Record<string, number>'.
+  Index signature for type 'string' is missing in type '{}'.
+src/utils/__tests__/normalize.test.js(39,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(42,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(48,7): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(53,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(54,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(59,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(62,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(69,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(72,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(79,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(82,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(89,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(93,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(94,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(99,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(100,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(103,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(109,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(110,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(113,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(119,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(120,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(123,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(131,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(132,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(136,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(137,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(143,7): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(147,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(153,7): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(154,7): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(158,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/normalize.test.js(162,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/normalize.test.js(163,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(14,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(15,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(26,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(27,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(28,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(29,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(30,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(33,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(40,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(43,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(55,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(58,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(59,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(60,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(61,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(65,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(66,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(69,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(72,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(75,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(78,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(81,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(84,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(87,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(90,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(93,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(96,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(99,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(102,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(103,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(104,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(105,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(109,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(110,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(113,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(114,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(117,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(120,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(123,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(126,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(129,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(130,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(131,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(135,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(136,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(143,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(146,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(158,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(164,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(167,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(173,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(177,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(178,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(188,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(189,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(190,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(191,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(194,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(202,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(205,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(210,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(213,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(224,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(228,1): error TS2593: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(229,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(230,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(231,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(232,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(235,3): error TS2593: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha` and then add 'jest' or 'mocha' to the types field in your tsconfig.
+src/utils/__tests__/piiSanitizer.test.js(236,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(237,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(238,5): error TS2304: Cannot find name 'expect'.
+src/utils/__tests__/piiSanitizer.test.js(239,5): error TS2304: Cannot find name 'expect'.
+src/utils/archetypeColorBlend.js(17,7): error TS2353: Object literal may only specify known properties, and 'palette' does not exist in type '{ blendedColor: string; colorA: string; colorB: string; colorC: string; }'.
+src/utils/archetypeColorBlend.js(48,7): error TS2353: Object literal may only specify known properties, and 'palette' does not exist in type '{ blendedColor: string; colorA: string; colorB: string; colorC: string; }'.
+src/utils/archetypeColorBlend.js(72,5): error TS2353: Object literal may only specify known properties, and 'palette' does not exist in type '{ blendedColor: string; colorA: string; colorB: string; colorC: string; }'.
+src/utils/expoGLGuards.js(148,15): error TS2339: Property '__patchedPixelStorei' does not exist on type 'WebGLRenderingContext | WebGL2RenderingContext'.
+  Property '__patchedPixelStorei' does not exist on type 'WebGLRenderingContext'.
+src/utils/expoGLGuards.js(173,11): error TS2339: Property '__patchedPixelStorei' does not exist on type 'WebGLRenderingContext | WebGL2RenderingContext'.
+  Property '__patchedPixelStorei' does not exist on type 'WebGLRenderingContext'.
+src/utils/questTimers.js(15,16): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/utils/questTimers.js(15,27): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/utils/questTimers.js(46,16): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/utils/questTimers.js(46,29): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/utils/three/loadKtx2Texture.ts(64,3): error TS2322: Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+  Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+src/utils/three/loadKtx2Texture.ts(96,45): error TS2345: Argument of type '{ wasmBinary: ArrayBuffer; onRuntimeInitialized: () => void; }' is not assignable to parameter of type 'BasisModuleType | PromiseLike<BasisModuleType>'.
+supabase/functions/past-walk-geometry/index.ts(1,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/past-walk-geometry/index.ts(2,52): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/past-walk-geometry/index.ts(9,22): error TS2304: Cannot find name 'Deno'.
+supabase/functions/past-walk-geometry/index.ts(10,21): error TS2304: Cannot find name 'Deno'.
+supabase/functions/past-walk-geometry/index.ts(16,1): error TS2304: Cannot find name 'Deno'.
+supabase/functions/past-walk-summaries/index.ts(1,30): error TS2307: Cannot find module 'https://esm.sh/@supabase/supabase-js@2' or its corresponding type declarations.
+supabase/functions/past-walk-summaries/index.ts(2,52): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
+supabase/functions/past-walk-summaries/index.ts(16,22): error TS2304: Cannot find name 'Deno'.
+supabase/functions/past-walk-summaries/index.ts(17,21): error TS2304: Cannot find name 'Deno'.
+supabase/functions/past-walk-summaries/index.ts(23,1): error TS2304: Cannot find name 'Deno'.

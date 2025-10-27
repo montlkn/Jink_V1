@@ -1,7 +1,7 @@
 export type MapStyleElement = {
   elementType?: string;
   featureType?: string;
-  stylers: Array<Record<string, unknown>>;
+  stylers: Record<string, unknown>[];
 };
 
 export const PAST_WALKS_NOLLI_MAP_STYLE: MapStyleElement[] = [

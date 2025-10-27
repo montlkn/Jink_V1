@@ -7,9 +7,10 @@
 export type AestheticBreakdown = Record<string, number>;
 
 const toEntries = (map: AestheticBreakdown | null | undefined) =>
-  Object.entries(map ?? {}).filter(([, value]) => Number.isFinite(value) && value >= 0) as Array<
-    [string, number]
-  >;
+  Object.entries(map ?? {}).filter(([, value]) => Number.isFinite(value) && value >= 0) as [
+    string,
+    number
+  ][];
 
 /**
  * Normalize aesthetic breakdown to sum to exactly 100.0.

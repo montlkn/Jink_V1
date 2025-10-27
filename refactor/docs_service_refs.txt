@@ -1,0 +1,84 @@
+docs/HANDOFF.md:5:- Issue: R3F Canvas mounts on iOS but appears static/blank. Earlier we briefly had a rotating hotpink cube animating; after several iterations the region regressed to static again.
+docs/HANDOFF.md:14:  - src/components/home/AestheticProfile.js: renders <ArchetypeOrb> in Home; debug modal and excessive logs removed.
+docs/HANDOFF.md:23:- Removed heavy console logs & modal overlay; lowered DPR; disabled tone mapping and events.
+docs/PastWalksDataPipeline.md:91:2. Start the Expo dev client and open the Passport → Past Walks modal.
+docs/FINAL_GUARDRAILS.md:15:  'bullmq': SERVER_ONLY_SHIM,           // ← throws error
+docs/FINAL_GUARDRAILS.md:16:  'ioredis': SERVER_ONLY_SHIM,          // ← throws error
+docs/FINAL_GUARDRAILS.md:22:**When triggered:** Any `import bullmq` or `require('ioredis')` from anywhere in `src/`
+docs/FINAL_GUARDRAILS.md:36:import bullmq from 'bullmq';           // ❌ ESLint error
+docs/FINAL_GUARDRAILS.md:37:import Redis from 'ioredis';           // ❌ ESLint error
+docs/FINAL_GUARDRAILS.md:98:- ❌ `bullmq` (job queue)
+docs/FINAL_GUARDRAILS.md:99:- ❌ `ioredis` (Redis client)
+docs/FINAL_GUARDRAILS.md:137:      return /from ['"](?:bullmq|ioredis|redis)['"]/g.test(content);
+docs/FINAL_GUARDRAILS.md:151:- [ ] No new imports from `bullmq`, `ioredis`, `redis`
+docs/FINAL_GUARDRAILS.md:165:import { Queue } from 'bullmq';
+docs/FINAL_GUARDRAILS.md:166:import Redis from 'ioredis';
+docs/FINAL_GUARDRAILS.md:191:  "bullmq": "^5.61.0"
+docs/FINAL_GUARDRAILS.md:223:const { bullmq } = await import('bullmq');
+docs/FINAL_GUARDRAILS.md:225:// ✓ Metro shim blocks 'bullmq' module resolution
+docs/FINAL_GUARDRAILS.md:236:// ✓ ESLint module rule catches 'bullmq' transitive import
+docs/FINAL_GUARDRAILS.md:242:const bullmq = require('bullmq');
+docs/FINAL_GUARDRAILS.md:252:import { redis } from '../lib/queue';  // ✗ ESLint error
+docs/FINAL_GUARDRAILS.md:294:echo "import bullmq from 'bullmq';" >> src/api/summaryApi.js
+docs/AI_PROFILE_SUMMARY_README.md:84:REDIS_URL=redis://localhost:6379
+docs/AI_PROFILE_SUMMARY_README.md:112:brew install redis
+docs/AI_PROFILE_SUMMARY_README.md:113:redis-server
+docs/AI_PROFILE_SUMMARY_README.md:116:docker run -p 6379:6379 redis:latest
+docs/AI_PROFILE_SUMMARY_README.md:364:- Verify Redis is running: `redis-cli PING` → should return `PONG`
+docs/ARCHITECTURE_SPLIT.md:13:  bullmq (Node.js only)
+docs/ARCHITECTURE_SPLIT.md:14:  ioredis (Node.js only)
+docs/ARCHITECTURE_SPLIT.md:41:- ❌ Deleted: `"bullmq": "^5.61.0"`
+docs/ARCHITECTURE_SPLIT.md:42:- ❌ Deleted: `"ioredis": "^5.8.1"`
+docs/ARCHITECTURE_SPLIT.md:55:  'bullmq': SERVER_ONLY_SHIM,
+docs/ARCHITECTURE_SPLIT.md:56:  'ioredis': SERVER_ONLY_SHIM,
+docs/ARCHITECTURE_SPLIT.md:148:  ├── package.json           (includes bullmq, ioredis, express, etc.)
+docs/ARCHITECTURE_SPLIT.md:156:    "bullmq": "^5.61.0",
+docs/ARCHITECTURE_SPLIT.md:157:    "ioredis": "^5.8.1",
+docs/ARCHITECTURE_SPLIT.md:173:    // NO bullmq, NO ioredis
+docs/ARCHITECTURE_SPLIT.md:185:import Queue from 'bullmq';  // ❌ Metro throws clear error
+docs/ARCHITECTURE_SPLIT.md:199:const queue = new Queue('profile-summary', { connection: redis });
+docs/ARCHITECTURE_SPLIT.md:216:   - `bullmq`
+docs/ARCHITECTURE_SPLIT.md:217:   - `ioredis`
+docs/ARCHITECTURE_SPLIT.md:218:   - `redis`
+docs/ai-profile-summary-implementation-plan.md:136:   * User: compact table of top 6 aesthetics with percents, and 5–7 contextual bullets.
+docs/DEPLOYMENT_GUIDE.md:18:1. Go to https://console.upstash.com/redis
+docs/DEPLOYMENT_GUIDE.md:20:3. Copy the **`rediss://`** connection string (NOT the REST URL)
+docs/DEPLOYMENT_GUIDE.md:21:4. Should look like: `rediss://:password@hostname:port`
+docs/DEPLOYMENT_GUIDE.md:70:    "bullmq": "^5.61.0",
+docs/DEPLOYMENT_GUIDE.md:72:    "ioredis": "^5.8.1"
+docs/DEPLOYMENT_GUIDE.md:88:REDIS_URL=rediss://:your_password@your_host:your_port
+docs/DEPLOYMENT_GUIDE.md:367:2. Deploy `modal_app.py` via `modal deploy modal_app.py`.
+docs/DEPLOYMENT_GUIDE.md:368:3. Point the Expo client at the generated `https://<app>.modal.run` URL.
+docs/DEPLOYMENT_GUIDE.md:380:const redis = require('ioredis');
+docs/DEPLOYMENT_GUIDE.md:381:const r = new redis(process.env.REDIS_URL);
+docs/DEPLOYMENT_GUIDE.md:418:- Verify `REDIS_URL` is the **`rediss://`** connection string (NOT REST URL)
+docs/DEPLOYMENT_GUIDE.md:469:- [BullMQ Docs](https://docs.bullmq.io/)
+docs/DEPLOYMENT_GUIDE.md:470:- [Upstash Redis](https://upstash.com/docs/redis/overall/getstarted)
+docs/MODAL_DEPLOYMENT.md:8:- Modal account with the CLI configured (`pip install modal`, `python -m modal setup`)
+docs/MODAL_DEPLOYMENT.md:30:modal secret create GEMINI_API_KEY --from-file <path-to-file-with-key>
+docs/MODAL_DEPLOYMENT.md:31:modal secret create REDIS_URL --literal redis://:password@host:port/0
+docs/MODAL_DEPLOYMENT.md:32:modal secret create SUPABASE_URL --literal https://your-project.supabase.co
+docs/MODAL_DEPLOYMENT.md:33:modal secret create SUPABASE_SERVICE_KEY --from-file <path-to-service-key-file>
+docs/MODAL_DEPLOYMENT.md:40:The deployment entrypoint lives at the repository root: `modal_app.py`.
+docs/MODAL_DEPLOYMENT.md:43:modal deploy modal_app.py
+docs/MODAL_DEPLOYMENT.md:53:Modal returns a stable URL after deployment, e.g. `https://aesthetic-profile-summary--summary.modal.run`.
+docs/MODAL_DEPLOYMENT.md:62:EXPO_PUBLIC_API_URL="https://<your-app>.modal.run"
+docs/MODAL_DEPLOYMENT.md:73:- `apps/server/bin/modal-entry.js` wraps the existing summary service logic; the Express server can still run locally via `npm run dev` if desired.
+docs/PRODUCTION_GATE_CHECKLIST.md:230:REDIS_URL=redis://localhost:6379
+docs/PRODUCTION_GATE_CHECKLIST.md:263:- [ ] Verify Redis is running: `redis-cli PING` → `PONG`
+docs/HEALTHZ_ENDPOINT.md:16:    "redis": {
+docs/HEALTHZ_ENDPOINT.md:41:    "redis": {
+docs/HEALTHZ_ENDPOINT.md:65:import { redis } from '../lib/redis';
+docs/HEALTHZ_ENDPOINT.md:73:      redis: await checkRedis(),
+docs/HEALTHZ_ENDPOINT.md:96:    await redis.ping();
+docs/REPO-SLIM-AND-REFACTOR.md:71:rg -n "fly.io|bullmq|modal|bull|fly|redis|bull-board|bullmq" android ios ios Podfile* --hidden || true
+docs/REPO-SLIM-AND-REFACTOR.md:72:rg -n "fly.io|bullmq|modal|bull|fly|redis" package.json .github workflows docs || true
+docs/docs2/meta/implementation_checklist.md:10:- [ ] Search modal: autocomplete + results + handoff
+docs/docs2/systems/aesthetic_profile/examples.md:18:- Post-walk profile shows small but broad shift; orb hue briefly trends violet before settling.
+docs/docs2/backend/ai_prompts_enrichment.md:11:- Length: 300–500 words, bulleted where helpful
+docs/docs2/frontend/app_structure.md:16:- Nested stack for modal views (e.g., memory composer, stamp detail)
+docs/docs2/frontend/orb_behavior_model.md:55:| Level Up              | Burst ripple outward, hue briefly shifts warmer | triggered once per 1000 XP                     |
+docs/docs2/frontend/modal_system.md:4:Defines bottom sheets and full-screen modals for search, contribute, and summaries.
+docs/docs2/frontend/loading_transitions.md:11:- Home → Camera: orb grows and settles into capture node; background blurs briefly to focus attention.
+docs/docs2/product/pitch.md:12:Design enthusiasts, travelers, locals rediscovering their city.
+docs/docs2/frontend/search_ui.md:4:Unified modal with a single input bar, pill filters, and instant feedback. Shows results grouped by nearby, style match, and exact name.
