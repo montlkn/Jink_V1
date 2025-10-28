@@ -8,6 +8,7 @@ import { Alert, SafeAreaView, StyleSheet, View } from "react-native";
 import { getNearbyPlaces } from "../../api/buildingsApi.js";
 import TimeSlider from "../../components/walk/TimeSlider";
 import WalkTypeButton from "../../components/walk/WalkTypeButton";
+import { screens } from "@/navigation/routes";
 
 const WalkSetupScreen = ({ navigation }) => {
   const [location, setLocation] = useState({
@@ -43,7 +44,7 @@ const WalkSetupScreen = ({ navigation }) => {
         location.longitude,
         1000
       ); // 1000 meters radius
-      navigation.navigate("WalkNavScreen", {
+      navigation.navigate(screens.WalkNav, {
         places: nearbyPlaces,
         location,
         durationMinutes: time,

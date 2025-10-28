@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useFrame } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber/native";
 import React, { useMemo, useRef } from "react";
 import * as THREE from "three";
 
@@ -8,9 +7,9 @@ import * as THREE from "three";
  * This layer sits just inside the glass shell
  */
 export function RainbowLayer() {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial> | null>(null);
 
-  const shaderMaterial = useMemo(() => {
+  const shaderMaterial = useMemo<THREE.ShaderMaterial>(() => {
     return new THREE.ShaderMaterial({
       transparent: true,
       side: THREE.BackSide,
@@ -63,9 +62,14 @@ export function RainbowLayer() {
     });
   }, []);
 
-  useFrame((state) => {
-    if (meshRef.current && (meshRef.current.material as any).uniforms) {
-      (meshRef.current.material as any).uniforms.uTime.value = state.clock.getElapsedTime();
+  useFrame(({ clock }) => {
+    if (!meshRef.current) {
+      return;
+    }
+
+    const material = meshRef.current.material;
+    if (material instanceof THREE.ShaderMaterial) {
+      material.uniforms.uTime.value = clock.getElapsedTime();
     }
   });
 

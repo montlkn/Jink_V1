@@ -109,6 +109,27 @@
     },
     {
       "files": [
+        "src/components/**/*.js",
+        "src/components/**/*.jsx",
+        "src/components/**/*.ts",
+        "src/components/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.property.name='navigate'][arguments.0.type='Literal']",
+            "message": "Use screens.* constants from src/navigation/routes.ts for navigation targets"
+          },
+          {
+            "selector": "CallExpression[callee.name='navigate'][arguments.0.type='Literal']",
+            "message": "Use screens.* constants from src/navigation/routes.ts for navigation targets"
+          }
+        ]
+      }
+    },
+    {
+      "files": [
         "src/screens/**/*.js",
         "src/screens/**/*.jsx",
         "src/screens/**/*.ts",
@@ -143,6 +164,17 @@
                 "message": "Screens must use @/features/* facades"
               }
             ]
+          }
+        ],
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.property.name='navigate'][arguments.0.type='Literal']",
+            "message": "Use screens.* constants from src/navigation/routes.ts for navigation targets"
+          },
+          {
+            "selector": "CallExpression[callee.name='navigate'][arguments.0.type='Literal']",
+            "message": "Use screens.* constants from src/navigation/routes.ts for navigation targets"
           }
         ]
       }

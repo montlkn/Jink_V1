@@ -10,6 +10,7 @@ import {
 } from '../../utils/sensorFusion';
 import ArchetypeOrb from '../../components/ArchetypeOrb';
 import { awardXP } from '../../services/questService';
+import { screens } from "@/navigation/routes";
 
 export default function ScanScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
@@ -258,10 +259,10 @@ export default function ScanScreen({ navigation }) {
         await awardXP(50, 'building_scan');
 
         // Successfully identified building
-        navigation.navigate('BuildingInfo', { buildingData: data.building });
+        navigation.navigate(screens.BuildingInfo, { buildingData: data.building });
       } else {
         // Could not identify building
-        navigation.navigate('NotFound', {
+        navigation.navigate(screens.NotFound, {
           message: data.message || "We couldn't identify this building."
         });
       }
@@ -280,7 +281,7 @@ export default function ScanScreen({ navigation }) {
       }
 
       // Navigate to NotFound screen on error
-      navigation.navigate('NotFound', { message });
+      navigation.navigate(screens.NotFound, { message });
     } finally {
       setIsScanning(false);
     }

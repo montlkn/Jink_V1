@@ -13,11 +13,13 @@ import {
 } from "react-native";
 import ProviderButton from "@/components/auth/ProviderButton";
 import { authActions } from "./mutations";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { screens, type RootParams } from "@/navigation/routes";
+
+type AuthNavigation = NativeStackNavigationProp<RootParams, typeof screens.AuthLogin>;
 
 type AuthViewProps = {
-  navigation: {
-    navigate: (route: string, params?: Record<string, unknown>) => void;
-  };
+  navigation: AuthNavigation;
 };
 
 export function AuthView({ navigation }: AuthViewProps) {
@@ -34,7 +36,7 @@ export function AuthView({ navigation }: AuthViewProps) {
     try {
       setLoading(true);
       setError("");
-      navigation.navigate("AuthCallback");
+      navigation.navigate(screens.AuthCallback);
       await authActions.signInWithProvider(provider);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to sign in with provider";

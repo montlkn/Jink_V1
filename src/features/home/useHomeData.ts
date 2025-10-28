@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getUserAestheticProfile } from "@/api/quizApi";
 import { supabaseGateway as supabase } from "@/services/gateways";
-import { getActiveQuests, getUserXP, getXPForNextLevel } from "@/services/questService";
+import {
+  getActiveQuests,
+  getUserXP,
+  getXPForNextLevel,
+} from "@/services/questService";
+import type { ActiveQuestsResponse, XpSnapshot } from "@/services/questService";
 import { getRecentTasteSummary } from "@/services/recentTasteSummaryService";
 import { extractTopArchetypesFromScores } from "@/utils/archetypeColorBlend";
 import { getTimeUntilMidnight, getTimeUntilMonday } from "@/utils/questTimers";
@@ -74,7 +79,7 @@ export function useHomeData(): HomeDataState {
       } catch (err) {
         console.error("Error fetching archetypes:", err);
         if (alive) {
-          setError((prev) => prev ?? err);
+          setError((prev: unknown) => (prev == null ? err : prev));
           setArchetypeData([]);
         }
       } finally {
@@ -122,7 +127,7 @@ export function useHomeData(): HomeDataState {
       } catch (err) {
         console.error("Error building taste summary:", err);
         if (alive) {
-          setError((prev) => prev ?? err);
+          setError((prev: unknown) => (prev == null ? err : prev));
           setTasteSummaryRaw(null);
         }
       } finally {
@@ -142,10 +147,11 @@ export function useHomeData(): HomeDataState {
 
     (async () => {
       try {
-        const [{ daily, weekly }, xpSnapshot] = await Promise.all([
-          getActiveQuests(),
-          getUserXP(),
-        ]);
+        const [{ daily, weekly }, xpSnapshot]: [ActiveQuestsResponse, XpSnapshot] =
+          await Promise.all([
+            getActiveQuests(),
+            getUserXP(),
+          ]);
 
         if (!alive) return;
 
@@ -160,7 +166,7 @@ export function useHomeData(): HomeDataState {
       } catch (err) {
         console.error("Error loading quests:", err);
         if (alive) {
-          setError((prev) => prev ?? err);
+          setError((prev: unknown) => (prev == null ? err : prev));
           setQuests(EMPTY_HOME_QUESTS);
         }
       }
@@ -178,9 +184,11 @@ export function useHomeData(): HomeDataState {
     timersInitialized.current = true;
 
     const updateTimers = () => {
+      const dailyTimer = getTimeUntilMidnight();
+      const weeklyTimer = getTimeUntilMonday();
       setTimers({
-        daily: getTimeUntilMidnight().formatted,
-        weekly: getTimeUntilMonday().formatted,
+        daily: dailyTimer.formatted,
+        weekly: weeklyTimer.formatted,
       });
     };
 

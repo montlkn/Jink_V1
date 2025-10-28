@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import {
   Modal,
@@ -9,26 +8,21 @@ import {
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { navigate } from "@/navigation/nav";
+import { screens } from "@/navigation/routes";
 
 const AuraBreakdownModal = ({
   visible,
   segments = [],
   onClose,
 }) => {
-  const navigation = useNavigation();
   if (!visible) return null;
 
   const handleViewProfile = () => {
     console.log('[aura-modal] Handle view profile');
     if (onClose) onClose();
     setTimeout(() => {
-      // Navigate to ProfileDetail in the root stack navigator
-      const rootNav =
-        navigation.getParent?.()?.getParent?.() ??
-        navigation.getParent?.() ??
-        navigation;
-      console.log('[aura-modal] rootNav resolved:', !!rootNav);
-      rootNav?.navigate('ProfileDetail');
+      navigate(screens.Profile);
     }, 150);
   };
 
@@ -74,12 +68,8 @@ const AuraBreakdownModal = ({
                     if (!archetypeName) return;
                     // Small delay so the modal close animation feels natural
                     setTimeout(() => {
-                      const rootNav =
-                        navigation.getParent?.()?.getParent?.() ??
-                        navigation.getParent?.() ??
-                        navigation;
-                      console.log('[aura-modal] archetype tap -> ProfileDetail', archetypeName, !!rootNav);
-                      rootNav?.navigate('ProfileDetail', { initialArchetype: archetypeName });
+                      console.log('[aura-modal] archetype tap -> Profile', archetypeName);
+                      navigate(screens.Profile, { initialArchetype: archetypeName });
                     }, 150);
                   }}
                 >

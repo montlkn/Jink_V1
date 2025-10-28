@@ -1,11 +1,13 @@
-export type AuthSession = {
+type AuthSessionStruct = {
   user: {
     id: string;
     email?: string;
     [key: string]: unknown;
   } | null;
   [key: string]: unknown;
-} | null;
+};
+
+export type AuthSession = AuthSessionStruct | null;
 
 export const toAuthSession = (raw: unknown): AuthSession => {
   if (!raw || typeof raw !== "object") {
@@ -15,10 +17,11 @@ export const toAuthSession = (raw: unknown): AuthSession => {
   const user = session.user && typeof session.user === "object" ? session.user : null;
   return {
     ...session,
-    user: user as AuthSession["user"],
+    user: user as AuthSessionStruct["user"],
   };
 };
 
-export const selectUserId = (session: AuthSession): string | null => {
-  return session?.user && typeof session.user.id === "string" ? session.user.id : null;
+export const selectUserId = (session: AuthSession | null): string | null => {
+  const user = session?.user;
+  return typeof user?.id === "string" ? user.id : null;
 };

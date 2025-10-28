@@ -8,6 +8,7 @@ import StreamingInstructionText from "../../components/walk/StreamingInstruction
 import TimeSlider from "../../components/walk/TimeSlider";
 import TimerDisplay from "../../components/walk/TimerDisplay";
 import { useOrbTransition } from "../../state/orbTransitionContext";
+import { screens } from "@/navigation/routes";
 
 const WalkStartScreen = ({ navigation }) => {
   const { pinToJink } = useOrbTransition();
@@ -191,7 +192,7 @@ const WalkStartScreen = ({ navigation }) => {
       }
 
       pinToJink(false);
-      navigation.navigate("WalkNavScreen", {
+      navigation.navigate(screens.WalkNav, {
         places: nearbyPlaces,
         location,
         duration: time,

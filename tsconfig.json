@@ -1,18 +1,32 @@
 {
-  "extends": "./node_modules/expo/tsconfig.base.json",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "jsx": "react-native",
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2019",
     "allowJs": true,
-    "checkJs": true,
-    "noEmit": true,
+    "checkJs": false,
     "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "types": ["expo", "@react-three/fiber"],
+    "strict": true,
+    "resolveJsonModule": true,
+    "types": ["react-native", "expo-router"],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
-  "exclude": ["node_modules", "apps/server/**", "**/dist", "**/build"]
+  "include": ["**/*.ts", "**/*.tsx", "app.config.*", "src/types/**/*.d.ts"],
+  "exclude": [
+    "node_modules",
+    "ios",
+    "android",
+    "patches",
+    "supabase/functions",
+    "dist",
+    "build",
+    "apps/server/**",
+    "**/dist",
+    "**/build"
+  ]
 }

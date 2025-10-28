@@ -1,4 +1,5 @@
 import React from "react";
+import { screens } from "@/navigation/routes";
 import {
   View,
   Text,
@@ -93,7 +94,7 @@ export default function BuildingInfoScreen({ route, navigation }) {
 
       <TouchableOpacity
         style={styles.doneButton}
-        onPress={() => navigation.navigate("Main", { screen: "Camera" })}
+        onPress={() => navigation.navigate(screens.Main, { screen: screens.WalkCamera })}
       >
         <Text style={styles.doneButtonText}>Scan Another Building</Text>
       </TouchableOpacity>

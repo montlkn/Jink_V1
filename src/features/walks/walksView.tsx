@@ -27,7 +27,7 @@ const formatDateTime = (iso: string | undefined) => {
 };
 
 const formatDistance = (distanceKm: number | undefined) => {
-  if (!Number.isFinite(distanceKm)) {
+  if (typeof distanceKm !== "number" || !Number.isFinite(distanceKm)) {
     return "—";
   }
   return `${distanceKm.toFixed(1)} km`;

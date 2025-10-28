@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-import { fetchWalkSummaries } from "@/services/gateways/supabaseGateway";
+import { fetchWalkSummaries } from "@/services/gateways";
 import {
   SHOULD_USE_DEMO_WALKS,
   getDemoWalkSummaries,

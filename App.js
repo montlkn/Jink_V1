@@ -8,9 +8,7 @@
 // MUST be before importing expo-three
 import "expo-three";
 import React, { useEffect } from "react";
-import { AuthProvider } from "./src/auth/authProvider";
-import AppNavigator from "./src/navigation/AppNavigator";
-import { OrbTransitionProvider } from "./src/state/orbTransitionContext";
+import RootNavigator from "@/navigation/RootNavigator";
 import { Asset } from "expo-asset";
 
 if (typeof global !== 'undefined') {
@@ -164,11 +162,5 @@ export default function App() {
     });
   }, []);
 
-  return (
-    <AuthProvider>
-      <OrbTransitionProvider>
-        <AppNavigator />
-      </OrbTransitionProvider>
-    </AuthProvider>
-  );
+  return <RootNavigator />;
 }

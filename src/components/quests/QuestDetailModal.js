@@ -28,11 +28,11 @@ const QuestDetailModal = ({
   // Determine destination based on quest type
   const getQuestDestination = () => {
     if (quest.questType === 'scan') {
-      return { screen: 'Camera', label: 'SCAN NOW' };
+      return { params: { focus: 'scan' }, label: 'SCAN NOW' };
     } else if (quest.questType === 'walk') {
-      return { screen: 'Derive', label: "LET'S GO" };
+      return { params: { focus: 'walk' }, label: "LET'S GO" };
     }
-    return { screen: 'Derive', label: "LET'S GO" }; // Default
+    return { params: undefined, label: "LET'S GO" }; // Default
   };
 
   const destination = getQuestDestination();
@@ -184,7 +184,7 @@ const QuestDetailModal = ({
             <TouchableOpacity
               style={[styles.startButton, isDaily ? styles.dailyButton : styles.weeklyButton]}
               onPress={() => {
-                onStartQuest(destination.screen);
+                onStartQuest(destination.params);
                 onClose();
               }}
               activeOpacity={0.8}

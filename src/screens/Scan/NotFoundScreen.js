@@ -1,4 +1,5 @@
 import React from "react";
+import { screens } from "@/navigation/routes";
 import {
   StyleSheet,
   Text,
@@ -29,14 +30,14 @@ export default function NotFoundScreen({ route, navigation }) {
 
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => navigation.navigate("Main", { screen: "Camera" })}
+          onPress={() => navigation.navigate(screens.Main, { screen: screens.WalkCamera })}
         >
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.homeButton}
-          onPress={() => navigation.navigate("Main", { screen: "Home" })}
+          onPress={() => navigation.navigate(screens.Main, { screen: screens.Home })}
         >
           <Text style={styles.homeButtonText}>Go Home</Text>
         </TouchableOpacity>

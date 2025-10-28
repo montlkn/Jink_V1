@@ -4,8 +4,10 @@ import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
 import QuestDetailModal from "@/components/quests/QuestDetailModal";
 import QuestCard from "@/components/quests/QuestCard";
-import type { QuestItem } from "@/features/quests";
+import type { HomeQuest } from "./homeSelectors";
 import { useOrbTransition } from "@/state/orbTransitionContext";
+import { screens, type RootParams } from "@/navigation/routes";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -21,12 +23,13 @@ import { useHomeData } from "./useHomeData";
 
 const ORB_SIZE = 360;
 
+type HomeNavigation = NativeStackNavigationProp<RootParams, typeof screens.Home>;
 export function HomeView(): JSX.Element {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<HomeNavigation>();
   const dataState = useHomeData();
   const [auraVisible, setAuraVisible] = useState(false);
   const [xpModalVisible, setXpModalVisible] = useState(false);
-  const [selectedQuest, setSelectedQuest] = useState<QuestItem | null>(null);
+  const [selectedQuest, setSelectedQuest] = useState<HomeQuest | null>(null);
   const [questModalVisible, setQuestModalVisible] = useState(false);
 
   const {
@@ -77,7 +80,7 @@ export function HomeView(): JSX.Element {
     };
   }, [readyValue]);
 
-  const questItems = useMemo<QuestItem[]>(() => {
+  const questItems = useMemo<HomeQuest[]>(() => {
     if (!questCollection?.items?.length) {
       return [];
     }
@@ -96,8 +99,8 @@ export function HomeView(): JSX.Element {
     }));
   }, [questCollection]);
 
-  const fallbackQuests = useMemo<QuestItem[]>(() => {
-    return [
+  const fallbackQuests = useMemo<HomeQuest[]>(() => {
+    const placeholders: HomeQuest[] = [
       {
         id: "daily-placeholder",
         type: "daily",
@@ -105,7 +108,7 @@ export function HomeView(): JSX.Element {
         title: "Sync up for today's quest",
         description: "We'll drop a fresh daily objective once your profile is calibrated.",
         xpReward: 0,
-        additionalRewards: [],
+        additionalRewards: [] as HomeQuest["additionalRewards"],
         progress: 0,
         total: 1,
         completed: false,
@@ -117,17 +120,18 @@ export function HomeView(): JSX.Element {
         title: "Weekly expedition incoming",
         description: "Stick around—weekly quests unlock after your first daily streak.",
         xpReward: 0,
-        additionalRewards: [],
+        additionalRewards: [] as HomeQuest["additionalRewards"],
         progress: 0,
         total: 1,
         completed: false,
       },
     ];
+    return placeholders;
   }, []);
 
-  const questsToRender = questItems.length ? questItems : fallbackQuests;
+  const questsToRender: HomeQuest[] = questItems.length ? questItems : fallbackQuests;
 
-  const handleQuestPress = (quest: QuestItem | null) => {
+  const handleQuestPress = (quest: HomeQuest | null) => {
     if (!quest) {
       return;
     }
@@ -136,8 +140,8 @@ export function HomeView(): JSX.Element {
   };
 
   const handleStartQuest = useCallback(
-    (screen: string) => {
-      navigation.navigate(screen);
+    (params?: RootParams[typeof screens.Quests]) => {
+      navigation.navigate(screens.Quests, params);
     },
     [navigation]
   );

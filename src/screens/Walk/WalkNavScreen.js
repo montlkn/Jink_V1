@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import { deriveBuildingOrder } from "../../utils/deriveUtils";
 import { useOrbTransition } from "../../state/orbTransitionContext";
+import { goBack, navigate } from "@/navigation/nav";
+import { screens } from "@/navigation/routes";
 
 const normalizeCoords = (v) => {
   if (!v) return null;
@@ -19,7 +21,7 @@ const normalizeCoords = (v) => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 };
 
-const WalkNavScreen = ({ route, navigation }) => {
+const WalkNavScreen = ({ route }) => {
   const { pinToJink } = useOrbTransition();
   const [buildingIndex, setBuildingIndex] = useState(0);
 
@@ -54,23 +56,20 @@ const WalkNavScreen = ({ route, navigation }) => {
 
   const handlePause = useCallback(() => {
     pinToJink(true);
-    navigation.goBack();
-  }, [navigation, pinToJink]);
+    goBack();
+  }, [pinToJink]);
 
   const handleArrived = useCallback(() => {
     if (!hasRoute) return;
     const activeStop = routeStops[currentIndex];
     pinToJink(false);
-    navigation
-      .getParent()
-      ?.getParent()
-      ?.navigate("WalkCameraScreen", {
-        building: activeStop,
-      });
+    navigate(screens.WalkCamera, {
+      building: activeStop,
+    });
     if (routeStops.length > 0) {
       setBuildingIndex((prev) => (prev + 1) % routeStops.length);
     }
-  }, [currentIndex, hasRoute, navigation, pinToJink, routeStops]);
+  }, [currentIndex, hasRoute, pinToJink, routeStops]);
 
   const progressLabel = hasRoute
     ? `${currentIndex + 1}/${routeStops.length}`

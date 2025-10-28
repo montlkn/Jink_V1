@@ -1,5 +1,12 @@
 # XP & Rewards System V2 - Deep Integration Design
 
+## Navigation Migration Notes
+- Replaced `ProfileDetail` wiring with the new profile feature (`src/features/profile`).
+- Consolidated all navigation into `src/navigation/Stack.tsx`; the former
+  nested walk navigator has been removed.
+- Routes and deep links now route through `src/navigation/routes.ts` and
+  `src/navigation/linking.ts` respectively.
+
 ## Core Philosophy
 XP is the **universal currency of architectural mastery**, not just a side feature. Every interaction earns XP, and XP unlocks everything.
 

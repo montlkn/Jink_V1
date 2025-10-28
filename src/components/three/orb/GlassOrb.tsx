@@ -129,7 +129,7 @@ export default function GlassOrb({
       frameloop="always"
       style={{ width: size, height: size, backgroundColor: "transparent" }}
       dpr={1} // Fixed DPR to avoid multisampling
-      onCreated={({ gl }) => {
+      onCreated={({ gl }: { gl: any }) => {
         // Patch renderbufferStorageMultisample BEFORE any other operations
         const ctx = gl.getContext() as any;
         if (ctx && ctx.renderbufferStorageMultisample) {

@@ -1,5 +1,10 @@
-// @ts-nocheck
-import { extend, ReactThreeFiber, useFrame, useLoader, useThree } from "@react-three/fiber";
+import {
+  extend,
+  ReactThreeFiber,
+  useFrame,
+  useLoader,
+  useThree,
+} from "@react-three/fiber/native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Color, ShaderMaterial, Texture, TextureLoader, Vector2 } from "three";
@@ -11,6 +16,32 @@ const SMOKE_ATLAS_STARTUP_KTX2 = require("../../../../assets/textures/smoke_atla
 const SMOKE_ATLAS_FALLBACK = require("../../../../assets/textures/smoke_atlas_1080.png");
 const SMOKE_ATLAS_STARTUP_FALLBACK = require("../../../../assets/textures/smoke_atlas_startup_1080.png");
 extend({ ShaderMaterial });
+
+const getTextureDimensions = (texture: Texture | null | undefined) => {
+  const image = texture?.image as { width?: number; height?: number } | undefined;
+  return {
+    width: image?.width ?? 0,
+    height: image?.height ?? 0,
+  };
+};
+
+const getMaxAnisotropy = (texture: Texture | null | undefined): number => {
+  if (!texture) {
+    return 4;
+  }
+
+  const manager = (texture as unknown as {
+    manager?: {
+      renderer?: {
+        capabilities?: {
+          getMaxAnisotropy?: () => number;
+        };
+      };
+    };
+  }).manager;
+
+  return manager?.renderer?.capabilities?.getMaxAnisotropy?.() ?? 4;
+};
 
 declare global {
   namespace JSX {
@@ -53,8 +84,11 @@ export function SmokeOrb({
   const hasInitializedRef = useRef<boolean>(false);
 
   const renderer = useThree((state) => state.gl as THREE.WebGLRenderer);
-  const fallbackLoopTexture = useLoader(TextureLoader, SMOKE_ATLAS_FALLBACK);
-  const fallbackStartupTexture = useLoader(TextureLoader, SMOKE_ATLAS_STARTUP_FALLBACK);
+  const fallbackLoopTexture = useLoader<Texture>(TextureLoader, SMOKE_ATLAS_FALLBACK);
+  const fallbackStartupTexture = useLoader<Texture>(
+    TextureLoader,
+    SMOKE_ATLAS_STARTUP_FALLBACK
+  );
 
   const [loopTexture, setLoopTexture] = useState<Texture>(() => fallbackLoopTexture);
   const [startupTexture, setStartupTexture] = useState<Texture>(() => fallbackStartupTexture);
@@ -178,9 +212,9 @@ export function SmokeOrb({
     startTimeRef.current = null;
   }, [loopTexture, startupTexture, startupDuration, transitionDuration]);
 
-  useFrame((state) => {
+  useFrame(({ camera }) => {
     if (meshRef.current) {
-      meshRef.current.lookAt(state.camera.position);
+      meshRef.current.lookAt(camera.position);
     }
 
     if (!matRef.current) {
@@ -188,7 +222,8 @@ export function SmokeOrb({
     }
 
     const texturesReady =
-      Boolean((loopTexture as any)?.image?.width) && Boolean((startupTexture as any)?.image?.width);
+      getTextureDimensions(loopTexture).width > 0 &&
+      getTextureDimensions(startupTexture).width > 0;
 
     if (!texturesReady) {
       // Wait until both atlases have loaded before starting timeline
@@ -227,7 +262,7 @@ export function SmokeOrb({
     texture.generateMipmaps = false;
 
     // Light anisotropy for quality
-    const maxAniso = (texture as any)?.manager?.renderer?.capabilities?.getMaxAnisotropy?.() ?? 4;
+    const maxAniso = getMaxAnisotropy(texture);
     texture.anisotropy = Math.min(maxAniso, 2);
 
     texture.needsUpdate = true;
@@ -253,8 +288,7 @@ export function SmokeOrb({
       startupTexture.magFilter = THREE.LinearFilter;
       startupTexture.generateMipmaps = false;
 
-      const maxAniso =
-        (startupTexture as any)?.manager?.renderer?.capabilities?.getMaxAnisotropy?.() ?? 4;
+      const maxAniso = getMaxAnisotropy(startupTexture);
       startupTexture.anisotropy = Math.min(maxAniso, 2);
 
       startupTexture.needsUpdate = true;

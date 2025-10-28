@@ -17,9 +17,14 @@ function ensureListener() {
       return;
     }
 
-    const { alpha = 0, beta = 0, gamma = 0 } = rotation;
+    const {
+      alpha = 0,
+      beta = 0,
+      gamma = 0,
+      timestamp = Date.now(),
+    } = rotation;
     listeners.forEach((handler) => {
-      handler({ alpha, beta, gamma });
+      handler({ alpha, beta, gamma, timestamp });
     });
   });
 }

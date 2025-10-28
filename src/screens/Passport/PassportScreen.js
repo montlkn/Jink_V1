@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { authActions } from "@/features/auth";
+import { screens } from "@/navigation/routes";
 import XPDetailModal from '../../components/modals/XPDetailModal';
 import PassportHeader from '../../components/passport/PassportHeader';
 import PassportStamp from '../../components/passport/PassportStamp';
@@ -91,7 +92,7 @@ const PassportScreen = ({ navigation }) => {
   const handleCardPress = (category) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (category === 'Past Walks') {
-      navigation.navigate('PastWalksNolli', {});
+      navigation.navigate(screens.PastWalksNolli, {});
       return;
     }
     console.log(`Pressed ${category}`);

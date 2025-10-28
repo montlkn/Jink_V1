@@ -13,6 +13,17 @@ type ProfileQuestFields = {
   weekly_quest_completed: boolean | null;
 };
 
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  updated_at: string | null;
+};
+
+type ProfileQuestRow = ProfileQuestFields;
+
 type ProfileQuestState = {
   questId: string | null;
   progress: number;
@@ -270,9 +281,7 @@ async function ensureQuest({
   };
 }
 
-export async function fetchActiveQuests(
-  userId: string
-): Promise<FetchActiveQuestsResult> {
+export async function fetchActiveQuests(userId: string): Promise<FetchActiveQuestsResult> {
   const { data: profileRow, error: profileError } = await supabase
     .from("profiles")
     .select(
@@ -286,13 +295,15 @@ export async function fetchActiveQuests(
     throw profileError;
   }
 
+  const profileSource = (profileRow ?? {}) as Partial<ProfileQuestRow>;
+
   const profile: ProfileQuestFields = {
-    daily_quest_id: coerceString(profileRow?.daily_quest_id),
-    daily_quest_progress: coerceNumber(profileRow?.daily_quest_progress, 0),
-    daily_quest_completed: Boolean(profileRow?.daily_quest_completed),
-    weekly_quest_id: coerceString(profileRow?.weekly_quest_id),
-    weekly_quest_progress: coerceNumber(profileRow?.weekly_quest_progress, 0),
-    weekly_quest_completed: Boolean(profileRow?.weekly_quest_completed),
+    daily_quest_id: coerceString(profileSource.daily_quest_id),
+    daily_quest_progress: coerceNumber(profileSource.daily_quest_progress, 0),
+    daily_quest_completed: Boolean(profileSource.daily_quest_completed),
+    weekly_quest_id: coerceString(profileSource.weekly_quest_id),
+    weekly_quest_progress: coerceNumber(profileSource.weekly_quest_progress, 0),
+    weekly_quest_completed: Boolean(profileSource.weekly_quest_completed),
   };
 
   const nowIso = new Date().toISOString();
@@ -305,6 +316,12 @@ export async function fetchActiveQuests(
   return { daily, weekly };
 }
 
+type ProfileXpRow = {
+  xp: number | null;
+  level: number | null;
+  xp_spent: number | null;
+};
+
 export async function fetchXpSummary(userId: string): Promise<FetchXpSummaryResult> {
   const { data, error } = await supabase
     .from("profiles")
@@ -316,10 +333,89 @@ export async function fetchXpSummary(userId: string): Promise<FetchXpSummaryResu
     throw error;
   }
 
+  const source = (data ?? {}) as Partial<ProfileXpRow>;
+
   return {
-    xp: coerceNumber(data?.xp, 0),
-    level: Math.max(1, coerceNumber(data?.level, 1)),
-    xpSpent: coerceNumber(data?.xp_spent, 0),
+    xp: coerceNumber(source.xp, 0),
+    level: Math.max(1, coerceNumber(source.level, 1)),
+    xpSpent: coerceNumber(source.xp_spent, 0),
+  };
+}
+
+export async function getProfile(userId: string): Promise<ProfileRow | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, username, avatar_url, bio, updated_at")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as ProfileRow | null) ?? null;
+}
+
+export type UpdateProfileParams = {
+  userId: string;
+  patch: Partial<Pick<ProfileRow, "full_name" | "username" | "avatar_url" | "bio" >>;
+};
+
+export async function updateProfile(params: UpdateProfileParams): Promise<ProfileRow> {
+  const { userId, patch } = params;
+  const sanitizedPatch = Object.fromEntries(
+    Object.entries(patch).filter(([_, value]) => value !== undefined)
+  );
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(sanitizedPatch)
+    .eq("id", userId)
+    .select("id, full_name, username, avatar_url, bio, updated_at")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as ProfileRow;
+}
+
+export type UploadAvatarParams = {
+  userId: string;
+  file: {
+    uri: string;
+    name: string;
+    type?: string;
+  };
+  bucket?: string;
+};
+
+export type UploadAvatarResult = {
+  publicUrl: string;
+  path: string;
+};
+
+export async function uploadAvatar(params: UploadAvatarParams): Promise<UploadAvatarResult> {
+  const { userId, file, bucket = "avatars" } = params;
+  const response = await fetch(file.uri);
+  const blob = await response.blob();
+  const objectPath = `${userId}/${Date.now()}_${file.name}`;
+
+  const { data, error } = await supabase.storage.from(bucket).upload(objectPath, blob, {
+    contentType: file.type ?? "image/jpeg",
+    upsert: true,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const publicResult = supabase.storage.from(bucket).getPublicUrl(data.path);
+
+  return {
+    publicUrl: publicResult.data.publicUrl,
+    path: data.path,
   };
 }
 
@@ -360,13 +456,15 @@ export async function completeQuest(
     throw profileError;
   }
 
+  const profileSource = (profileRow ?? {}) as Partial<ProfileQuestRow>;
+
   const profile: ProfileQuestFields = {
-    daily_quest_id: coerceString(profileRow?.daily_quest_id),
-    daily_quest_progress: coerceNumber(profileRow?.daily_quest_progress, 0),
-    daily_quest_completed: Boolean(profileRow?.daily_quest_completed),
-    weekly_quest_id: coerceString(profileRow?.weekly_quest_id),
-    weekly_quest_progress: coerceNumber(profileRow?.weekly_quest_progress, 0),
-    weekly_quest_completed: Boolean(profileRow?.weekly_quest_completed),
+    daily_quest_id: coerceString(profileSource.daily_quest_id),
+    daily_quest_progress: coerceNumber(profileSource.daily_quest_progress, 0),
+    daily_quest_completed: Boolean(profileSource.daily_quest_completed),
+    weekly_quest_id: coerceString(profileSource.weekly_quest_id),
+    weekly_quest_progress: coerceNumber(profileSource.weekly_quest_progress, 0),
+    weekly_quest_completed: Boolean(profileSource.weekly_quest_completed),
   };
 
   const state = extractQuestState(profile, questType);
