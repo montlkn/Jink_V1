@@ -10,6 +10,8 @@
     "web": "expo start --web",
     "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc --noEmit",
+    "verify": "npm run lint && npm run typecheck",
+    "prepare": "husky install",
     "postinstall": "node ./scripts/apply-patches.js"
   },
   "dependencies": {
@@ -68,7 +70,14 @@
     "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.1",
     "eslint-import-resolver-typescript": "^4.4.4",
+    "husky": "^9.1.3",
+    "lint-staged": "^15.2.7",
+    "prettier": "^3.3.3",
     "typescript": "~5.9.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": "eslint --fix",
+    "*.{json,md,yml,yaml}": "prettier --write"
   },
   "private": true
 }

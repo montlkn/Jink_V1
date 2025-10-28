@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { preloadOrbAssets } from "../services/orbAssets";
+import { log } from "@/lib/log";
 
 import { useAuth } from "../auth/authProvider";
 import WalkCameraScreen from "../screens/Walk/WalkCameraScreen";
@@ -13,7 +14,7 @@ import AuthCallbackScreen from "../screens/Auth/AuthCallbackScreen";
 import ProfileDetailScreen from "../screens/Profile/ProfileDetailScreen";
 import BuildingInfoScreen from "../screens/Scan/BuildingInfoScreen";
 import NotFoundScreen from "../screens/Scan/NotFoundScreen";
-import { userNeedsOnboarding } from "../api/quizApi";
+import { userNeedsOnboarding } from "@/features/quiz";
 import BottomTabNavigator from "./BottomTabNavigator";
 import PastWalksNolliScreen from "../screens/PastWalks/PastWalksNolliScreen";
 // Test screens removed
@@ -26,8 +27,8 @@ export default function AppNavigator() {
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
   React.useEffect(() => {
-    console.log("Session:", session);
-    console.log("Loading:", loading);
+    log.debug("Session:", session);
+    log.debug("Loading:", loading);
   }, [session, loading]);
 
   // Preload orb assets early to avoid first-load hitch
@@ -43,7 +44,7 @@ export default function AppNavigator() {
           const needsQuiz = await userNeedsOnboarding(session.user.id);
           setNeedsOnboarding(needsQuiz);
         } catch (error) {
-          console.error('Error checking onboarding status:', error);
+          log.error('Error checking onboarding status:', error);
           // Default to needing onboarding if there's an error
           setNeedsOnboarding(true);
         } finally {
@@ -67,11 +68,11 @@ export default function AppNavigator() {
       try {
         const stillNeedsQuiz = await userNeedsOnboarding(session.user.id);
         if (!stillNeedsQuiz && needsOnboarding) {
-          console.log('Quiz completion detected, updating navigation');
+          log.debug('Quiz completion detected, updating navigation');
           setNeedsOnboarding(false);
         }
       } catch (error) {
-        console.error('Error re-checking onboarding status:', error);
+        log.error('Error re-checking onboarding status:', error);
       }
     }, 2000); // Check every 2 seconds
 

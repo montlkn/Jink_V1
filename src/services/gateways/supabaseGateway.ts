@@ -1,6 +1,15 @@
-import type { AuthError, Session } from "@supabase/supabase-js";
-import { supabase } from "@/api/supabaseClient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, Platform } from "react-native";
+import {
+  createClient,
+  processLock,
+  type AuthChangeEvent,
+  type AuthError,
+  type Session,
+} from "@supabase/supabase-js";
+import { log } from "@/lib/log";
 import type { WalkGeometry, WalkSummary } from "@/types/walks";
+import "react-native-url-polyfill/auto";
 
 type QuestType = "daily" | "weekly";
 
@@ -49,16 +58,49 @@ type QuestWithState = QuestRow & {
   completed: boolean;
 };
 
-type FetchActiveQuestsResult = {
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("[supabaseGateway] Missing Supabase environment variables");
+}
+
+export const supabaseGateway = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+    flowType: "pkce",
+    lock: processLock,
+  },
+});
+
+const supabase = supabaseGateway;
+
+if (Platform.OS !== "web") {
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") {
+      supabase.auth.startAutoRefresh();
+    } else {
+      supabase.auth.stopAutoRefresh();
+    }
+  });
+}
+
+export type FetchActiveQuestsResult = {
   daily: QuestWithState | null;
   weekly: QuestWithState | null;
 };
 
-type FetchXpSummaryResult = {
+export type FetchXpSummaryResult = {
   xp: number;
   level: number;
   xpSpent: number;
 };
+
+export type XpSnapshot = FetchXpSummaryResult;
+export type ActiveQuestsResponse = FetchActiveQuestsResult;
 
 type CompleteQuestParams = {
   userId: string;
@@ -66,7 +108,7 @@ type CompleteQuestParams = {
   now?: number;
 };
 
-type CompleteQuestResult = {
+export type CompleteQuestResult = {
   questId: string;
   type: QuestType;
   completed: boolean;
@@ -93,8 +135,6 @@ const QUEST_FIELD_MAP = {
   }
 >;
 
-export const supabaseGateway = supabase;
-
 export const getSupabaseClient = () => supabase;
 
 export async function getSession(): Promise<Session | null> {
@@ -105,6 +145,14 @@ export async function getSession(): Promise<Session | null> {
   }
 
   return data?.session ?? null;
+}
+
+export function onAuthStateChange(
+  callback: (event: AuthChangeEvent, session: Session | null) => void
+) {
+  return supabase.auth.onAuthStateChange((event, session) => {
+    callback(event, session);
+  });
 }
 
 type ExchangeCodeForSessionParams = {
@@ -155,6 +203,32 @@ export async function signOut(): Promise<void> {
   if (error) {
     throw error;
   }
+}
+
+type SignUpWithPasswordParams = Parameters<typeof supabase.auth.signUp>[0];
+type SignInWithPasswordParams = Parameters<typeof supabase.auth.signInWithPassword>[0];
+type SignInWithOAuthParams = Parameters<typeof supabase.auth.signInWithOAuth>[0];
+type SignInWithOtpParams = Parameters<typeof supabase.auth.signInWithOtp>[0];
+type VerifyOtpParamsType = Parameters<typeof supabase.auth.verifyOtp>[0];
+
+export async function signInWithPassword(params: SignInWithPasswordParams) {
+  return supabase.auth.signInWithPassword(params);
+}
+
+export async function signUpWithPassword(params: SignUpWithPasswordParams) {
+  return supabase.auth.signUp(params);
+}
+
+export async function signInWithOAuth(params: SignInWithOAuthParams) {
+  return supabase.auth.signInWithOAuth(params);
+}
+
+export async function signInWithOtp(params: SignInWithOtpParams) {
+  return supabase.auth.signInWithOtp(params);
+}
+
+export async function verifyOtp(params: VerifyOtpParamsType) {
+  return supabase.auth.verifyOtp(params);
 }
 
 const coerceNumber = (value: unknown, fallback = 0): number =>
@@ -281,7 +355,13 @@ async function ensureQuest({
   };
 }
 
-export async function fetchActiveQuests(userId: string): Promise<FetchActiveQuestsResult> {
+export async function fetchActiveQuests(
+  user: string | { userId: string }
+): Promise<FetchActiveQuestsResult> {
+  const userId = typeof user === "string" ? user : user.userId;
+  if (!userId) {
+    throw new Error("userId is required to fetch active quests");
+  }
   const { data: profileRow, error: profileError } = await supabase
     .from("profiles")
     .select(
@@ -316,6 +396,24 @@ export async function fetchActiveQuests(userId: string): Promise<FetchActiveQues
   return { daily, weekly };
 }
 
+async function updateQuestProgress(
+  userId: string,
+  questType: QuestType,
+  increment = 1
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("update_quest_progress", {
+    p_user_id: userId,
+    p_quest_type: questType,
+    p_progress_increment: increment,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return Boolean(data);
+}
+
 type ProfileXpRow = {
   xp: number | null;
   level: number | null;
@@ -340,6 +438,76 @@ export async function fetchXpSummary(userId: string): Promise<FetchXpSummaryResu
     level: Math.max(1, coerceNumber(source.level, 1)),
     xpSpent: coerceNumber(source.xp_spent, 0),
   };
+}
+
+export async function fetchXpSnapshot(params: { userId: string }): Promise<FetchXpSummaryResult> {
+  if (!params?.userId) {
+    throw new Error("userId is required to fetch XP snapshot");
+  }
+  return fetchXpSummary(params.userId);
+}
+
+type AwardXpParams = {
+  amount: number;
+  source?: string;
+  userId?: string;
+  progressIncrement?: number;
+};
+
+export async function awardXp(params: AwardXpParams): Promise<void> {
+  const { amount, source = "building_scan", userId: explicitUserId, progressIncrement = 1 } = params;
+
+  if (!Number.isFinite(amount)) {
+    throw new Error("amount must be a finite number");
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    throw userError;
+  }
+
+  const userId = explicitUserId ?? user?.id;
+  if (!userId) {
+    throw new Error("No user logged in");
+  }
+
+  const { error } = await supabase.rpc("award_xp", {
+    p_user_id: userId,
+    p_amount: amount,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (source !== "building_scan") {
+    return;
+  }
+
+  try {
+    const { daily, weekly } = await fetchActiveQuests({ userId });
+    const updates: Promise<boolean>[] = [];
+
+    if (daily && daily.quest_type === "scan" && !daily.completed) {
+      updates.push(updateQuestProgress(userId, "daily", progressIncrement));
+    }
+    if (weekly && weekly.quest_type === "scan" && !weekly.completed) {
+      updates.push(updateQuestProgress(userId, "weekly", progressIncrement));
+    }
+
+    if (updates.length) {
+      await Promise.all(updates);
+    }
+  } catch (questError) {
+    log.warn(
+      "[supabaseGateway] Failed to update quest progress after awarding XP",
+      questError
+    );
+  }
 }
 
 export async function getProfile(userId: string): Promise<ProfileRow | null> {
@@ -512,6 +680,27 @@ export async function completeQuest(
   };
 }
 
+type FetchNearbyBuildingsParams = {
+  latitude: number;
+  longitude: number;
+  radius: number;
+};
+
+export async function fetchNearbyBuildings(
+  params: FetchNearbyBuildingsParams
+) {
+  const { latitude, longitude, radius } = params;
+  const { data, error } = await supabase.functions.invoke("nearby-buildings", {
+    body: { latitude, longitude, radius },
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to fetch nearby buildings");
+  }
+
+  return data;
+}
+
 const WALK_SUMMARIES_FUNCTION = "past-walk-summaries";
 const WALK_GEOMETRY_FUNCTION = "past-walk-geometry";
 
@@ -585,7 +774,7 @@ type CompleteWalkParams = {
   now?: number;
 };
 
-type CompleteWalkResult = {
+export type CompleteWalkResult = {
   walkId: string;
   userId: string;
   completedAt: string;
@@ -617,11 +806,3 @@ export async function completeWalk(
     completedAt: completedAtIso,
   };
 }
-
-export type {
-  QuestWithState,
-  FetchActiveQuestsResult,
-  FetchXpSummaryResult,
-  CompleteQuestResult,
-  CompleteWalkResult,
-};

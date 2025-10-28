@@ -1,4 +1,4 @@
-import { completeWalk } from "@/services/gateways/supabaseGateway";
+import { completeWalk, fetchNearbyBuildings } from "@/services/gateways";
 
 type CompleteWalkParams = {
   userId: string;
@@ -6,8 +6,9 @@ type CompleteWalkParams = {
   now?: number;
 };
 
-const complete = async (params: CompleteWalkParams) => {
-  return completeWalk(params);
-};
+const complete = async (params: CompleteWalkParams) => completeWalk(params);
 
-export const walksActions = { complete };
+export const walksActions = {
+  complete,
+  fetchNearbyBuildings,
+};

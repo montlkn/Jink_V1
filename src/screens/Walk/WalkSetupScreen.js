@@ -5,7 +5,8 @@
 import * as Location from "expo-location";
 import React, { useEffect, useState } from "react";
 import { Alert, SafeAreaView, StyleSheet, View } from "react-native";
-import { getNearbyPlaces } from "../../api/buildingsApi.js";
+import { walksActions } from "@/features/walks";
+import { log } from "@/lib/log";
 import TimeSlider from "../../components/walk/TimeSlider";
 import WalkTypeButton from "../../components/walk/WalkTypeButton";
 import { screens } from "@/navigation/routes";
@@ -20,9 +21,9 @@ const WalkSetupScreen = ({ navigation }) => {
 
   useEffect(() => {
     (async () => {
-      console.log("Requesting location permissions...");
+      log.debug("[walkSetup] Requesting location permissions...");
       const { status } = await Location.requestForegroundPermissionsAsync();
-      console.log("Location permission status:", status);
+      log.debug("[walkSetup] Location permission status", status);
       if (status !== "granted") {
         Alert.alert("Permission to access location was denied");
         return;
@@ -31,7 +32,7 @@ const WalkSetupScreen = ({ navigation }) => {
       const {
         coords: { latitude, longitude },
       } = await Location.getCurrentPositionAsync({});
-      console.log("Current location:", { latitude, longitude });
+      log.debug("[walkSetup] Current location", { latitude, longitude });
       setLocation({ latitude, longitude });
     })();
   }, []);
@@ -39,18 +40,18 @@ const WalkSetupScreen = ({ navigation }) => {
   // Call my function from buildings api to get nearby places
   const handleClick = async () => {
     try {
-      const nearbyPlaces = await getNearbyPlaces(
-        location.latitude,
-        location.longitude,
-        1000
-      ); // 1000 meters radius
+      const nearbyPlaces = await walksActions.fetchNearbyBuildings({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        radius: 1000,
+      }); // 1000 meters radius
       navigation.navigate(screens.WalkNav, {
         places: nearbyPlaces,
         location,
         durationMinutes: time,
       });
     } catch (error) {
-      console.error("Error fetching nearby places:", error);
+      log.error("Error fetching nearby places:", error);
     }
   };
 
@@ -67,7 +68,7 @@ const WalkSetupScreen = ({ navigation }) => {
           <WalkTypeButton
             title="PERSONALISED"
             color="rgba(150, 100, 255, 0.3)"
-            onPress={() => console.log("Start Personalised Walk")}
+            onPress={() => log.debug("Start Personalised Walk")}
           />
         </View>
       </View>

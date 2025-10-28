@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
+import { log } from "@/lib/log";
 
 import {
   fetchWalkDetail as fetchWalkGeometry,
   fetchWalkSummaries,
-  supabaseGateway,
-} from "@/services/gateways/supabaseGateway";
+  getSession,
+} from "@/services/gateways";
 import {
   SHOULD_USE_DEMO_WALKS,
   getDemoWalkGeometry,
@@ -85,9 +86,9 @@ const fetchSummariesWithCache = async (
       return normalized;
     }
 
-    console.warn("[walks] No walk summaries returned; using demo data.");
+    log.warn("[walks] No walk summaries returned; using demo data.");
   } catch (error) {
-    console.warn("[walks] Failed to load walk summaries", (error as Error)?.message);
+    log.warn("[walks] Failed to load walk summaries", (error as Error)?.message);
   }
 
   const fallback = getDemoWalkSummaries();
@@ -122,7 +123,7 @@ const fetchGeometryWithCache = async (
     geometryCache.set(walkId, geometry);
     return geometry;
   } catch (error) {
-    console.warn("[walks] Failed to load walk geometry", (error as Error)?.message);
+    log.warn("[walks] Failed to load walk geometry", (error as Error)?.message);
     const geometry = getDemoWalkGeometry(walkId);
     geometryCache.set(walkId, geometry);
     return geometry;
@@ -158,11 +159,8 @@ export function useWalksData(): WalksDataState {
   }, []);
 
   const resolveUserId = useCallback(async (): Promise<string | null> => {
-    const { data, error } = await supabaseGateway.auth.getSession();
-    if (error) {
-      throw error;
-    }
-    return data?.session?.user?.id ?? null;
+    const session = await getSession();
+    return session?.user?.id ?? null;
   }, []);
 
   const loadWalkData = useCallback(
@@ -220,7 +218,7 @@ export function useWalksData(): WalksDataState {
         setState({ status: "ready", value });
       })
       .catch((error) => {
-        console.error("[walks] Failed to load walks data", error);
+        log.error("[walks] Failed to load walks data", error);
         if (cancelled || !isMountedRef.current) {
           return;
         }
@@ -277,7 +275,7 @@ export function useWalksData(): WalksDataState {
           setState({ status: "ready", value });
         }
       } catch (error) {
-        console.error("[walks] Failed to select walk", error);
+        log.error("[walks] Failed to select walk", error);
         if (isMountedRef.current) {
           setState({ status: "error", error });
         }

@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getUserAestheticProfile } from "@/api/quizApi";
-import { supabaseGateway as supabase } from "@/services/gateways";
+import { getUserAestheticProfile } from "@/services/gateways/quizGateway";
 import {
-  getActiveQuests,
-  getUserXP,
-  getXPForNextLevel,
-} from "@/services/questService";
-import type { ActiveQuestsResponse, XpSnapshot } from "@/services/questService";
+  getSession,
+  fetchActiveQuests,
+  fetchXpSnapshot,
+  type ActiveQuestsResponse,
+  type XpSnapshot,
+} from "@/services/gateways";
 import { getRecentTasteSummary } from "@/services/recentTasteSummaryService";
 import { extractTopArchetypesFromScores } from "@/utils/archetypeColorBlend";
 import { getTimeUntilMidnight, getTimeUntilMonday } from "@/utils/questTimers";
+import { getXpForNextLevel } from "@/utils/xpLevel";
+import { log } from "@/lib/log";
 import {
   EMPTY_HOME_QUESTS,
   toUiProfile,
@@ -33,7 +35,7 @@ type HomeData = {
   };
 };
 
-export type HomeDataState =
+type HomeDataState =
   | { status: "loading" }
   | { status: "error"; error: unknown }
   | { status: "ready"; value: HomeData };
@@ -58,8 +60,7 @@ export function useHomeData(): HomeDataState {
     (async () => {
       try {
         setLoadingProfile(true);
-        const { data } = await supabase.auth.getSession();
-        const session = data?.session;
+        const session = await getSession();
 
         if (!session) {
           throw new Error("No session");
@@ -77,7 +78,7 @@ export function useHomeData(): HomeDataState {
           setArchetypeData([]);
         }
       } catch (err) {
-        console.error("Error fetching archetypes:", err);
+        log.error("[home] Error fetching archetypes", err);
         if (alive) {
           setError((prev: unknown) => (prev == null ? err : prev));
           setArchetypeData([]);
@@ -110,8 +111,7 @@ export function useHomeData(): HomeDataState {
         setSummaryLoading(true);
         setTasteSummaryRaw(null);
 
-        const { data } = await supabase.auth.getSession();
-        const session = data?.session;
+        const session = await getSession();
         if (!session) {
           return;
         }
@@ -125,7 +125,7 @@ export function useHomeData(): HomeDataState {
           setTasteSummaryRaw(summary);
         }
       } catch (err) {
-        console.error("Error building taste summary:", err);
+        log.error("[home] Error building taste summary", err);
         if (alive) {
           setError((prev: unknown) => (prev == null ? err : prev));
           setTasteSummaryRaw(null);
@@ -147,24 +147,30 @@ export function useHomeData(): HomeDataState {
 
     (async () => {
       try {
+        const session = await getSession();
+
+        if (!session?.user) {
+          throw new Error("No session");
+        }
+
         const [{ daily, weekly }, xpSnapshot]: [ActiveQuestsResponse, XpSnapshot] =
           await Promise.all([
-            getActiveQuests(),
-            getUserXP(),
+            fetchActiveQuests({ userId: session.user.id }),
+            fetchXpSnapshot({ userId: session.user.id }),
           ]);
 
         if (!alive) return;
 
         setQuests(toUiQuests({ daily, weekly }));
 
-        const xpValue = xpSnapshot?.ep ?? xpSnapshot?.xp ?? 0;
+        const xpValue = xpSnapshot?.xp ?? 0;
         const levelValue = xpSnapshot?.level ?? 1;
 
         setUserXP(xpValue);
         setUserLevel(levelValue);
-        setXpForNextLevelState(getXPForNextLevel(levelValue));
+        setXpForNextLevelState(getXpForNextLevel(levelValue));
       } catch (err) {
-        console.error("Error loading quests:", err);
+        log.error("[home] Error loading quests", err);
         if (alive) {
           setError((prev: unknown) => (prev == null ? err : prev));
           setQuests(EMPTY_HOME_QUESTS);

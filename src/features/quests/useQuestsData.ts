@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchActiveQuests,
   fetchXpSummary,
-  supabaseGateway,
+  getSession as getSessionFromGateway,
 } from "@/services/gateways";
+import { log } from "@/lib/log";
 import { QuestCollection, XpSnapshot, toQuestCollection, toXpSnapshot } from "./selectors";
 
 type RefreshFn = () => Promise<QuestsReadyValue>;
@@ -13,14 +14,14 @@ type LoadState =
   | { status: "error"; error: unknown }
   | { status: "ready"; value: QuestsReadyValue };
 
-export type QuestsReadyValue = {
+type QuestsReadyValue = {
   userId: string;
   quests: QuestCollection;
   xp: XpSnapshot;
   fetchedAt: number;
 };
 
-export type QuestsDataState =
+type QuestsDataState =
   | { status: "loading"; refresh: RefreshFn }
   | { status: "error"; error: unknown; refresh: RefreshFn }
   | { status: "ready"; value: QuestsReadyValue; refresh: RefreshFn };
@@ -40,12 +41,8 @@ export function useQuestsData(explicitUserId?: string): QuestsDataState {
       return explicitUserId;
     }
 
-    const { data, error } = await supabaseGateway.auth.getSession();
-    if (error) {
-      throw error;
-    }
-
-    const sessionUserId = data?.session?.user?.id;
+    const session = await getSessionFromGateway();
+    const sessionUserId = session?.user?.id;
     if (!sessionUserId) {
       throw new Error("No active session for quest data.");
     }
@@ -80,7 +77,7 @@ export function useQuestsData(explicitUserId?: string): QuestsDataState {
         setState({ status: "ready", value });
       })
       .catch((error) => {
-        console.error("Failed to load quests data", error);
+        log.error("Failed to load quests data", error);
         if (cancelled || !isMountedRef.current) {
           return;
         }

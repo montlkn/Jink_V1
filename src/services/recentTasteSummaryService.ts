@@ -1,12 +1,13 @@
 import { Platform } from "react-native";
 
-import { fetchWalkSummaries } from "@/services/gateways";
+import { log } from "@/lib/log";
 import {
   SHOULD_USE_DEMO_WALKS,
   getDemoWalkSummaries,
 } from "@/lib/walks/demoData";
-import { getArchetypeInfo } from "./aestheticScoringService";
+import { fetchWalkSummaries } from "@/services/gateways";
 import type { WalkSummary } from "../types/walks";
+import { getArchetypeInfo } from "./aestheticScoringService";
 
 type ArchetypeDatum = {
   name?: string;
@@ -188,7 +189,7 @@ const getLatestWalk = async (userId: string | null | undefined): Promise<WalkSum
       return summaries[0] ?? null;
     }
   } catch (error) {
-    console.warn(
+    log.warn(
       "[recentTasteSummary] Failed to load walk summaries",
       (error as Error)?.message
     );
@@ -196,6 +197,86 @@ const getLatestWalk = async (userId: string | null | undefined): Promise<WalkSum
 
   return getDemoWalkSummaries()[0] ?? null;
 };
+
+// === compact line support ===
+const inverseDescriptorLookup: Record<string, string> = Object.fromEntries(
+  Object.entries(descriptorPhrases).map(([k, v]) => [v, k])
+);
+
+const themeFromDescriptor: Record<string, string> = {
+  Ornate: "decadence",
+  Luxurious: "decadence",
+  Glamorous: "decadence",
+  Grand: "grandeur",
+  Monumental: "grandeur",
+  Spectacular: "spectacle",
+  Theatrical: "spectacle",
+  Minimal: "restraint",
+  Clean: "restraint",
+  Intentional: "restraint",
+  Raw: "austerity",
+  Utilitarian: "austerity",
+  Exposed: "structure",
+  Urban: "grit",
+  Geometric: "geometry",
+  Formal: "order",
+  Symmetrical: "order",
+  Rational: "order",
+  Systematic: "order",
+  Organic: "flow",
+  Serene: "calm",
+  Grounded: "ground",
+  Innovative: "novelty",
+  Experimental: "experiment",
+  Playful: "play",
+  Whimsical: "play",
+  Iconic: "iconography",
+  Sculptural: "sculpture",
+  "Material Honest": "material honesty",
+  Craft: "craft",
+  Tactile: "texture",
+  Sustainable: "ethic",
+  Regional: "vernacular",
+  Functional: "function",
+  Efficient: "efficiency",
+  Practical: "utility",
+  Polished: "polish",
+  Sleek: "sleekness",
+  Sophisticated: "sophistication",
+  Bold: "boldness",
+  Edgy: "edge",
+};
+
+function pickThemeFromDescriptors(descriptors: string[], fallback: string): string {
+  for (const d of descriptors) {
+    const rawKey = inverseDescriptorLookup[d] || inverseDescriptorLookup[d.trim()];
+    const theme = rawKey ? themeFromDescriptor[rawKey] : undefined;
+    if (theme) return theme.toLowerCase();
+  }
+  const first = descriptors[0];
+  if (first) {
+    const tokens = first.split(/\s+/);
+    const last = tokens[tokens.length - 1];
+    if (last) return last.toLowerCase();
+  }
+  return fallback.toLowerCase();
+}
+
+function verbForIntensity(pct: number): string {
+  if (pct >= 80) return "strongly favor";
+  if (pct >= 55) return "favor";
+  if (pct >= 35) return "lean toward";
+  return "hint at";
+}
+
+function formatContextShort(
+  walk: WalkSummary | null
+): { ctx: string; source: "activity" | "profile" } {
+  if (!walk) return { ctx: "Recent taste", source: "profile" };
+  const borough = walk.borough ? walk.borough.trim() : "";
+  const loc = borough.length ? ` ${borough}` : "";
+  return { ctx: `Recent walks${loc}`, source: "activity" };
+}
 
 export async function getRecentTasteSummary(
   options: SummaryOptions
@@ -257,4 +338,50 @@ export async function getRecentTasteSummary(
     keywords,
     source: context.source,
   };
+}
+
+// === new terse line generator ===
+export async function getRecentTasteLine(
+  options: SummaryOptions
+): Promise<SummaryResult | null> {
+  const archetypes = options?.archetypes ?? [];
+  if (!archetypes.length) return null;
+
+  const primaryEntry = archetypes[0];
+  const secondaryEntry = archetypes[1] ?? null;
+
+  const primaryId = normalizeArchetypeId(primaryEntry);
+  const primaryPhrase = buildArchetypePhrase(primaryId, 3);
+  if (!primaryPhrase) return null;
+
+  const secondaryId = normalizeArchetypeId(secondaryEntry);
+  const secondaryPhrase = buildArchetypePhrase(secondaryId, 2);
+
+  const latestWalk = options.userId ? await getLatestWalk(options.userId) : null;
+  const { ctx, source } = formatContextShort(latestWalk);
+
+  const intensity =
+    typeof primaryEntry?.percentage === "number"
+      ? primaryEntry.percentage
+      : primaryEntry?.score ?? 0;
+
+  const theme = pickThemeFromDescriptors(
+    [
+      ...(primaryPhrase.descriptors ?? []),
+      ...((secondaryPhrase?.descriptors ?? []) as string[]),
+    ],
+    primaryPhrase.label
+  );
+
+  const verb = verbForIntensity(Math.round(intensity));
+  const text = `${ctx} ${verb} ${theme}.`;
+
+  const keywords = [
+    primaryPhrase.label.toLowerCase(),
+    theme,
+    ...(primaryPhrase.descriptors ?? []),
+    ...(secondaryPhrase?.descriptors ?? []),
+  ];
+
+  return { text, keywords, source };
 }

@@ -21,6 +21,16 @@ passport, etc.).  Updating a route requires adding its path here as well as in
 session.  The wrapper defers rendering until the auth state is ready and will
 redirect to the login screen if no session is available.
 
+## Gateway Boundaries
+
+- Authentication state and mutations flow exclusively through the gateway
+  helpers exported from `src/services/gateways/supabaseGateway.ts`.
+- Quests and XP data for navigation-linked screens (`Home`, `Quests`,
+  `Passport`) resolve via the same gateway—legacy `questService` usage has
+  been removed.
+- When a navigation screen needs Supabase access, add a gateway helper instead
+  of importing the client directly so deep-link flows share the same contract.
+
 ## Navigating
 
 - Use `screens.<Name>` when calling `navigation.navigate` or the global helpers

@@ -1,6 +1,6 @@
 type PrimitiveRecord = Record<string, unknown>;
 
-export type HomeQuestReward = {
+type HomeQuestReward = {
   type: "stamp" | "achievement";
   icon: "bookmark" | "ribbon";
   label: string;

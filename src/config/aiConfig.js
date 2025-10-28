@@ -2,6 +2,8 @@
  * AI Configuration: Two-tier model strategy with fallback logic
  */
 
+import { log } from "@/lib/log";
+
 export const AI_CONFIG = {
   enabled: process.env.AI_GENERATION_ENABLED !== 'false',
   apiKey: process.env.GEMINI_API_KEY,
@@ -86,7 +88,7 @@ export function selectModel(shouldEscalate = false) {
  */
 export function validateAIConfig() {
   if (!AI_CONFIG.enabled) {
-    console.warn('AI generation is disabled');
+    log.warn('AI generation is disabled');
     return true;
   }
 

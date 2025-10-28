@@ -68,6 +68,7 @@ A React Native mobile application designed to help users explore architectural l
 * **Vision Camera** – high-performance image recognition
 * **Zustand** – global state management
 * **Expo Blur & Reanimated** – advanced UI/UX effects
+* **Feature Facades + Gateways** – UI screens call `src/features/**` facades; all external I/O is isolated in `src/services/gateways/**`
 
 ---
 
@@ -76,24 +77,23 @@ A React Native mobile application designed to help users explore architectural l
 ```
 architecture-app/
 ├── src/
-│   ├── api/                    # Supabase & API services
-│   ├── components/             # Modular UI components
-│   │   ├── aura/               # Aura Profile visual components
-│   │   ├── home/               # Home interface modules
-│   │   └── walk/               # Walk setup and controls
-│   ├── hooks/                  # Custom React hooks
-│   ├── screens/                # Screen-level views
-│   │   ├── Aura/               # Aura Profile screen
-│   │   ├── Passport/           # User passport and stats
-│   │   ├── Walk/               # Walk interface
-│   │   ├── Scan/               # Camera and ML scanning
-│   │   ├── Home/               # Entry dashboard
-│   │   └── Search/             # Advanced search
-│   ├── navigation/             # Stack and tab navigation
-│   ├── services/               # Business logic, ML integration
-│   ├── state/                  # Global state stores (Zustand)
-│   └── utils/                  # Helper functions
-├── assets/                     # Fonts, images, icons
+│   ├── features/               # Facades, hooks, mutations (auth/home/quests/…/orb)
+│   ├── services/
+│   │   └── gateways/           # Supabase & HTTP entry points only
+│   ├── components/             # Presentational building blocks
+│   ├── navigation/             # Stack, linking, route constants
+│   ├── lib/                    # Shared runtime utils (logging, sanitizers)
+│   ├── state/                  # Global stores (Zustand)
+│   ├── utils/                  # Math, Three helpers, misc tools
+│   └── types/                  # Shared *.d.ts modules
+├── docs/
+│   ├── Navigation.md
+│   ├── Modifying-*.md
+│   ├── migrations/
+│   └── archive/                # Historical specs
+├── assets/                     # Fonts, env maps, textures
+├── archive/
+│   └── infra/                  # Infra + docker artifacts (not in runtime bundle)
 ├── android/                    # Android native config
 ├── ios/                        # iOS native config
 └── App.js                      # App entry point

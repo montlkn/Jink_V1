@@ -3,6 +3,7 @@
  */
 
 import { selectModel } from "../../config/aiConfig";
+import { log } from "@/lib/log";
 import {
   buildSystemPrompt,
   parseAndValidateResponse,
@@ -32,7 +33,7 @@ export async function generateSummary(aestheticData, options = {}) {
   const modelConfig = selectModel(shouldEscalate);
   const attempt = attemptNumber;
 
-  console.log(
+  log.debug(
     `[summary-gen] Attempt ${attempt}/${maxAttempts} using model: ${modelConfig.name}`
   );
 
@@ -84,7 +85,7 @@ export async function generateSummary(aestheticData, options = {}) {
       response.promptFeedback?.blockReason ||
       response.promptFeedback?.safetyRatings?.some(r => r.probability === 'HIGH')
     ) {
-      console.warn('[summary-gen] Safety filter triggered, escalating');
+      log.warn('[summary-gen] Safety filter triggered, escalating');
       if (!shouldEscalate && attempt < maxAttempts) {
         return generateSummary(aestheticData, {
           shouldEscalate: true,
@@ -101,11 +102,11 @@ export async function generateSummary(aestheticData, options = {}) {
     const validation = parseAndValidateResponse(responseText);
 
     if (!validation.valid) {
-      console.warn(`[summary-gen] Validation failed: ${validation.error}`);
+      log.warn(`[summary-gen] Validation failed: ${validation.error}`);
 
       // Retry with fallback model if we haven't escalated yet
       if (!shouldEscalate && attempt < maxAttempts) {
-        console.log('[summary-gen] Retrying with fallback model');
+        log.debug('[summary-gen] Retrying with fallback model');
         return generateSummary(aestheticData, {
           shouldEscalate: true,
           attemptNumber: attempt + 1,
@@ -128,7 +129,7 @@ export async function generateSummary(aestheticData, options = {}) {
     const totalTokens = tokensIn + tokensOut;
 
     // Log with all metrics for monitoring and cost analysis
-    console.log('[summary-gen] Success', {
+    log.debug('[summary-gen] Success', {
       model: modelConfig.name,
       tokensIn,
       tokensOut,
@@ -149,11 +150,11 @@ export async function generateSummary(aestheticData, options = {}) {
       tokens: { in: tokensIn, out: tokensOut, total: totalTokens },
     };
   } catch (error) {
-    console.error(`[summary-gen] Error on attempt ${attempt}:`, error.message);
+    log.error(`[summary-gen] Error on attempt ${attempt}:`, error.message);
 
     // Last resort: escalate to fallback if not already there
     if (!shouldEscalate && attempt < maxAttempts) {
-      console.log('[summary-gen] Escalating to fallback model');
+      log.debug('[summary-gen] Escalating to fallback model');
       return generateSummary(aestheticData, {
         shouldEscalate: true,
         attemptNumber: attempt + 1,

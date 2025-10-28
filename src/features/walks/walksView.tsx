@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { log } from "@/lib/log";
 
 import { useWalksData } from "./useWalksData";
 
@@ -38,7 +39,7 @@ export function WalksView(): JSX.Element {
 
   const handleRefresh = useCallback(() => {
     void walksState.refresh({ force: true }).catch((error) => {
-      console.error("[walks] Refresh failed", error);
+      log.error("[walks] Refresh failed", error);
     });
   }, [walksState]);
 
@@ -87,7 +88,7 @@ export function WalksView(): JSX.Element {
               onPress={() => {
                 if (summary.id) {
                   void walksState.select(summary.id).catch((error) => {
-                    console.error("[walks] Select walk failed", error);
+                    log.error("[walks] Select walk failed", error);
                   });
                 }
               }}

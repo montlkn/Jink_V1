@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { supabaseGateway as supabase } from "@/services/gateways";
+import {
+  getSession as getSessionFromGateway,
+  onAuthStateChange,
+} from "@/services/gateways";
+import { log } from "@/lib/log";
 import { toAuthSession, type AuthSession } from "./selectors";
 
 export type AuthDataState =
@@ -15,28 +19,24 @@ export function useAuthData(): AuthDataState {
   useEffect(() => {
     let active = true;
 
-    supabase.auth
-      .getSession()
-      .then(({ data, error }) => {
+    getSessionFromGateway()
+      .then((session) => {
         if (!active) return;
-        if (error) {
-          console.warn("[Auth] Failed to fetch initial session", error);
-        }
         setState({
           status: "ready",
-          session: toAuthSession(data?.session ?? null),
+          session: toAuthSession(session),
         });
       })
       .catch((error) => {
         if (!active) return;
-        console.warn("[Auth] Unexpected session error", error);
+        log.warn("[Auth] Unexpected session error", error);
         setState({
           status: "ready",
           session: null,
         });
       });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = onAuthStateChange((_event, session) => {
       if (!active) return;
       setState({
         status: "ready",

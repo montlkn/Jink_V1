@@ -3,7 +3,8 @@ import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, SafeAreaView, StyleSheet, View } from "react-native";
-import { getNearbyPlaces } from "../../api/buildingsApi.js";
+import { walksActions } from "@/features/walks";
+import { log } from "@/lib/log";
 import StreamingInstructionText from "../../components/walk/StreamingInstructionText";
 import TimeSlider from "../../components/walk/TimeSlider";
 import TimerDisplay from "../../components/walk/TimerDisplay";
@@ -166,7 +167,7 @@ const WalkStartScreen = ({ navigation }) => {
         } = await Location.getCurrentPositionAsync({});
         setLocation({ latitude, longitude });
       } catch (error) {
-        console.error("Unable to fetch location", error);
+        log.error("[walkStart] Unable to fetch location", error);
       }
     })();
   }, []);
@@ -177,11 +178,11 @@ const WalkStartScreen = ({ navigation }) => {
     try {
       setIsFetching(true);
       startLaunchHaptics();
-      const nearbyPlaces = await getNearbyPlaces(
-        location.latitude,
-        location.longitude,
-        1000
-      );
+      const nearbyPlaces = await walksActions.fetchNearbyBuildings({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        radius: 1000,
+      });
 
       if (!nearbyPlaces?.length) {
         Alert.alert(
@@ -198,7 +199,7 @@ const WalkStartScreen = ({ navigation }) => {
         duration: time,
       });
     } catch (error) {
-      console.error("Error fetching nearby places:", error);
+      log.error("[walkStart] Error fetching nearby places", error);
       Alert.alert(
         "Unable to start walk",
         "We couldn't generate a route. Please try again."

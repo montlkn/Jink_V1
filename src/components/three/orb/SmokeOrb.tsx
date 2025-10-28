@@ -8,6 +8,7 @@ import {
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Color, ShaderMaterial, Texture, TextureLoader, Vector2 } from "three";
+import { log } from "@/lib/log";
 import { loadKtx2TextureFromAsset } from "../../../utils/three/loadKtx2Texture";
 
 const SMOKE_ATLAS_KTX2 = require("../../../../assets/textures/smoke_atlas.ktx2");
@@ -159,7 +160,7 @@ export function SmokeOrb({
         c: new Color(colorC),
       };
     } catch (error) {
-      console.warn("[SmokeOrb] Failed to parse colors", { colorA, colorB, colorC }, error);
+      log.warn("[SmokeOrb] Failed to parse colors", { colorA, colorB, colorC }, error);
       return {
         a: new Color("#8cf"),
         b: new Color("#fff"),
@@ -235,7 +236,7 @@ export function SmokeOrb({
       hasInitializedRef.current = true;
 
       if (__DEV__) {
-        console.log("[SmokeOrb] Startup animation initialized");
+        log.debug("[SmokeOrb] Startup animation initialized");
       }
     }
 
@@ -274,7 +275,7 @@ export function SmokeOrb({
 
   useEffect(() => {
     if (startupTexture) {
-      console.log(
+      log.debug(
         "[SmokeOrb] Startup texture loaded:",
         startupTexture.image?.width,
         "x",
@@ -298,7 +299,7 @@ export function SmokeOrb({
           startupTexture.image.width,
           startupTexture.image.height
         );
-        console.log(
+        log.debug(
           "[SmokeOrb] Startup atlas size set to:",
           startupTexture.image.width,
           "x",

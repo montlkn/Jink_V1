@@ -1,1 +1,6 @@
-export { fetchWalkSummaries, fetchWalkDetail, completeWalk } from "./supabaseGateway";
+export {
+  fetchWalkSummaries,
+  fetchWalkDetail,
+  completeWalk,
+  fetchNearbyBuildings,
+} from "./supabaseGateway";

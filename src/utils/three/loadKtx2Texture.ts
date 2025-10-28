@@ -5,6 +5,7 @@ import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system";
 import { DataTexture, LinearFilter, RGBAFormat } from "three";
 import type { DataTexture as ThreeDataTexture, WebGLRenderer } from "three";
+import { log } from "@/lib/log";
 
 type BasisModuleType = {
   initializeBasis: () => void;
@@ -105,7 +106,7 @@ async function ensureBasisModule(): Promise<BasisModuleType> {
         // @ts-ignore - React Native exposes a process shim; disable Node path in Basis runtime.
         global.process = undefined;
       } catch (error) {
-        console.warn("[loadKtx2Texture] Failed to clear process shim", error);
+        log.warn("[loadKtx2Texture] Failed to clear process shim", error);
       }
     }
 
@@ -186,7 +187,7 @@ export async function loadKtx2TextureFromAsset(
         : -1;
 
     if (__DEV__) {
-      console.log("[loadKtx2Texture] Prepared KTX2 asset", {
+      log.debug("[loadKtx2Texture] Prepared KTX2 asset", {
         name: asset.name ?? asset.hash ?? "unknown",
         width,
         height,
@@ -196,7 +197,7 @@ export async function loadKtx2TextureFromAsset(
     }
 
     if (supercompression === 2) {
-      console.warn(
+      log.warn(
         "[loadKtx2Texture] ZSTD supercompression detected. Ensure the Basis transcoder build includes ZSTD support."
       );
     }
@@ -227,7 +228,7 @@ export async function loadKtx2TextureFromAsset(
     cleanup();
 
     if (__DEV__) {
-      console.log(
+      log.debug(
         "[loadKtx2Texture] Loaded KTX2 texture",
         { width, height, format: transcoderFormat, bytes: dst.byteLength }
       );
@@ -243,13 +244,13 @@ export async function loadKtx2TextureFromAsset(
     return { texture };
   } catch (error) {
     if (error instanceof Error) {
-      console.warn(
+      log.warn(
         "[loadKtx2Texture] Failed to load KTX2 texture:",
         error.message || error.toString(),
         error.stack ? `\n${error.stack}` : ""
       );
     } else {
-      console.warn("[loadKtx2Texture] Failed to load KTX2 texture:", error);
+      log.warn("[loadKtx2Texture] Failed to load KTX2 texture:", error);
     }
     return null;
   }

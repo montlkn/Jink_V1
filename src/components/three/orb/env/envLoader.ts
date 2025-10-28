@@ -11,6 +11,7 @@ import {
 import { useThree } from "@react-three/fiber/native";
 import { Asset } from "expo-asset";
 import { TextureLoader as ExpoTextureLoader } from "expo-three";
+import { log } from "@/lib/log";
 
 type MaybeTexture = Texture | null;
 type RGBELoaderCtor = typeof import("three-stdlib")["RGBELoader"];
@@ -38,7 +39,7 @@ async function resolveAsset(localModule: any): Promise<Asset | null> {
     await asset.downloadAsync();
     return asset;
   } catch (error) {
-    console.warn("[envLoader] Failed to resolve asset:", error);
+    log.warn("[envLoader] Failed to resolve asset:", error);
     return null;
   }
 }
@@ -61,7 +62,7 @@ function supportsPmrem(renderer: WebGLRenderer): boolean {
 
     return Boolean(hasFloatRT);
   } catch (error) {
-    console.warn("[envLoader] PMREM capability detection failed:", error);
+    log.warn("[envLoader] PMREM capability detection failed:", error);
     return false;
   }
 }
@@ -131,7 +132,7 @@ async function loadStandardTexture(localModule: any): Promise<Texture | null> {
       );
     });
   } catch (error) {
-    console.warn("[envLoader] Expo texture load failed:", error);
+    log.warn("[envLoader] Expo texture load failed:", error);
     return null;
   }
 }
@@ -155,7 +156,7 @@ export function useEnvMap(localModule: any) {
   useEffect(() => {
     // Safety check: ensure we have a valid gl context
     if (!three?.gl) {
-      console.warn("[envLoader] GL context not available yet");
+      log.warn("[envLoader] GL context not available yet");
       return;
     }
 
@@ -176,7 +177,7 @@ export function useEnvMap(localModule: any) {
       const asset = await resolveAsset(localModule);
 
       if (!asset || !renderer) {
-        console.warn("[envLoader] Env asset missing or renderer unavailable.");
+        log.warn("[envLoader] Env asset missing or renderer unavailable.");
         if (!cancelled) {
           setEnvMap(null);
         }
@@ -230,7 +231,7 @@ export function useEnvMap(localModule: any) {
         equi.colorSpace = SRGBColorSpace;
         equi.needsUpdate = true;
       } catch (error) {
-        console.warn("[envLoader] Environment texture load failed:", error);
+        log.warn("[envLoader] Environment texture load failed:", error);
         if (!cancelled) {
           setEnvMap(null);
         }
@@ -256,7 +257,7 @@ export function useEnvMap(localModule: any) {
           }
           return;
         } catch (error) {
-          console.warn("[envLoader] PMREM failed, using equirect:", error);
+          log.warn("[envLoader] PMREM failed, using equirect:", error);
         }
       }
 

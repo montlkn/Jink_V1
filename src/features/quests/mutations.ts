@@ -1,4 +1,4 @@
-import { completeQuest } from "@/services/gateways";
+import { awardXp, completeQuest } from "@/services/gateways";
 import type { CompleteQuestResult } from "@/services/gateways/supabaseGateway";
 
 type CompleteQuestPayload = {
@@ -10,6 +10,7 @@ type CompleteQuestPayload = {
 export const questsActions = {
   complete: (payload: CompleteQuestPayload): Promise<CompleteQuestResult> =>
     completeQuest({ now: Date.now(), ...payload }),
+  awardXp,
 };
 
 export type { CompleteQuestPayload };

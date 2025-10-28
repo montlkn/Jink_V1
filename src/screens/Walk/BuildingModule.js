@@ -11,6 +11,7 @@ import {
   Share,
   View,
 } from "react-native";
+import { log } from "@/lib/log";
 
 export default function BuildingDetailsScreen({ route }) {
   const { building } = route.params;
@@ -60,7 +61,7 @@ export default function BuildingDetailsScreen({ route }) {
     try {
       await Share.share({ message: address });
     } catch (error) {
-      console.warn("Unable to share address", error);
+      log.warn("Unable to share address", error);
       Alert.alert("Share failed", "We couldn't share the address.");
     }
   };

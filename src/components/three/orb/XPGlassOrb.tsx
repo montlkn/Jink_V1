@@ -1,6 +1,7 @@
 import { Canvas, useThree } from "@react-three/fiber/native";
 import React, { useEffect, useRef } from "react";
 import { ACESFilmicToneMapping, Group, SRGBColorSpace } from "three";
+import { log } from "@/lib/log";
 import { useEnvMap } from "./env/envLoader";
 import { GyroLightRig } from "./GyroLightRig";
 import { RainbowLayer } from "./RainbowLayer";
@@ -38,7 +39,7 @@ function OrbContent({ envAsset }: OrbContentProps) {
 
       if (__DEV__ && !hasLoggedEnv.current) {
         hasLoggedEnv.current = true;
-        console.log(
+        log.debug(
           "[XPGlassOrb] Environment map loaded and applied to material"
         );
       }
@@ -130,7 +131,7 @@ export default function XPGlassOrb({
         if (ctx && ctx.renderbufferStorageMultisample) {
           ctx.renderbufferStorageMultisample = function(target: number, samples: number, internalformat: number, width: number, height: number) {
             // Expo GL doesn't support multisampling - fall back to single-sample
-            console.warn('[XPGlassOrb] renderbufferStorageMultisample not supported, using renderbufferStorage fallback');
+            log.warn('[XPGlassOrb] renderbufferStorageMultisample not supported, using renderbufferStorage fallback');
             return ctx.renderbufferStorage(target, internalformat, width, height);
           };
         }
@@ -153,9 +154,9 @@ export default function XPGlassOrb({
 
         if (__DEV__) {
           const hasFloat = ctx?.getExtension?.("EXT_color_buffer_float") ? "yes" : "no";
-          console.log("[XPGlassOrb] isWebGL2:", renderer?.capabilities?.isWebGL2 ?? "unknown");
-          console.log("[XPGlassOrb] EXT_color_buffer_float:", hasFloat);
-          console.log("[XPGlassOrb] maxSamples:", renderer?.capabilities?.maxSamples ?? "unknown");
+          log.debug("[XPGlassOrb] isWebGL2:", renderer?.capabilities?.isWebGL2 ?? "unknown");
+          log.debug("[XPGlassOrb] EXT_color_buffer_float:", hasFloat);
+          log.debug("[XPGlassOrb] maxSamples:", renderer?.capabilities?.maxSamples ?? "unknown");
         }
       }}
     >

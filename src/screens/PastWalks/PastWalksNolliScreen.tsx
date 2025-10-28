@@ -13,6 +13,7 @@ import {
 import MapView, { MapViewProps, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
 
 import { useWalksData } from "@/features/walks";
+import { log } from "@/lib/log";
 import { PAST_WALKS_NOLLI_MAP_STYLE } from "../../constants/mapStyles";
 import type { GeoJsonFeature, WalkGeometry } from "../../types/walks";
 import { projectFeatureToScreen, screenPointsToPath } from "../../utils/mapProjection";
@@ -85,7 +86,7 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
 
       setProjectedPolygons(polygonResults);
     } catch (error) {
-      console.error("[PastWalksNolli] Projection failed", error);
+      log.error("[PastWalksNolli] Projection failed", error);
     }
   }, [mapLayout.height, mapLayout.width]);
 
@@ -126,7 +127,7 @@ const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
     }
 
     selectWalk(walkId).catch((error) => {
-      console.error("[PastWalksNolli] Failed to select walk from route param", error);
+      log.error("[PastWalksNolli] Failed to select walk from route param", error);
     });
   }, [walkId, walksState.status, selectedWalkId, isSelecting, selectWalk]);
 

@@ -1,4 +1,5 @@
 import { Asset } from "expo-asset";
+import { log } from "@/lib/log";
 
 const ENV = require("../../assets/env/qwantani_moon_noon_puresky_1080.jpg");
 const SMOKE_ATLAS = require("../../assets/textures/smoke_atlas.png");
@@ -16,7 +17,7 @@ export function preloadOrbAssets() {
       await Promise.all(assets.map((a) => a.downloadAsync()));
       return true;
     } catch (e) {
-      console.warn("[orbAssets] Preload failed", e);
+      log.warn("[orbAssets] Preload failed", e);
       return false;
     }
   })();

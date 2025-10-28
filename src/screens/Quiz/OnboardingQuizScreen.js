@@ -13,9 +13,10 @@ import {
 import {
   calculateAestheticProfile,
   fetchQuizQuestions,
-  submitQuizResponse
-} from '../../api/quizApi';
-import { fetchSummary } from '../../api/summaryApi';
+  submitQuizResponse,
+} from '@/features/quiz';
+import { fetchSummary } from '@/features/profile';
+import { log } from '@/lib/log';
 import { useAuth } from '../../auth/authProvider';
 
 const { width } = Dimensions.get('window');
@@ -61,7 +62,7 @@ const OnboardingQuizScreen = ({ navigation }) => {
     const responseTime = questionStartTime ? Date.now() - questionStartTime : null;
     const currentQuestion = questions[currentQuestionIndex];
     
-    console.log(`Question ${currentQuestionIndex + 1} answered in ${responseTime}ms`);
+    log.debug(`Question ${currentQuestionIndex + 1} answered in ${responseTime}ms`);
     
     try {
       // Submit the response to Supabase with timing data
@@ -90,7 +91,7 @@ const OnboardingQuizScreen = ({ navigation }) => {
         await finishQuiz();
       }
     } catch (error) {
-      console.error('Error submitting response:', error);
+      log.error('Error submitting response:', error);
       Alert.alert('Error', 'Failed to save your response. Please try again.');
     }
   };
@@ -107,13 +108,13 @@ const OnboardingQuizScreen = ({ navigation }) => {
         await fetchSummary(true);
       } catch (e) {
         // Non-blocking; profile is calculated even if summary gen is deferred
-        console.warn('Post-quiz summary trigger skipped:', e?.message);
+        log.warn('Post-quiz summary trigger skipped:', e?.message);
       }
       
       // Navigation will happen automatically via AppNavigator conditional rendering
-      console.log('Quiz completed successfully - profile calculated');
+      log.debug('Quiz completed successfully - profile calculated');
     } catch (error) {
-      console.error('Error finishing quiz:', error);
+      log.error('Error finishing quiz:', error);
       Alert.alert('Error', 'Failed to calculate your profile. Please try again.');
     } finally {
       setSubmitting(false);

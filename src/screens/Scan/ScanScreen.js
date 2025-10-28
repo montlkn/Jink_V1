@@ -8,8 +8,9 @@ import {
   calculatePositionConfidence,
   detectMovementType,
 } from '../../utils/sensorFusion';
-import ArchetypeOrb from '../../components/ArchetypeOrb';
-import { awardXP } from '../../services/questService';
+import ArchetypeOrb from '../../features/orb/ArchetypeOrb';
+import { questsActions } from '@/features/quests';
+import { log } from '@/lib/log';
 import { screens } from "@/navigation/routes";
 
 export default function ScanScreen({ navigation }) {
@@ -32,7 +33,7 @@ export default function ScanScreen({ navigation }) {
     try {
       fusionRef.current = new PositionFusion();
     } catch (error) {
-      console.error('Error initializing PositionFusion:', error);
+      log.error('[scan] Error initializing PositionFusion', error);
     }
   }, []);
 
@@ -50,7 +51,7 @@ export default function ScanScreen({ navigation }) {
 
       return () => magSub.remove();
     } catch (error) {
-      console.error('Magnetometer error:', error);
+      log.error('[scan] Magnetometer error', error);
     }
   }, []);
 
@@ -65,7 +66,7 @@ export default function ScanScreen({ navigation }) {
 
       return () => accelSub.remove();
     } catch (error) {
-      console.error('Accelerometer error:', error);
+      log.error('[scan] Accelerometer error', error);
     }
   }, []);
 
@@ -107,11 +108,11 @@ export default function ScanScreen({ navigation }) {
               setFloor(altData.floor);
             }
           } catch (error) {
-            console.error('Error in barometer listener:', error);
+          log.error('[scan] Error in barometer listener', error);
           }
         });
       } catch (error) {
-        console.error('Barometer setup failed:', error);
+        log.error('[scan] Barometer setup failed', error);
       }
     };
 
@@ -182,7 +183,7 @@ export default function ScanScreen({ navigation }) {
           );
         }
       } catch (error) {
-        console.error('Error getting location:', error);
+      log.error('[scan] Error getting location', error);
       }
     })();
 
@@ -247,7 +248,7 @@ export default function ScanScreen({ navigation }) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Scan API error:', response.status, errorText);
+        log.error('[scan] Scan API error', response.status, errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
@@ -256,7 +257,7 @@ export default function ScanScreen({ navigation }) {
       // Navigate based on result
       if (data.building && data.building.name) {
         // Award XP for successful scan (50 XP base)
-        await awardXP(50, 'building_scan');
+        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
 
         // Successfully identified building
         navigation.navigate(screens.BuildingInfo, { buildingData: data.building });
@@ -267,7 +268,7 @@ export default function ScanScreen({ navigation }) {
         });
       }
     } catch (error) {
-      console.error('Scan failed:', error);
+      log.error('[scan] Scan failed', error);
 
       // Handle specific error types
       let message = 'An error occurred while scanning. Please try again.';

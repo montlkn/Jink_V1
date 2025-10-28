@@ -10,6 +10,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { navigate } from "@/navigation/nav";
 import { screens } from "@/navigation/routes";
+import { log } from "@/lib/log";
 
 const AuraBreakdownModal = ({
   visible,
@@ -19,7 +20,7 @@ const AuraBreakdownModal = ({
   if (!visible) return null;
 
   const handleViewProfile = () => {
-    console.log('[aura-modal] Handle view profile');
+    log.debug('[aura-modal] Handle view profile');
     if (onClose) onClose();
     setTimeout(() => {
       navigate(screens.Profile);
@@ -68,7 +69,7 @@ const AuraBreakdownModal = ({
                     if (!archetypeName) return;
                     // Small delay so the modal close animation feels natural
                     setTimeout(() => {
-                      console.log('[aura-modal] archetype tap -> Profile', archetypeName);
+                      log.debug('[aura-modal] archetype tap -> Profile', archetypeName);
                       navigate(screens.Profile, { initialArchetype: archetypeName });
                     }, 150);
                   }}

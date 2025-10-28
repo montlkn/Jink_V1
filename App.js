@@ -7,6 +7,7 @@
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
 // MUST be before importing expo-three
 import "expo-three";
+import "@/lib/log";
 import React, { useEffect } from "react";
 import RootNavigator from "@/navigation/RootNavigator";
 import { Asset } from "expo-asset";

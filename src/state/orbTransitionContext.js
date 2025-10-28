@@ -10,9 +10,10 @@ import React, {
   useState,
 } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
-import { getUserAestheticProfile } from "../api/quizApi";
+import { getUserAestheticProfile } from "@/features/profile";
+import { log } from "@/lib/log";
 import { useAuth } from "../auth/authProvider";
-import ArchetypeOrb from "../components/ArchetypeOrb";
+import ArchetypeOrb from "../features/orb/ArchetypeOrb";
 import { extractTopArchetypesFromScores } from "../utils/archetypeColorBlend";
 
 const DEFAULT_TRANSITION_DURATION = 520;
@@ -64,12 +65,12 @@ export const OrbTransitionProvider = ({ children }) => {
     if (normalized.length) {
       AsyncStorage.setItem(ORB_DATA_STORAGE_KEY, JSON.stringify(normalized)).catch(
         (error) => {
-          console.warn("[OrbTransition] Failed to persist orb colors", error);
+          log.warn("[OrbTransition] Failed to persist orb colors", error);
         }
       );
     } else {
       AsyncStorage.removeItem(ORB_DATA_STORAGE_KEY).catch((error) => {
-        console.warn("[OrbTransition] Failed to clear orb colors", error);
+        log.warn("[OrbTransition] Failed to clear orb colors", error);
       });
     }
   }, []);
@@ -88,11 +89,11 @@ export const OrbTransitionProvider = ({ children }) => {
             setOrbState(normalized);
           }
         } catch (error) {
-          console.warn("[OrbTransition] Failed to parse cached orb colors", error);
+          log.warn("[OrbTransition] Failed to parse cached orb colors", error);
         }
       })
       .catch((error) => {
-        console.warn("[OrbTransition] Failed to read cached orb colors", error);
+        log.warn("[OrbTransition] Failed to read cached orb colors", error);
       });
     return () => {
       isMounted = false;
@@ -121,7 +122,7 @@ export const OrbTransitionProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        console.warn("[OrbTransition] Failed to bootstrap orb colors", error);
+        log.warn("[OrbTransition] Failed to bootstrap orb colors", error);
         bootstrapRef.current = false;
       }
     })();

@@ -3,22 +3,15 @@
 const appJson = require('./app.json');
 
 module.exports = () => {
-  const iosGoogleMapsApiKey = process.env.IOS_GOOGLE_MAPS_API_KEY || null;
+  const iosGoogleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || null;
 
-  const basePlugins = [...(appJson.expo.plugins || [])];
-  const hasExpoRouter = basePlugins.some((plugin) =>
-    Array.isArray(plugin) ? plugin[0] === 'expo-router' : plugin === 'expo-router'
-  );
-  if (!hasExpoRouter) {
-    basePlugins.push('expo-router');
-  }
+  const basePlugins = (appJson.expo.plugins || []).filter((plugin) => {
+    const name = Array.isArray(plugin) ? plugin[0] : plugin;
+    return name !== 'expo-router';
+  });
 
   const baseExtra = {
     ...(appJson.expo.extra || {}),
-    expoRouter: {
-      ...(appJson.expo.extra?.expoRouter || {}),
-      appRoot: appJson.expo.extra?.expoRouter?.appRoot || 'app',
-    },
   };
 
   const config = {

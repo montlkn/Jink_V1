@@ -3,6 +3,8 @@
  * Uses allowlist of safe fields to prevent leakage to LLM
  */
 
+import { log } from "@/lib/log";
+
 /**
  * Allowed context fields that are safe to send to LLM
  * NEVER add user ID, email, name, or identifiable info
@@ -121,7 +123,7 @@ export function validateContextSafety(context) {
   const keys = Object.keys(context);
   for (const key of keys) {
     if (!ALLOWED_CONTEXT_FIELDS.includes(key)) {
-      console.warn(`[safety] Disallowed field: ${key}`);
+      log.warn(`[safety] Disallowed field: ${key}`);
     }
   }
 

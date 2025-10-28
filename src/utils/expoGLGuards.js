@@ -1,6 +1,8 @@
 // Patches Expo GL WebGL contexts to safely ignore unsupported pixelStorei enums
 // This runs before Three initializes, preventing EXGL warnings on native.
 
+import { log } from "@/lib/log";
+
 /* eslint-disable no-param-reassign */
 
 const UNSUPPORTED_PIXEL_STORE_ENUMS = new Set([
@@ -21,7 +23,7 @@ const patchPixelStore = (gl, verbose) => {
     if (UNSUPPORTED_PIXEL_STORE_ENUMS.has(pname)) {
       if (verbose && !warned.has(pname)) {
         warned.add(pname);
-        console.warn(
+        log.warn(
           `[ExpoGLGuard] Suppressing pixelStorei(${pname}, ${String(
             param
           )}) to avoid EXGL unsupported parameter error.`
@@ -32,7 +34,7 @@ const patchPixelStore = (gl, verbose) => {
 
     if (!original) return undefined;
 
-    if (verbose && typeof console !== 'undefined') {
+    if (verbose) {
       const label =
         (() => {
           try {
@@ -43,14 +45,14 @@ const patchPixelStore = (gl, verbose) => {
         })() || String(pname);
       if (!warned.has(label)) {
         warned.add(label);
-        console.log(`[ExpoGLGuard] pixelStorei passthrough ${label} -> ${String(param)}`);
+        log.debug(`[ExpoGLGuard] pixelStorei passthrough ${label} -> ${String(param)}`);
       }
     }
     try {
       return original(pname, param);
     } catch (error) {
       if (verbose && !UNSUPPORTED_PIXEL_STORE_ENUMS.has(pname)) {
-        console.warn(`[ExpoGLGuard] pixelStorei(${pname}) threw: ${error?.message}`);
+        log.warn(`[ExpoGLGuard] pixelStorei(${pname}) threw: ${error?.message}`);
       }
       return undefined;
     }
@@ -67,7 +69,7 @@ const patchPixelStore = (gl, verbose) => {
         if (UNSUPPORTED_PIXEL_STORE_ENUMS.has(pname)) {
           if (verbose && !warned.has(pname)) {
             warned.add(pname);
-            console.warn(
+            log.warn(
               `[ExpoGLGuard] Suppressing proto pixelStorei(${pname}, ${String(
                 param
               )}) to avoid EXGL unsupported parameter error.`
@@ -79,7 +81,7 @@ const patchPixelStore = (gl, verbose) => {
           return protoOriginal(pname, param);
         } catch (error) {
           if (verbose) {
-            console.warn(`[ExpoGLGuard] proto pixelStorei(${pname}) threw: ${error?.message}`);
+            log.warn(`[ExpoGLGuard] proto pixelStorei(${pname}) threw: ${error?.message}`);
           }
           return undefined;
         }
@@ -153,7 +155,7 @@ export const installExpoGLGuards = ({ verbose = false } = {}) => {
       if (UNSUPPORTED_PIXEL_STORE_ENUMS.has(pname)) {
         if (verbose && !warned.has(pname)) {
           warned.add(pname);
-          console.warn(
+          log.warn(
             `[ExpoGLGuard] Suppressing prototype pixelStorei(${pname}, ${String(
               param
             )}) to avoid EXGL unsupported parameter error.`
@@ -165,7 +167,7 @@ export const installExpoGLGuards = ({ verbose = false } = {}) => {
         return protoOriginal.call(this, pname, param);
       } catch (error) {
         if (verbose) {
-          console.warn(`[ExpoGLGuard] prototype pixelStorei(${pname}) threw: ${error?.message}`);
+          log.warn(`[ExpoGLGuard] prototype pixelStorei(${pname}) threw: ${error?.message}`);
         }
         return undefined;
       }

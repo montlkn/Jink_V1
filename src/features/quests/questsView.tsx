@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { log } from "@/lib/log";
 import { questsActions } from "./mutations";
 import { useQuestsData } from "./useQuestsData";
 
@@ -23,7 +24,7 @@ export function QuestsView(): JSX.Element {
         await questsActions.complete({ userId: state.value.userId, questId });
         await state.refresh();
       } catch (error) {
-        console.error("Failed to complete quest", error);
+        log.error("Failed to complete quest", error);
       }
     },
     [state]

@@ -1,5 +1,6 @@
 import React from "react";
 import { ActivityIndicator, Button, StyleSheet, Text, View } from "react-native";
+import { log } from "@/lib/log";
 import QuestCard from "@/components/quests/QuestCard";
 import type { QuestItem } from "./selectors";
 import { questsActions } from "./mutations";
@@ -102,7 +103,7 @@ export function QuestList({
           });
           await state.refresh();
         } catch (error) {
-          console.error("Failed to complete quest from QuestList", error);
+          log.error("Failed to complete quest from QuestList", error);
         }
       }
     : undefined;

@@ -48,10 +48,8 @@ export type QuestGatewayPayload = {
 
 export type XpGatewayPayload = {
   xp?: number | null;
-  ep?: number | null;
   level?: number | null;
   xp_spent?: number | null;
-  ep_spent?: number | null;
 };
 
 export const EMPTY_QUEST_COLLECTION: QuestCollection = {
@@ -158,9 +156,9 @@ export function toXpSnapshot(raw: unknown): XpSnapshot {
   }
 
   const source = raw as XpGatewayPayload;
-  const xpValue = safeNumber(source.xp ?? source.ep, 0);
+  const xpValue = safeNumber(source.xp, 0);
   const levelValue = Math.max(1, safeNumber(source.level, 1));
-  const xpSpentValue = safeNumber(source.xp_spent ?? source.ep_spent, 0);
+  const xpSpentValue = safeNumber(source.xp_spent, 0);
 
   return {
     xp: xpValue,

@@ -3,13 +3,18 @@ import {
   exchangeCodeForSession as exchangeSessionCode,
   getSession as getSessionFromGateway,
   setSession as setSessionOnGateway,
-  supabaseGateway as supabase,
+  signInWithPassword,
+  signUpWithPassword,
+  signOut as signOutFromGateway,
+  signInWithOAuth,
+  signInWithOtp,
+  verifyOtp,
 } from "@/services/gateways";
 
 const buildRedirectUrl = () => Linking.createURL("auth/callback");
 
 export const signInWithEmail = async (email: string, password: string) => {
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await signInWithPassword({
     email,
     password,
   });
@@ -19,7 +24,7 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 export const signUpWithEmail = async (email: string, password: string) => {
-  const { error } = await supabase.auth.signUp({
+  const { error } = await signUpWithPassword({
     email,
     password,
     options: { emailRedirectTo: buildRedirectUrl() },
@@ -30,10 +35,7 @@ export const signUpWithEmail = async (email: string, password: string) => {
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    throw error;
-  }
+  await signOutFromGateway();
 };
 
 export const getSession = () => getSessionFromGateway();
@@ -46,7 +48,7 @@ export const setSession = (params: { accessToken: string; refreshToken: string }
 
 export const signInWithProvider = async (provider: "google" | "apple" | "github") => {
   const redirectTo = buildRedirectUrl();
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await signInWithOAuth({
     provider,
     options: {
       redirectTo,
@@ -74,14 +76,14 @@ export const signInWithProvider = async (provider: "google" | "apple" | "github"
 };
 
 export const sendPhoneOtp = async (phone: string) => {
-  const { error } = await supabase.auth.signInWithOtp({ phone });
+  const { error } = await signInWithOtp({ phone });
   if (error) {
     throw error;
   }
 };
 
 export const verifyPhoneOtp = async (phone: string, token: string) => {
-  const { error } = await supabase.auth.verifyOtp({
+  const { error } = await verifyOtp({
     phone,
     token,
     type: "sms",

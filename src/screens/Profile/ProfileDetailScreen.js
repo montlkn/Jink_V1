@@ -13,8 +13,11 @@ import {
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { getUserAestheticProfile } from '../../api/quizApi';
-import { fetchSummary, regenerateSummary } from '../../api/summaryApi';
+import {
+  getUserAestheticProfile,
+  fetchSummary,
+  regenerateSummary,
+} from '@/features/profile';
 import { useAuth } from '../../auth/authProvider';
 import DonutChart from '../../components/charts/DonutChart';
 import AnimatedSummaryText from '../../components/profile/AnimatedSummaryText';
@@ -24,6 +27,7 @@ import SegmentModal from '../../components/modals/SegmentModal';
 import { getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
 import { composeLocalSummary } from '../../services/ai/localSummary';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
+import { log } from '@/lib/log';
 
 const REQUIRED_PROMPT_VERSION = 'prompt-v2';
 const MAX_SUMMARY_REFRESH_ATTEMPTS = 2;
@@ -271,7 +275,7 @@ const ProfileDetailScreen = ({ navigation }) => {
     summaryRefreshAttempts.current += 1;
 
     try {
-      console.log('[profile-screen] Requesting manual summary regeneration');
+      log.debug('[profile-screen] Requesting manual summary regeneration');
       await regenerateSummary();
 
       const refreshed = await fetchSummary(false);
@@ -284,13 +288,13 @@ const ProfileDetailScreen = ({ navigation }) => {
       }
 
       if (evaluation.guardrailViolation) {
-        console.log(
+        log.debug(
           '[profile-screen] Manual regeneration violated guardrails:',
           evaluation.guardrailReasons.join(', ') || 'unknown'
         );
       }
     } catch (regenErr) {
-      console.warn('AI summary manual regeneration failed:', regenErr.message);
+      log.warn('AI summary manual regeneration failed:', regenErr.message);
     }
 
     return false;
@@ -305,7 +309,7 @@ const ProfileDetailScreen = ({ navigation }) => {
     summaryRefreshAttempts.current += 1;
 
     try {
-      console.log(`[profile-screen] Autogen summary attempt #${summaryRefreshAttempts.current}`);
+      log.debug(`[profile-screen] Autogen summary attempt #${summaryRefreshAttempts.current}`);
       const autogen = await fetchSummary(true);
       const evaluation = evaluateSummaryResponse(autogen);
 
@@ -316,13 +320,13 @@ const ProfileDetailScreen = ({ navigation }) => {
       }
 
       if (evaluation.guardrailViolation) {
-        console.log(
+        log.debug(
           '[profile-screen] Autogen summary guardrail violation:',
           evaluation.guardrailReasons.join(', ') || 'unknown'
         );
       }
     } catch (autogenErr) {
-      console.warn('AI summary autogen skipped:', autogenErr.message);
+      log.warn('AI summary autogen skipped:', autogenErr.message);
     }
 
     if (summaryRefreshAttempts.current < MAX_SUMMARY_REFRESH_ATTEMPTS) {
@@ -347,7 +351,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         : { text: '', generatedAt: null, placeholder: false, keyPhrases: [] }
     );
     try {
-      console.log('[profile-screen] Loading profile detail…');
+      log.debug('[profile-screen] Loading profile detail…');
       const userProfile = await getUserAestheticProfile(session.user.id);
       setProfile(userProfile);
       setLoading(false);
@@ -365,7 +369,7 @@ const ProfileDetailScreen = ({ navigation }) => {
           resolvedSummary = evaluation.summary;
           setSummaryPending(false);
         } else if (evaluation.guardrailViolation) {
-          console.log(
+          log.debug(
             '[profile-screen] Cached summary violated guardrails:',
             evaluation.guardrailReasons.join(', ') || 'unknown'
           );
@@ -402,7 +406,7 @@ const ProfileDetailScreen = ({ navigation }) => {
           setSummaryPending(false);
         }
       } catch (summaryErr) {
-        console.warn('Could not fetch AI summary:', summaryErr.message);
+        log.warn('Could not fetch AI summary:', summaryErr.message);
         setSummaryPending(false);
         // Non-critical: continue without AI summary
       }
@@ -413,13 +417,13 @@ const ProfileDetailScreen = ({ navigation }) => {
         (!aiSummary || aiSummary.placeholder) &&
         !willAutogen
       ) {
-        console.log('[profile-screen] Using fallback summary');
+        log.debug('[profile-screen] Using fallback summary');
         fallbackToLocalSummary(userProfile);
       }
 
       setError(null);
     } catch (err) {
-      console.error('Error loading profile detail:', err);
+      log.error('Error loading profile detail:', err);
       setError(err.message);
       setLoading(false);
     }
@@ -438,7 +442,7 @@ const ProfileDetailScreen = ({ navigation }) => {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
       await loadUserProfile();
     } catch (refreshErr) {
-      console.warn('Profile refresh failed:', refreshErr?.message || refreshErr);
+      log.warn('Profile refresh failed:', refreshErr?.message || refreshErr);
     } finally {
       setRefreshing(false);
     }

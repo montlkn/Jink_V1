@@ -1,8 +1,8 @@
 import React, { useMemo, useRef } from "react";
 import { Animated, Pressable, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
-import GlassOrb from "./three/orb/GlassOrb";
-import { blendArchetypeColors } from "../utils/archetypeColorBlend";
+import GlassOrb from "@/components/three/orb/GlassOrb";
+import { blendArchetypeColors } from "@/utils/archetypeColorBlend";
 
 function ArchetypeOrb(props) {
   const {

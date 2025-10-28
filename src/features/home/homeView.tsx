@@ -1,4 +1,4 @@
-import ArchetypeOrb from "@/components/ArchetypeOrb";
+import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
 import AuraBreakdownModal from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";

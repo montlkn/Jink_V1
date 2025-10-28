@@ -3,6 +3,7 @@
   Creates or updates profile with sensible defaults from OAuth provider metadata
 */
 import { supabaseGateway as supabase } from "@/services/gateways";
+import { log } from "@/lib/log";
 
 /**
  * Upsert user profile on first SSO login
@@ -56,7 +57,7 @@ export async function upsertProfileFromSession(session) {
     );
 
   if (error) {
-    console.error("Error upserting profile:", error);
+    log.error("Error upserting profile:", error);
     throw error;
   }
 }
