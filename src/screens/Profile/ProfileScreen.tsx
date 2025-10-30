@@ -1,6 +1,3 @@
-import React from "react";
-import { ProfileFeature } from "@/features/profile";
+import ProfileDetailScreen from "./ProfileDetailScreen";
 
-export default function ProfileScreen(): JSX.Element {
-  return <ProfileFeature />;
-}
+export default ProfileDetailScreen;

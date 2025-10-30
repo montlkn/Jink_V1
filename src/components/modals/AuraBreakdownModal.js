@@ -1,5 +1,8 @@
+import { log } from "@/lib/log";
+import { navigate } from "@/navigation/nav";
+import { screens } from "@/navigation/routes";
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import * as Haptics from 'expo-haptics';
 import {
   Modal,
   StyleSheet,
@@ -7,10 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { navigate } from "@/navigation/nav";
-import { screens } from "@/navigation/routes";
-import { log } from "@/lib/log";
 
 const AuraBreakdownModal = ({
   visible,
@@ -48,7 +47,7 @@ const AuraBreakdownModal = ({
 
           <Text style={styles.title}>Your Aesthetic Aura</Text>
           <Text style={styles.subtitle}>
-            These are the top aesthetic energies shaping your aura.
+            Current top aesthetic energies shaping your aura, as you explore these will change. 
           </Text>
 
           <View style={styles.segmentList}>

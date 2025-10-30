@@ -50,6 +50,10 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+android/app/debug.keystore
+
+# Python artifacts
+__pycache__/
 
 # Metro
 .metro-health-check*

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -8,21 +8,57 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
+  UIManager,
   View,
 } from "react-native";
-import MapView, { MapViewProps, Polygon, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, {
+  MapViewProps,
+  Polygon,
+  PROVIDER_GOOGLE, // <-- 1. IMPORTED PROVIDER_GOOGLE
+} from "react-native-maps";
 
-import { useWalksData } from "@/features/walks";
-import { log } from "@/lib/log";
-import { PAST_WALKS_NOLLI_MAP_STYLE } from "../../constants/mapStyles";
-import type { GeoJsonFeature, WalkGeometry } from "../../types/walks";
-import { projectFeatureToScreen, screenPointsToPath } from "../../utils/mapProjection";
+// -------------------- Types --------------------
 
 type PastWalksStackParamList = {
   PastWalksNolli: { walkId?: string } | undefined;
 };
 
 type Props = NativeStackScreenProps<PastWalksStackParamList, "PastWalksNolli">;
+
+type Position = { latitude: number; longitude: number };
+
+type GeoJSONPolygon = {
+  type: "Polygon";
+  coordinates: number[][][]; // rings -> [lng, lat]
+  properties?: Record<string, unknown>;
+  id?: string | number;
+};
+
+type GeoJSONMultiPolygon = {
+  type: "MultiPolygon";
+  coordinates: number[][][][]; // polys -> rings -> [lng, lat]
+  properties?: Record<string, unknown>;
+  id?: string | number;
+};
+
+type GeoJSONFeature = {
+  type: "Feature";
+  id?: string | number;
+  properties?: Record<string, unknown>;
+  geometry: GeoJSONPolygon | GeoJSONMultiPolygon;
+};
+
+type GeoJSONFeatureCollection = {
+  type: "FeatureCollection";
+  features: GeoJSONFeature[];
+};
+
+type ProjectedPolygon = {
+  id: string;
+  rings: Position[][];
+};
+
+// -------------------- Constants --------------------
 
 const DEFAULT_REGION = {
   latitude: 40.712776,
@@ -31,227 +67,235 @@ const DEFAULT_REGION = {
   longitudeDelta: 0.0421,
 };
 
-type ProjectedPolygon = {
-  id: string;
-  rings: string[];
-};
+// -------------------- Data --------------------
 
-const PastWalksNolliScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { walkId } = route.params ?? {};
-  const mapRef = useRef<MapView>(null);
-  const mapProvider = useMemo(() => PROVIDER_GOOGLE, []);
-  const [isMapReady, setIsMapReady] = useState(false);
-  const [mapLayout, setMapLayout] = useState({ width: 0, height: 0 });
-  const [projectedPolygons, setProjectedPolygons] = useState<ProjectedPolygon[]>([]);
-  const projectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const selectedWalkRef = useRef<WalkGeometry | null>(null);
+const _cache = new Map<string, GeoJSONFeatureCollection>();
 
-  const walksState = useWalksData();
-  const selectWalk = walksState.select;
+async function loadNolliGeoJSON(walkId?: string): Promise<GeoJSONFeatureCollection> {
+  if (!walkId) throw new Error("walkId required");
 
-  const readyValue = walksState.status === "ready" ? walksState.value : null;
-  const selectedWalk = readyValue?.selectedWalk ?? null;
-  const selectedWalkId = readyValue?.selectedWalkId ?? null;
-  const isSelecting = readyValue?.isSelecting ?? false;
-  const isLoading = walksState.status === "loading";
-  const errorMessage =
-    walksState.status === "error"
-      ? "Unable to load walk history."
-      : null;
+  const cached = _cache.get(walkId);
+  if (cached) return cached;
 
-  const handleClose = useCallback(() => navigation.goBack(), [navigation]);
+  // Replace with your real endpoint.
+  const res = await fetch(
+    `https://api.yourdomain.com/walks/${encodeURIComponent(walkId)}/nolli`,
+    { headers: { Accept: "application/json" } }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-  const handleMapReady: MapViewProps["onMapReady"] = useCallback(() => {
-    setIsMapReady(true);
-  }, []);
+  const data = (await res.json()) as unknown;
+  assertFeatureCollection(data);
+  _cache.set(walkId, data);
+  return data;
+}
 
-  const projectGeometry = useCallback(async (geometry: WalkGeometry | null) => {
-    const map = mapRef.current;
-    if (!map || !geometry || mapLayout.width <= 0 || mapLayout.height <= 0) return;
-
-    try {
-      const polygonResults: ProjectedPolygon[] = [];
-      for (let i = 0; i < geometry.buildings.length; i += 1) {
-        const feature = geometry.buildings[i] as GeoJsonFeature;
-        const rings = await projectFeatureToScreen(map, feature);
-        const ringPaths = rings.map((ring) => screenPointsToPath(ring)).filter(Boolean);
-
-        if (ringPaths.length > 0) {
-          const featureId = feature.id ?? `feature-${i}`;
-          polygonResults.push({ id: featureId, rings: ringPaths });
-        }
-      }
-
-      if (selectedWalkRef.current?.walkId !== geometry.walkId) return;
-
-      setProjectedPolygons(polygonResults);
-    } catch (error) {
-      log.error("[PastWalksNolli] Projection failed", error);
+function assertFeatureCollection(x: any): asserts x is GeoJSONFeatureCollection {
+  if (!x || x.type !== "FeatureCollection" || !Array.isArray(x.features)) {
+    throw new Error("Invalid GeoJSON: not a FeatureCollection");
+  }
+  for (const f of x.features) {
+    if (!f?.geometry || (f.geometry.type !== "Polygon" && f.geometry.type !== "MultiPolygon")) {
+      throw new Error("Invalid GeoJSON: only Polygon or MultiPolygon supported");
     }
-  }, [mapLayout.height, mapLayout.width]);
+  }
+}
 
-  const scheduleProjection = useCallback((geometry: WalkGeometry | null, delay = 150) => {
-    if (projectionTimeoutRef.current) {
-      clearTimeout(projectionTimeoutRef.current);
-      projectionTimeoutRef.current = null;
-    }
-    if (!geometry || !mapRef.current) {
-      setProjectedPolygons([]);
-      return;
-    }
-    projectionTimeoutRef.current = setTimeout(() => projectGeometry(geometry), delay);
-  }, [projectGeometry]);
+// -------------------- Helpers --------------------
 
-  useEffect(() => {
-    selectedWalkRef.current = selectedWalk;
-    if (selectedWalk) {
-      scheduleProjection(selectedWalk, 0);
+function convertGeoJsonRing(ring: number[][]): Position[] {
+  return ring
+    .filter(
+      (p): p is [number, number] =>
+        Array.isArray(p) && p.length >= 2 && Number.isFinite(p[0]) && Number.isFinite(p[1])
+    )
+    .map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+}
+
+function extractProjectedPolygons(fc: GeoJSONFeatureCollection): ProjectedPolygon[] {
+  const out: ProjectedPolygon[] = [];
+  for (const feature of fc.features) {
+    const geom = feature.geometry;
+    const baseId = String(feature.id ?? out.length);
+    if (geom.type === "Polygon") {
+      const rings = geom.coordinates.map((ring) => convertGeoJsonRing(ring));
+      out.push({ id: baseId, rings });
     } else {
-      setProjectedPolygons([]);
+      geom.coordinates.forEach((polyCoords, idx) => {
+        const rings = polyCoords.map((ring) => convertGeoJsonRing(ring));
+        out.push({ id: `${baseId}-${idx}`, rings });
+      });
     }
-  }, [selectedWalk, scheduleProjection]);
+  }
+  return out;
+}
 
+// -------------------- Screen --------------------
+
+export default function PastWalksNolliScreen({ route, navigation }: Props) {
+  const mapRef = useRef<MapView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [fc, setFc] = useState<GeoJSONFeatureCollection | null>(null);
+
+  const walkId = route.params?.walkId;
+
+  // Diagnostics: confirm native view is linked and which package version is loaded.
   useEffect(() => {
-    if (selectedWalk) {
-      scheduleProjection(selectedWalk, 0);
+    // <-- 3. UPDATED DIAGNOSTIC LOG -->
+    const mgr =
+      Platform.OS === "ios"
+        ? UIManager.getViewManagerConfig?.("AIRGoogleMap") // Check for Google Maps manager
+        : UIManager.getViewManagerConfig?.("AIRGoogleMap");
+    console.log("Google Map manager:", Platform.OS, mgr);
+    // <-- END UPDATE -->
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const rnmPkg = require("react-native-maps/package.json");
+      console.log("react-native-maps:", rnmPkg?.version, rnmPkg?.main);
+    } catch (e) {
+      console.log("react-native-maps package read failed:", e);
     }
-  }, [mapLayout.height, mapLayout.width, scheduleProjection, selectedWalk]);
-
-  useEffect(() => {
-    if (!walkId || walksState.status !== "ready") {
-      return;
-    }
-
-    if (selectedWalkId === walkId || isSelecting) {
-      return;
-    }
-
-    selectWalk(walkId).catch((error) => {
-      log.error("[PastWalksNolli] Failed to select walk from route param", error);
-    });
-  }, [walkId, walksState.status, selectedWalkId, isSelecting, selectWalk]);
-
-  useEffect(() => {
-    return () => {
-      if (projectionTimeoutRef.current) clearTimeout(projectionTimeoutRef.current);
-    };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await loadNolliGeoJSON(walkId);
+        if (!mounted) return;
+        setFc(data);
+        setError(null);
+      } catch (e: any) {
+        if (!mounted) return;
+        setError(e?.message ?? "Failed to load map data");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [walkId]);
+
+  const projected = useMemo(() => (fc ? extractProjectedPolygons(fc) : []), [fc]);
+
+  // Fit to all coordinates only. Avoid animate* calls.
+  useEffect(() => {
+    if (!projected.length || !mapRef.current) return;
+    const coords = projected.flatMap((p) => p.rings).flat();
+    if (!coords.length) return;
+    mapRef.current.fitToCoordinates(coords, {
+      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+      animated: true,
+    });
+  }, [projected]);
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        style={styles.backBtn}
+      >
+        <Ionicons name="chevron-back" size={20} />
+        <Text style={styles.backTxt}>Back</Text>
+      </Pressable>
+      <Text style={styles.title}>Nolli Overlay</Text>
+      <View style={{ width: 56 }} />
+    </View>
+  );
+
+  const mapProps: MapViewProps = {
+    provider: PROVIDER_GOOGLE, // <-- 2. ADDED THIS PROP
+    initialRegion: DEFAULT_REGION,
+    style: StyleSheet.absoluteFill,
+  };
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView style={styles.headerSafeArea}>
-        <View style={styles.header}>
-          <Pressable
-            accessibilityLabel="Close past walks map"
-            accessibilityRole="button"
-            hitSlop={12}
-            onPress={handleClose}
-            style={styles.closeButton}
-          >
-            <Ionicons name="chevron-back" size={24} color="#1F1F1F" />
-          </Pressable>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Past Walks</Text>
-          </View>
-        </View>
-      </SafeAreaView>
+    <SafeAreaView style={styles.root}>
+      {renderHeader()}
 
-      {errorMessage ? (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      ) : null}
-
-      <View style={styles.mapContainer} onLayout={(e) => setMapLayout(e.nativeEvent.layout)}>
-        <MapView
-          ref={mapRef}
-          provider={mapProvider as any}
-          style={StyleSheet.absoluteFill}
-          initialRegion={DEFAULT_REGION}
-          customMapStyle={
-            PAST_WALKS_NOLLI_MAP_STYLE as unknown as MapViewProps["customMapStyle"]
-          }
-          onMapReady={handleMapReady}
-          // NOTE: Some iOS dev builds may lack react-native-maps native event setters,
-          // which can trigger "unrecognized selector setOnRegionChangeComplete" crashes.
-          // To avoid crashing, only attach region-change listeners on Android.
-          {...(Platform.OS === "android"
-            ? {
-                onRegionChange: () =>
-                  scheduleProjection(selectedWalkRef.current, 16),
-                onRegionChangeComplete: () =>
-                  scheduleProjection(selectedWalkRef.current, 150),
-                onLongPress: () => {},
-              }
-            : {})}
-        >
-          {projectedPolygons.length > 0 &&
-            projectedPolygons.map((polygon) =>
-              polygon.rings.map((ringPath, i) => (
-                <Polygon
-                  key={`${polygon.id}-${i}`}
-                  coordinates={[]}
-                  fillColor="rgba(0,0,0,1)"
-                  strokeColor="rgba(0,0,0,0.6)"
-                  strokeWidth={1}
-                />
-              ))
-            )}
+      <View style={styles.mapWrap}>
+        <MapView ref={mapRef} {...mapProps}>
+          {projected.map((poly) =>
+            poly.rings.map((ring, idx) => (
+              <Polygon
+                key={`${poly.id}-${idx}`}
+                coordinates={ring}
+                strokeWidth={1}
+                strokeColor="rgba(0,0,0,0.6)"
+                fillColor="rgba(0,0,0,0.15)"
+              />
+            ))
+          )}
         </MapView>
 
-        {(!isMapReady || isLoading || isSelecting) && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="small" color="#2ECC71" />
+        {loading && (
+          <View style={styles.overlay}>
+            <ActivityIndicator />
+            <Text style={styles.overlayTxt}>Loading</Text>
+          </View>
+        )}
+
+        {!!error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
-};
+}
 
-export default PastWalksNolliScreen;
+// -------------------- Styles --------------------
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F8F8" },
-  headerSafeArea: { backgroundColor: "#F8F8F8" },
+  root: { flex: 1, backgroundColor: "#fff" },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 8,
+    paddingTop: 6,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFF",
+  backBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    paddingVertical: 8,
+    paddingRight: 8,
+    width: 56,
   },
-  headerTextContainer: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 20, fontWeight: "600", color: "#1F1F1F" },
-  mapContainer: { flex: 1, backgroundColor: "#FFF" },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
+  backTxt: { marginLeft: 2, fontSize: 16 },
+  title: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600" },
+  mapWrap: {
+    flex: 1,
+    backgroundColor: "#fff", // solid background to silence shadow warning
+  },
+  overlay: {
+    position: "absolute",
+    top: 12,
+    alignSelf: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
   },
+  overlayTxt: { fontSize: 14 },
   errorBanner: {
-    marginHorizontal: 16,
-    marginBottom: 8,
+    position: "absolute",
+    bottom: 12,
+    left: 12,
+    right: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
     backgroundColor: "rgba(220, 38, 38, 0.12)",
   },
-  errorText: {
-    color: "#991B1B",
-    fontSize: 13,
-    textAlign: "center",
-  },
+  errorText: { color: "#991B1B", fontSize: 13, textAlign: "center" },
 });

@@ -4,6 +4,15 @@ export type WalkSummary = {
   endedAt: string;
   distanceKm: number;
   borough?: string;
+  dominantStyle?: string;
+  dominantArchitect?: string;
+  era?: {
+    start: number;
+    end: number;
+    label?: string;
+  };
+  eraStart?: number;
+  eraEnd?: number;
 };
 
 export type LatLng = {

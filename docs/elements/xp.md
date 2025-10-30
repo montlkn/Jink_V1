@@ -1,0 +1,49 @@
+# XP
+
+## Purpose
+XP is the single connective currency. It measures exploration, powers unlocks for Free users, and powers creative entitlements for Pro users. It is append-only and transactional.
+
+## Ledger & Leveling
+- `xp_transactions`: immutable ledger of events. `profiles.total_xp` is a cached read optimized field.
+- Level formula: `XP_required(level) = base * level^1.5`. Use `calculate_level(total_xp)` helper.
+- Idempotency: clients send `event_uuid`. Server ignores duplicate `event_uuid`.
+
+## Earning (core)
+- **Scan new building**: ~25 XP (first-time). Repeat scans yield reduced XP.
+- **Dérive / Walk complete**: 10 XP per stop + 5 XP per minute walking + 10 XP for completion of walk (proportional to stops/length). If walk garners achievement, visa, or specific stamps upon completion of walk those XP's are added on top of the base XP formula plus an additonal 10 XP is given for a multi-award walk.
+- **Daily quest**: 250 XP (+50 early-bird).
+- **Weekly quest**: 1000 XP (+200 perfect week).
+- **Streaks**: daily streak bonus for scans or derives:
+  - 3-day streak → 1.5x XP multiplier
+  - 7-day streak → 2x XP multiplier
+  - 30-day streak → 3x XP multiplier + "Dedicated Explorer" achievement
+- **Social / contribution**: referral or verified contribution bonuses.
+
+## Daily-streak mechanics (your edit)
+- A **daily streak** counts one qualifying action per UTC day. Qualifying actions: scan or derive (configurable).
+- Streak persists across sessions and survives short offline windows if reconciled within 48 hours.
+- Streak multiplier applies to XP awarded for qualifying actions that day.
+- Missing a day resets the streak unless within grace window (configurable 24–48h).
+
+## Free vs Pro (summary)
+- **Free**: XP gates feature depth and access to richer writeups. Free users can spend XP to unlock individual writeups or temporary features; spending below a level threshold removes those level gates (feature decay). Daily streaks are key progression for Free users.
+- **Pro**: No feature decay. Pro gets creative entitlements, unlimited scans (or higher limits), XP multipliers (e.g., 1.2–2x configurable), and Deep Dive Credits (1 credit per 1000 XP).
+
+## Sinks (no skins shop)
+- Remove skins/shop as an XP sink.
+- XP sinks:
+  - Unlocking Free-tier writeups or temporary deeper content (spend-to-unlock).
+  - Creating or publishing content (Free creators pay XP as gating + limited rate per week of creating).
+  - Deep Dive Credits conversion (Pro: 1 credit per 1000 XP).
+- Policy: XP should not be directly purchasable with money. Keep XP a work-for-reward currency.
+
+## Award pattern
+- `award_xp(user_id, amount, reason, source_type, source_id, event_uuid)`:
+  - Insert `xp_transactions` (idempotent).
+  - Update `profiles.total_xp`.
+  - Recompute level via `calculate_level`.
+  - Emit `event_xp_awarded` and `event_level_up` if level increased.
+
+## Anti-grind
+- Cap events: `10 events / minute` and reduced XP on duplicate scans.
+- Monitor abnormal issuance and be ready to hold or revoke suspicious grants.

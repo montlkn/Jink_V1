@@ -1,5 +1,10 @@
-import { registerRootComponent } from "expo";
-import App from "./App";
+import 'react-native-gesture-handler'; // must be first
+import 'react-native-reanimated'; // early import for worklets
+
+import { registerRootComponent } from 'expo';
+import App from './App';
+
+registerRootComponent(App);
 
 const scope = (typeof globalThis !== "undefined" && globalThis)
   || (typeof global !== "undefined" && global)

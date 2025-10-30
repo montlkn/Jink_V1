@@ -1,5 +1,4 @@
 import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
-import AuraBreakdownModal from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
 import QuestDetailModal from "@/components/quests/QuestDetailModal";
@@ -19,7 +18,9 @@ import {
   Text,
   View,
 } from "react-native";
+import { DEFAULT_TASTE_ACTION } from "@/features/home/tasteActions";
 import { useHomeData } from "./useHomeData";
+import HomeTasteLine from "@/screens/HomeView/HomeTasteLine";
 
 const ORB_SIZE = 360;
 
@@ -27,7 +28,6 @@ type HomeNavigation = NativeStackNavigationProp<RootParams, typeof screens.Home>
 export function HomeView(): JSX.Element {
   const navigation = useNavigation<HomeNavigation>();
   const dataState = useHomeData();
-  const [auraVisible, setAuraVisible] = useState(false);
   const [xpModalVisible, setXpModalVisible] = useState(false);
   const [selectedQuest, setSelectedQuest] = useState<HomeQuest | null>(null);
   const [questModalVisible, setQuestModalVisible] = useState(false);
@@ -51,24 +51,27 @@ export function HomeView(): JSX.Element {
     setOrbData(Array.isArray(readyArchetypes) ? readyArchetypes : []);
   }, [isReady, readyArchetypes, setOrbData]);
 
-  const { summaryLoading, summaryText, archetypeData, userData, timers, questCollection } = useMemo(() => {
+  const {
+    summaryLoading,
+    archetypeData,
+    userData,
+    timers,
+    questCollection,
+    tasteAction,
+  } = useMemo(() => {
     if (!readyValue) {
       return {
         summaryLoading: false,
-        summaryText: "",
         archetypeData: [],
         userData: { xp: 0, level: 1, xpForNextLevel: 100 },
         timers: { daily: "", weekly: "" },
         questCollection: null,
+        tasteAction: DEFAULT_TASTE_ACTION,
       };
     }
 
-    const summaryTextValue =
-      readyValue.tasteSummary.text || readyValue.tasteSummary.title || "";
-
     return {
       summaryLoading: readyValue.summaryLoading,
-      summaryText: summaryTextValue,
       archetypeData: readyValue.archetypeData,
       userData: {
         xp: readyValue.userXP,
@@ -77,6 +80,7 @@ export function HomeView(): JSX.Element {
       },
       timers: readyValue.timers,
       questCollection: readyValue.quests,
+      tasteAction: readyValue.tasteAction,
     };
   }, [readyValue]);
 
@@ -161,8 +165,8 @@ export function HomeView(): JSX.Element {
   }, [registerHomeOrbLayout]);
 
   const handleHandleOrbPress = useCallback(() => {
-    setAuraVisible(true);
-  }, []);
+    navigation.navigate(screens.Profile);
+  }, [navigation]);
 
   const contentFade = useMemo(
     () =>
@@ -231,15 +235,13 @@ export function HomeView(): JSX.Element {
           </View>
         </Animated.View>
 
-        {(summaryLoading || summaryText) && (
-          <Animated.View style={[styles.summaryContainer, { opacity: contentFade }]}>
-            {summaryLoading ? (
-              <Text style={styles.summaryLoadingText}>Calibrating your recent focus…</Text>
-            ) : (
-              <Text style={styles.summaryText}>{summaryText}</Text>
-            )}
-          </Animated.View>
-        )}
+        <Animated.View style={[styles.summaryContainer, { opacity: contentFade }]}>
+          {summaryLoading ? (
+            <Text style={styles.summaryLoadingText}>Calibrating your recent focus…</Text>
+          ) : (
+            <HomeTasteLine action={tasteAction} />
+          )}
+        </Animated.View>
 
         <Animated.View style={{ opacity: contentFade }}>
           <View style={styles.section}>
@@ -262,12 +264,6 @@ export function HomeView(): JSX.Element {
           </View>
         </Animated.View>
       </ScrollView>
-
-      <AuraBreakdownModal
-        visible={auraVisible}
-        onClose={() => setAuraVisible(false)}
-        segments={archetypeData}
-      />
 
       <XPDetailModal
         visible={xpModalVisible}
@@ -321,14 +317,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 32,
     maxWidth: 340,
     alignSelf: "center",
-  },
-  summaryText: {
-    fontSize: 15,
-    fontStyle: "italic",
-    lineHeight: 24,
-    color: "#1A1A1A",
-    textAlign: "justify",
-    fontWeight: "500",
   },
   summaryLoadingText: {
     fontSize: 15,

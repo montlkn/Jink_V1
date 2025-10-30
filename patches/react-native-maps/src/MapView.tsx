@@ -1165,6 +1165,15 @@ class MapView extends React.Component<MapViewProps, State> {
     const resolvedProvider =
       provider ?? (Platform.OS === 'ios' ? 'google' : undefined);
 
+    const regionEventHandlers =
+      Platform.OS === 'android' || resolvedProvider === 'google'
+        ? {
+            onRegionChange: this.handleRegionChange,
+            onRegionChangeStart: this.handleRegionChangeStarted,
+            onRegionChangeComplete: this.handleRegionChangeComplete,
+          }
+        : {};
+
     const props: MapFabricNativeProps = {
       onMapReady: this._onMapReady,
       liteMode: this.props.liteMode,
@@ -1179,15 +1188,13 @@ class MapView extends React.Component<MapViewProps, State> {
       customMapStyleString,
       minZoom: minZoomLevel,
       maxZoom: maxZoomLevel,
-      onRegionChange: this.handleRegionChange,
-      onRegionChangeStart: this.handleRegionChangeStarted,
-      onRegionChangeComplete: this.handleRegionChangeComplete,
       onIndoorBuildingFocused: this.handleIndoorBuildingFocused,
       // @ts-ignore
       onIndoorLevelActivated: this.handleIndoorLevelActivated,
       showsPointsOfInterests: this.props.showsPointsOfInterests,
       pointsOfInterestFilter: this.props.pointsOfInterestFilter,
       ...restProps,
+      ...regionEventHandlers,
     };
     if (this.props.region) {
       props.region = {

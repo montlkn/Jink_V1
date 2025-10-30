@@ -31,10 +31,17 @@ type WalkLocation = {
   longitude: number;
 };
 
+type WalkFilters = {
+  style_in?: string[];
+  architect_in?: string[];
+  year_gte?: number;
+  year_lte?: number;
+};
+
 type MainTabParams = {
   Home: undefined;
   WalkCameraScreen: undefined;
-  WalkStartScreen: undefined;
+  WalkStartScreen: { filters?: WalkFilters } | undefined;
   Passport: undefined;
 };
 
@@ -60,7 +67,7 @@ export type RootParams = {
   ScanScreen: undefined;
   ScanCamera: undefined;
   ContributionScreen: undefined;
-  WalkStartScreen: undefined;
+  WalkStartScreen: { filters?: WalkFilters } | undefined;
   WalkSetupScreen: undefined;
   WalkNavScreen: WalkNavParams;
   WalkCameraScreen: { building?: Record<string, unknown> } | undefined;

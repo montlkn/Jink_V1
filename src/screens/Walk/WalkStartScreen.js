@@ -11,7 +11,7 @@ import TimerDisplay from "../../components/walk/TimerDisplay";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { screens } from "@/navigation/routes";
 
-const WalkStartScreen = ({ navigation }) => {
+const WalkStartScreen = ({ navigation, route }) => {
   const { pinToJink } = useOrbTransition();
   const entryProgress = useRef(new Animated.Value(0)).current;
 
@@ -84,6 +84,7 @@ const WalkStartScreen = ({ navigation }) => {
     longitude: -74.006,
   });
   const [isFetching, setIsFetching] = useState(false);
+  const filters = route?.params?.filters;
   const hapticsCancelRef = useRef(null);
 
   const startLaunchHaptics = useCallback(() => {
@@ -182,6 +183,7 @@ const WalkStartScreen = ({ navigation }) => {
         latitude: location.latitude,
         longitude: location.longitude,
         radius: 1000,
+        filters,
       });
 
       if (!nearbyPlaces?.length) {
@@ -211,7 +213,7 @@ const WalkStartScreen = ({ navigation }) => {
         hapticsCancelRef.current = null;
       }
     }
-  }, [isFetching, location, navigation, pinToJink, startLaunchHaptics, time]);
+  }, [filters, isFetching, location, navigation, pinToJink, startLaunchHaptics, time]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

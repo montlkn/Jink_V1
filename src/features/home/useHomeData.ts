@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Platform } from "react-native";
 import { getUserAestheticProfile } from "@/services/gateways/quizGateway";
 import {
   getSession,
   fetchActiveQuests,
   fetchXpSnapshot,
+  fetchWalkSummaries,
   type ActiveQuestsResponse,
   type XpSnapshot,
 } from "@/services/gateways";
-import { getRecentTasteSummary } from "@/services/recentTasteSummaryService";
+import {
+  DEFAULT_TASTE_ACTION,
+  getRecentTasteSummary,
+  getActionableTaste,
+  type RecentScan,
+  type RecentWalk,
+  type TasteAction,
+} from "@/services/recentTasteSummaryService";
 import { extractTopArchetypesFromScores } from "@/utils/archetypeColorBlend";
 import { getTimeUntilMidnight, getTimeUntilMonday } from "@/utils/questTimers";
 import { getXpForNextLevel } from "@/utils/xpLevel";
@@ -29,6 +38,11 @@ type HomeData = {
   userXP: number;
   userLevel: number;
   xpForNextLevel: number;
+  tasteSignals: {
+    last10Scans: RecentScan[];
+    last3Walks: RecentWalk[];
+  };
+  tasteAction: TasteAction;
   timers: {
     daily: string;
     weekly: string;
@@ -45,6 +59,14 @@ export function useHomeData(): HomeDataState {
   const [profileRaw, setProfileRaw] = useState<unknown>(null);
   const [archetypeData, setArchetypeData] = useState<Record<string, unknown>[]>([]);
   const [tasteSummaryRaw, setTasteSummaryRaw] = useState<unknown>(null);
+  const [tasteSignals, setTasteSignals] = useState<{
+    last10Scans: RecentScan[];
+    last3Walks: RecentWalk[];
+  }>({
+    last10Scans: [],
+    last3Walks: [],
+  });
+  const [tasteAction, setTasteAction] = useState<TasteAction>(DEFAULT_TASTE_ACTION);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [quests, setQuests] = useState<HomeQuestSet>(EMPTY_HOME_QUESTS);
   const [userXP, setUserXP] = useState(0);
@@ -101,6 +123,11 @@ export function useHomeData(): HomeDataState {
     if (!archetypeData.length) {
       setTasteSummaryRaw(null);
       setSummaryLoading(false);
+      setTasteSignals({
+        last10Scans: [],
+        last3Walks: [],
+      });
+      setTasteAction(DEFAULT_TASTE_ACTION);
       return () => {
         alive = false;
       };
@@ -116,19 +143,100 @@ export function useHomeData(): HomeDataState {
           return;
         }
 
-        const summary = await getRecentTasteSummary({
-          userId: session.user.id,
-          archetypes: archetypeData,
+        const [summary, walkSummaries] = await Promise.all([
+          getRecentTasteSummary({
+            userId: session.user.id,
+            archetypes: archetypeData,
+          }),
+          fetchWalkSummaries({
+            userId: session.user.id,
+            platform: Platform.OS,
+          }),
+        ]);
+
+        const recentWalks: RecentWalk[] = Array.isArray(walkSummaries)
+          ? walkSummaries.slice(0, 3).map((walk) => {
+              const raw = walk as Record<string, unknown>;
+              const dominantStyle =
+                typeof raw.dominantStyle === "string"
+                  ? raw.dominantStyle
+                  : typeof raw.dominant_style === "string"
+                  ? (raw.dominant_style as string)
+                  : undefined;
+              const dominantArchitect =
+                typeof raw.dominantArchitect === "string"
+                  ? raw.dominantArchitect
+                  : typeof raw.dominant_architect === "string"
+                  ? (raw.dominant_architect as string)
+                  : undefined;
+              const eraData = (() => {
+                const rawEra = raw.era;
+                if (
+                  rawEra &&
+                  typeof rawEra === "object" &&
+                  rawEra !== null &&
+                  typeof (rawEra as Record<string, unknown>).start === "number" &&
+                  typeof (rawEra as Record<string, unknown>).end === "number"
+                ) {
+                  return {
+                    start: (rawEra as Record<string, number>).start,
+                    end: (rawEra as Record<string, number>).end,
+                  };
+                }
+
+                const rawEraStart = raw.eraStart ?? raw.era_start;
+                const rawEraEnd = raw.eraEnd ?? raw.era_end;
+                if (typeof rawEraStart === "number" && typeof rawEraEnd === "number") {
+                  return {
+                    start: rawEraStart,
+                    end: rawEraEnd,
+                  };
+                }
+
+                const startedAt =
+                  typeof walk.startedAt === "string" ? new Date(walk.startedAt) : null;
+                if (startedAt && !Number.isNaN(startedAt.getTime())) {
+                  const year = startedAt.getFullYear();
+                  return {
+                    start: year,
+                    end: year,
+                  };
+                }
+
+                return undefined;
+              })();
+
+              return {
+                dominantStyle,
+                dominantArchitect,
+                era: eraData,
+              };
+            })
+          : [];
+
+        const action = await getActionableTaste({
+          last10Scans: [],
+          last3Walks: recentWalks,
         });
 
         if (alive) {
           setTasteSummaryRaw(summary);
+          setTasteSignals({
+            last10Scans: [],
+            last3Walks: recentWalks,
+          });
+          setTasteAction(action ?? DEFAULT_TASTE_ACTION);
         }
       } catch (err) {
         log.error("[home] Error building taste summary", err);
         if (alive) {
           setError((prev: unknown) => (prev == null ? err : prev));
           setTasteSummaryRaw(null);
+          setTasteSignals({
+            last10Scans: [],
+            last3Walks: [],
+          });
+          setTasteAction(DEFAULT_TASTE_ACTION);
         }
       } finally {
         if (alive) {
@@ -226,6 +334,8 @@ export function useHomeData(): HomeDataState {
         userXP,
         userLevel,
         xpForNextLevel: xpForNextLevelState,
+        tasteSignals,
+        tasteAction,
         timers,
       },
     };
@@ -236,6 +346,8 @@ export function useHomeData(): HomeDataState {
     profileRaw,
     quests,
     summaryLoading,
+    tasteSignals,
+    tasteAction,
     tasteSummaryRaw,
     timers,
     userLevel,

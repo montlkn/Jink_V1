@@ -684,21 +684,28 @@ type FetchNearbyBuildingsParams = {
   latitude: number;
   longitude: number;
   radius: number;
+  filters?: {
+    style_in?: string[];
+    architect_in?: string[];
+    year_gte?: number;
+    year_lte?: number;
+  };
 };
 
 export async function fetchNearbyBuildings(
   params: FetchNearbyBuildingsParams
 ) {
-  const { latitude, longitude, radius } = params;
+  const { latitude, longitude, radius, filters } = params;
   const { data, error } = await supabase.functions.invoke("nearby-buildings", {
-    body: { latitude, longitude, radius },
+    body: { latitude, longitude, radius, filters },
   });
 
   if (error) {
     throw new Error(error.message || "Failed to fetch nearby buildings");
   }
 
-  return data;
+  const records = Array.isArray(data) ? data : [];
+  return applyNearbyFilters(records, filters);
 }
 
 const WALK_SUMMARIES_FUNCTION = "past-walk-summaries";
@@ -731,6 +738,96 @@ export async function fetchWalkSummaries(
   }
 
   return Array.isArray(data) ? data : [];
+}
+
+function applyNearbyFilters(
+  buildings: Record<string, unknown>[],
+  filters?: FetchNearbyBuildingsParams["filters"]
+): Record<string, unknown>[] {
+  if (!filters) {
+    return buildings;
+  }
+
+  const styleSet = new Set(
+    (filters.style_in ?? []).map((value) => value.toLowerCase().trim()).filter(Boolean)
+  );
+  const architectSet = new Set(
+    (filters.architect_in ?? []).map((value) => value.toLowerCase().trim()).filter(Boolean)
+  );
+  const yearGte =
+    typeof filters.year_gte === "number" && Number.isFinite(filters.year_gte)
+      ? filters.year_gte
+      : undefined;
+  const yearLte =
+    typeof filters.year_lte === "number" && Number.isFinite(filters.year_lte)
+      ? filters.year_lte
+      : undefined;
+
+  const pickString = (obj: Record<string, unknown>, keys: string[]): string | undefined => {
+    for (const key of keys) {
+      const value = obj[key];
+      if (typeof value === "string" && value.trim().length) {
+        return value;
+      }
+    }
+    return undefined;
+  };
+
+  const pickNumber = (obj: Record<string, unknown>, keys: string[]): number | undefined => {
+    for (const key of keys) {
+      const value = obj[key];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
+      }
+    }
+    return undefined;
+  };
+
+  return buildings.filter((building) => {
+    const record = building ?? {};
+    const styleValue = pickString(record as Record<string, unknown>, [
+      "style",
+      "primary_style",
+      "style_name",
+      "styleLabel",
+    ]);
+
+    if (styleSet.size) {
+      const normalized = styleValue?.toLowerCase().trim();
+      if (!normalized || !styleSet.has(normalized)) {
+        return false;
+      }
+    }
+
+    const architectValue = pickString(record as Record<string, unknown>, [
+      "architect",
+      "architect_name",
+      "primary_architect",
+    ]);
+
+    if (architectSet.size) {
+      const normalized = architectValue?.toLowerCase().trim();
+      if (!normalized || !architectSet.has(normalized)) {
+        return false;
+      }
+    }
+
+    const yearValue = pickNumber(record as Record<string, unknown>, [
+      "year_built",
+      "year",
+      "construction_year",
+    ]);
+
+    if (typeof yearGte === "number" && (yearValue ?? Number.MIN_SAFE_INTEGER) < yearGte) {
+      return false;
+    }
+
+    if (typeof yearLte === "number" && (yearValue ?? Number.MAX_SAFE_INTEGER) > yearLte) {
+      return false;
+    }
+
+    return true;
+  });
 }
 
 type FetchWalkDetailParams = {

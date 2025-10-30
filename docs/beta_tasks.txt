@@ -1,0 +1,30 @@
+To Do:
+
+1. Clean up repo as per master.md
+2. Building scanning feature + implement 
+3. Derive full loop 
+4. Home Screen text with custom derive
+5. Pie chart clean up 
+6. Speed up loading time for generated version on profile detail page
+7. Clean up supabase and route everything to the app 
+8. Add final datasets into supabase + appended list (add information to it)
+9. Make sure all profile data syncs--passport, stamps etc 
+10. Route quiz templates and edge jobs in supabase + route validation and rewards to profile
+11. Building info page + exa routing -- paywalled features 
+12. Add Paywall and payment tiers
+13. Define elements: stamps, visas, achievements work-- what they do etc, xp system, quests and benefits + xp usage throughout with user tracking
+14. Aesthetic algo add in final with all information
+15. Route up all prometheus, data dog etc
+16. Onboarding modals and information
+17. Screens for all profile elements -- stamps, visas, achievements 
+19. Change passport number to random seed (not supabase id) 
+20. Remove and defer search, publish list for community derive, and social features till after launch 
+21. Fix apple, and phone SSO
+22. Add signature at bottom of passport for use in visas
+23. Add a settings tab on passport -- delete account, upgrade account, etc 
+24. Legal information for app
+25. Produce deliverables for App Store
+26. Jink summary screen-- with share nolli summary feature
+27. Integrate all of Michelles (UI designer) assets
+28. Add information on what daily and weekly quests do in their modal 
+29. Share from building info screen
