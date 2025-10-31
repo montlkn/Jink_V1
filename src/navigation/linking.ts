@@ -1,8 +1,13 @@
 import type { LinkingOptions } from "@react-navigation/native";
 import { screens, type RootParams } from "./routes";
 
+const prefixes = [
+  process.env.EXPO_DEEP_LINKING_SCHEME ?? "myapp://",
+  process.env.EXPO_PUBLIC_APP_URL ?? "https://myapp.example",
+];
+
 export const linking: LinkingOptions<RootParams> = {
-  prefixes: ["myapp://", "https://myapp.example"],
+  prefixes,
   config: {
     screens: {
       [screens.AuthLogin]: "auth/login",
@@ -12,7 +17,7 @@ export const linking: LinkingOptions<RootParams> = {
         path: "",
         screens: {
           [screens.Home]: "",
-          [screens.WalkCamera]: "scan",
+          [screens.WalkCamera]: "walk/camera",
           [screens.WalkStart]: "walk/start",
           [screens.Passport]: "passport",
         },
@@ -25,10 +30,8 @@ export const linking: LinkingOptions<RootParams> = {
       [screens.Scan]: "scan",
       [screens.ScanCamera]: "scan/camera",
       [screens.ScanContribution]: "scan/contribute",
-      [screens.WalkStart]: "walk/start",
       [screens.WalkSetup]: "walk/setup",
       [screens.WalkNav]: "walk/nav",
-      [screens.WalkCamera]: "walk/camera",
       [screens.BuildingModule]: "walk/building",
       [screens.BuildingInfo]: "scan/building",
       [screens.NotFound]: "scan/not-found",

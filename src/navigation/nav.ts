@@ -7,7 +7,11 @@ export function navigate<Name extends keyof RootParams>(
   name: Name,
   params?: RootParams[Name]
 ) {
-  if (navRef.isReady()) navRef.navigate(name as any, params as any);
+  if (navRef.isReady()) {
+    navRef.navigate(name as any, params as any);
+  } else {
+    console.warn("[nav] navigate() called before navRef is ready", name, params);
+  }
 }
 
 export function goBack() {

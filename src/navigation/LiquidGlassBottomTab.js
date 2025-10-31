@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { useOrbTransition } from "../state/orbTransitionContext";
+import { screens } from "./routes";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -42,14 +43,14 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
   const focusIndex = Math.min(state.index, TAB_COUNT - 1);
   const { startHomeToJinkTransition, pinToJink } = useOrbTransition();
   const focusedRouteName = routes[focusIndex]?.name;
-  const isJinkFocused = focusedRouteName === "Jink";
-  const jinkRoute = routes.find((route) => route.name === "Jink");
+  const isJinkFocused = focusedRouteName === screens.WalkStart;
+  const jinkRoute = routes.find((route) => route.name === screens.WalkStart);
   const jinkStackIndex = jinkRoute?.state?.index ?? 0;
   const jinkStackScreen =
     jinkRoute?.state?.routes?.[jinkStackIndex]?.name ??
     jinkRoute?.params?.screen ??
-    "WalkStartScreen";
-  const hideForWalkNav = isJinkFocused && jinkStackScreen === "WalkNavScreen";
+    screens.WalkStart;
+  const hideForWalkNav = isJinkFocused && jinkStackScreen === screens.WalkNav;
 
   const pillWidth = Math.min(SCREEN_WIDTH * 0.8, SCREEN_WIDTH - 120);
   const pillLeft = EDGE;
@@ -302,7 +303,7 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
                     focused={focused}
                     onPress={async () => {
                       Haptics.selectionAsync();
-                      if (route.name === "Jink") {
+                      if (route.name === screens.WalkStart) {
                         const completed = await startHomeToJinkTransition();
                         navigation.navigate(route.name);
                         if (completed) {

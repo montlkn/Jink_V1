@@ -5,12 +5,12 @@
 import { log } from "@/lib/log";
 
 export const ARCHETYPE_COLORS = {
-  Classicist: '#F5F5DC',           // 🏛️ BEIGE - classical marble, timeless columns
+  Classicist: '#C9C8A6',           // 🏛️ BEIGE - classical marble, timeless columns
   Romantic: '#DC143C',             // ❤️ CRIMSON RED - passionate, emotional, velvet
   Stylist: '#FFD700',              // ✨ GOLD - glamour, deco luxury, polished
   Modernist: '#0066FF',            // 🔷 ELECTRIC BLUE - rational grid, clean system
   Industrialist: '#FF8C00',        // 🔥 DARK ORANGE - rust, industrial fire, exposed metal
-  Infrastructuralist: '#CC6600',   // 🌉 BURNT ORANGE - darker shade of Industrialist (subtype)
+  Infrastructuralist: '#CE6B00',   // 🌉 BURNT ORANGE - darker shade of Industrialist (subtype)
   Visionary: '#00FFFF',            // 🚀 CYAN - futuristic, experimental, digital future
   'Pop Culturalist': '#FF1493',    // 💗 DEEP PINK - neon spectacle, vegas signs
   Vernacularist: '#32CD32',        // 🏺 LIME GREEN - rooted, regional, communal

@@ -11,6 +11,7 @@ import "@/lib/log";
 import React, { useEffect } from "react";
 import RootNavigator from "@/navigation/RootNavigator";
 import { Asset } from "expo-asset";
+import { useFonts } from "expo-font";
 
 if (typeof global !== 'undefined') {
   const primitiveStoreSymbol = Symbol.for("__weakmapPrimitiveStore");
@@ -157,11 +158,19 @@ const ORB_ASSETS = [
 ];
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    ArchetypeLabel: require("./assets/fonts/Jacquard12-Regular.ttf"),
+  });
+
   useEffect(() => {
     Asset.loadAsync(ORB_ASSETS).catch((error) => {
       console.warn("[App] Failed to preload orb assets", error);
     });
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return <RootNavigator />;
 }

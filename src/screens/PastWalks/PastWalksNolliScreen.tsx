@@ -8,14 +8,9 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  UIManager,
   View,
 } from "react-native";
-import MapView, {
-  MapViewProps,
-  Polygon,
-  PROVIDER_GOOGLE, // <-- 1. IMPORTED PROVIDER_GOOGLE
-} from "react-native-maps";
+import MapView, { Polygon, PROVIDER_GOOGLE } from "react-native-maps";
 
 // -------------------- Types --------------------
 
@@ -140,24 +135,6 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
 
   const walkId = route.params?.walkId;
 
-  // Diagnostics: confirm native view is linked and which package version is loaded.
-  useEffect(() => {
-    // <-- 3. UPDATED DIAGNOSTIC LOG -->
-    const mgr =
-      Platform.OS === "ios"
-        ? UIManager.getViewManagerConfig?.("AIRGoogleMap") // Check for Google Maps manager
-        : UIManager.getViewManagerConfig?.("AIRGoogleMap");
-    console.log("Google Map manager:", Platform.OS, mgr);
-    // <-- END UPDATE -->
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const rnmPkg = require("react-native-maps/package.json");
-      console.log("react-native-maps:", rnmPkg?.version, rnmPkg?.main);
-    } catch (e) {
-      console.log("react-native-maps package read failed:", e);
-    }
-  }, []);
-
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -208,18 +185,20 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
     </View>
   );
 
-  const mapProps: MapViewProps = {
-    provider: PROVIDER_GOOGLE, // <-- 2. ADDED THIS PROP
-    initialRegion: DEFAULT_REGION,
-    style: StyleSheet.absoluteFill,
-  };
+  const mapProvider =
+    Platform.OS === "ios" || Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
 
   return (
     <SafeAreaView style={styles.root}>
       {renderHeader()}
 
       <View style={styles.mapWrap}>
-        <MapView ref={mapRef} {...mapProps}>
+        <MapView
+          ref={mapRef}
+          initialRegion={DEFAULT_REGION}
+          style={StyleSheet.absoluteFill}
+          {...(mapProvider ? { provider: mapProvider } : {})}
+        >
           {projected.map((poly) =>
             poly.rings.map((ring, idx) => (
               <Polygon

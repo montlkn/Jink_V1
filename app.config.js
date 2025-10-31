@@ -1,4 +1,15 @@
 module.exports = () => {
+  const scheme = process.env.EXPO_DEEP_LINKING_SCHEME ?? "jink";
+  const appUrl = process.env.EXPO_PUBLIC_APP_URL;
+  let appHost = null;
+  if (appUrl) {
+    try {
+      appHost = new URL(appUrl).host;
+    } catch (error) {
+      console.warn("[config] Invalid EXPO_PUBLIC_APP_URL; skipping host config", error);
+    }
+  }
+
   const iosGoogleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!iosGoogleMapsApiKey) {
     throw new Error(
@@ -9,7 +20,7 @@ module.exports = () => {
   return {
     name: "jink",
     slug: "jink",
-    scheme: "jink",
+    scheme,
     version: "1.0.0",
     plugins: [
       [
@@ -35,6 +46,8 @@ module.exports = () => {
       ],
     ],
     extra: {
+      deepLinkingScheme: scheme,
+      appUrl,
       eas: {
         projectId: "b12162bd-7319-470b-b952-a352382cfd2c",
       },
@@ -49,6 +62,11 @@ module.exports = () => {
       config: {
         googleMapsApiKey: iosGoogleMapsApiKey,
       },
+      ...(appHost
+        ? {
+            associatedDomains: [`applinks:${appHost}`],
+          }
+        : {}),
     },
     android: {
       permissions: [
@@ -58,6 +76,16 @@ module.exports = () => {
         "android.permission.RECORD_AUDIO",
       ],
       package: "com.lucienmount.architectureapp",
+      intentFilters: [
+        {
+          action: "VIEW",
+          category: ["BROWSABLE", "DEFAULT"],
+          data: [
+            { scheme },
+            ...(appHost ? [{ scheme: "https", host: appHost, pathPrefix: "/" }] : []),
+          ],
+        },
+      ],
     },
   };
 };

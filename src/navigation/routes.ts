@@ -38,7 +38,7 @@ type WalkFilters = {
   year_lte?: number;
 };
 
-type MainTabParams = {
+export type MainTabParams = {
   Home: undefined;
   WalkCameraScreen: undefined;
   WalkStartScreen: { filters?: WalkFilters } | undefined;

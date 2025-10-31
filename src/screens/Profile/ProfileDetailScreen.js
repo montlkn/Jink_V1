@@ -1,9 +1,10 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
+  Image,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import {
   getUserAestheticProfile,
@@ -19,7 +21,8 @@ import {
   regenerateSummary,
 } from '@/features/profile';
 import { useAuth } from '../../auth/authProvider';
-import DonutChart from '../../components/charts/DonutChart';
+import ArchetypeDonutSkia from '../../components/charts/ArchetypeDonutSkia';
+import ArchetypeOrb from '@/features/orb/ArchetypeOrb';
 import AnimatedSummaryText from '../../components/profile/AnimatedSummaryText';
 import { getArchetypeColor } from '../../constants/archetypeColors';
 import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
@@ -499,6 +502,94 @@ const ProfileDetailScreen = ({ navigation }) => {
     }
   }, [profile, route?.params?.initialArchetype, navigation]);
 
+  const chartData = useMemo(() => {
+    if (!profile?.archetype_scores) {
+      return [];
+    }
+
+    try {
+      return prepareChartData(
+        profile.archetype_scores,
+        profile.primary_archetype,
+        profile.secondary_archetype
+      );
+    } catch (err) {
+      log.warn('[ProfileDetail] Failed to prepare chart data', err);
+      return [];
+    }
+  }, [profile]);
+
+  const donutSlices = useMemo(() => {
+    if (!chartData.length) {
+      return [];
+    }
+
+    return chartData.map((item, index) => {
+      const id = item.archetype || item.name || `slice-${index}`;
+      const rawScore = Number(item.score ?? item.value ?? 0);
+      const safeScore = Number.isFinite(rawScore) ? Math.max(0, rawScore) : 0;
+      const percentageValue = Number(item.percentage ?? 0);
+      const safePercentage = Number.isFinite(percentageValue)
+        ? Math.max(0, Math.round(percentageValue))
+        : 0;
+      const labelBase = item.name || item.archetype || id;
+
+      return {
+        id,
+        value: safeScore,
+        label: labelBase,
+        color: item.color,
+        percentageLabel: `${safePercentage}%`,
+      };
+    });
+  }, [chartData]);
+
+  const orbData = useMemo(
+    () =>
+      chartData.slice(0, 3).map((item) => ({
+        color: item.color,
+        percentage: item.percentage,
+        score: item.score,
+      })),
+    [chartData]
+  );
+
+  const primaryInfo = useMemo(
+    () => (profile?.primary_archetype ? getArchetypeInfo(profile.primary_archetype) : null),
+    [profile?.primary_archetype]
+  );
+
+  const secondaryInfo = useMemo(
+    () =>
+      profile?.secondary_archetype ? getArchetypeInfo(profile.secondary_archetype) : null,
+    [profile?.secondary_archetype]
+  );
+
+  const centerGlowColor = useMemo(() => {
+    if (primaryInfo?.color) return primaryInfo.color;
+    if (donutSlices.length > 0 && donutSlices[0]?.color) {
+      return donutSlices[0].color;
+    }
+    return undefined;
+  }, [primaryInfo?.color, donutSlices]);
+
+  const donutSize = 380;
+  const donutInnerRadiusRatio = 0.2;
+  const centerOrbSize = Math.max(120, Math.round(donutSize * donutInnerRadiusRatio));
+
+  const donutDecorator = useMemo(() => {
+    try {
+      const source = Image.resolveAssetSource(
+        require('../../../assets/decorators/donutFlipMarker.svg')
+      );
+      if (!source?.uri) return undefined;
+      return { uri: source.uri, size: 28 };
+    } catch (error) {
+      log.warn('[ProfileDetail] donut decorator missing', error);
+      return undefined;
+    }
+  }, []);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -530,17 +621,6 @@ const ProfileDetailScreen = ({ navigation }) => {
     );
   }
 
-  const chartData = prepareChartData(
-    profile.archetype_scores,
-    profile.primary_archetype,
-    profile.secondary_archetype
-  );
-
-  const primaryInfo = getArchetypeInfo(profile.primary_archetype);
-  const secondaryInfo = profile.secondary_archetype 
-    ? getArchetypeInfo(profile.secondary_archetype) 
-    : null;
-
   const summaryText = aiSummary?.text || '';
   const summaryPlaceholder = !!aiSummary?.placeholder;
   const summaryGeneratedAt = aiSummary?.generatedAt;
@@ -561,14 +641,22 @@ const ProfileDetailScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Aesthetic Profile</Text>
-        <View style={{ width: 24 }} />
+      <View style={styles.bannerContainer}>
+        <LinearGradient
+          colors={["rgba(255,255,255,1)", "rgba(255,255,255,0)"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Aesthetic Profile</Text>
+          <View style={{ width: 24 }} />
+        </View>
       </View>
-
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -584,14 +672,21 @@ const ProfileDetailScreen = ({ navigation }) => {
         }
       >
         <View style={styles.chartSection}>
-          <DonutChart
-            data={chartData}
-            size={380}
-            strokeWidth={30}
-            onSegmentPress={handleSegmentPress}
-            hideMoreDetails={true}
-            showLeaderLabels
-          />
+          <View style={[styles.donutWrapper, { width: donutSize, height: donutSize }]}>
+            <ArchetypeDonutSkia
+              data={donutSlices}
+              size={donutSize}
+              centerGlowColor={centerGlowColor}
+              decorator={donutDecorator}
+            />
+            <View style={styles.donutOrbOverlay} pointerEvents="none">
+              <ArchetypeOrb
+                size={centerOrbSize}
+                archetypeData={orbData}
+                interactive={false}
+              />
+            </View>
+          </View>
         </View>
 
         {/* AI-Generated Profile Summary Section */}
@@ -795,9 +890,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#F8F8F8',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomWidth: 0,
+    backgroundColor: 'transparent',
+  },
+  bannerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingTop: 44,
+    paddingBottom: 80,
+    backgroundColor: 'transparent',
+    zIndex: 2,
   },
   headerTitle: {
     fontSize: 18,
@@ -808,6 +912,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    paddingTop: 160,
     paddingBottom: 40,
   },
   loadingContainer: {
@@ -847,6 +952,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginHorizontal: 20,
     marginTop: 20,
+  },
+  donutWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  donutOrbOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   section: {
     marginHorizontal: 20,

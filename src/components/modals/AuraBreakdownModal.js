@@ -47,7 +47,7 @@ const AuraBreakdownModal = ({
 
           <Text style={styles.title}>Your Aesthetic Aura</Text>
           <Text style={styles.subtitle}>
-            Current top aesthetic energies shaping your aura, as you explore these will change. 
+            Top aesthetic energies shaping your aura 
           </Text>
 
           <View style={styles.segmentList}>

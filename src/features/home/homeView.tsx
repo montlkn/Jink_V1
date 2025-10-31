@@ -1,4 +1,7 @@
 import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
+import AuraBreakdownModal, {
+  type AuraSegment,
+} from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
 import QuestDetailModal from "@/components/quests/QuestDetailModal";
@@ -18,6 +21,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { getArchetypeColorSafe } from "@/constants/archetypeColors";
 import { DEFAULT_TASTE_ACTION } from "@/features/home/tasteActions";
 import { useHomeData } from "./useHomeData";
 import HomeTasteLine from "@/screens/HomeView/HomeTasteLine";
@@ -31,6 +35,7 @@ export function HomeView(): JSX.Element {
   const [xpModalVisible, setXpModalVisible] = useState(false);
   const [selectedQuest, setSelectedQuest] = useState<HomeQuest | null>(null);
   const [questModalVisible, setQuestModalVisible] = useState(false);
+  const [auraModalVisible, setAuraModalVisible] = useState(false);
 
   const {
     registerHomeOrbLayout,
@@ -80,7 +85,12 @@ export function HomeView(): JSX.Element {
       },
       timers: readyValue.timers,
       questCollection: readyValue.quests,
-      tasteAction: readyValue.tasteAction,
+        tasteAction:
+          readyValue.tasteAction &&
+          typeof readyValue.tasteAction.headline === "string" &&
+          readyValue.tasteAction.headline.trim().length > 0
+            ? readyValue.tasteAction
+            : DEFAULT_TASTE_ACTION,
     };
   }, [readyValue]);
 
@@ -135,6 +145,33 @@ export function HomeView(): JSX.Element {
 
   const questsToRender: HomeQuest[] = questItems.length ? questItems : fallbackQuests;
 
+  const auraSegments = useMemo<AuraSegment[]>(() => {
+    if (!Array.isArray(archetypeData)) return [];
+    return archetypeData.map((segment) => {
+      const rawName = segment?.name ?? segment?.archetype ?? "";
+      const name = typeof rawName === "string" ? rawName : String(rawName ?? "");
+      const rawScore = segment?.score;
+      const score = typeof rawScore === "number" && Number.isFinite(rawScore) ? rawScore : 0;
+      const rawPercentage = segment?.percentage;
+      const percentage =
+        typeof rawPercentage === "number" && Number.isFinite(rawPercentage)
+          ? rawPercentage
+          : score;
+      const colorCandidate = segment?.color;
+      const color =
+        typeof colorCandidate === "string" && colorCandidate.trim().length > 0
+          ? colorCandidate
+          : getArchetypeColorSafe(name);
+
+      return {
+        name,
+        percentage,
+        score,
+        color,
+      } as AuraSegment;
+    });
+  }, [archetypeData]);
+
   const handleQuestPress = (quest: HomeQuest | null) => {
     if (!quest) {
       return;
@@ -165,8 +202,8 @@ export function HomeView(): JSX.Element {
   }, [registerHomeOrbLayout]);
 
   const handleHandleOrbPress = useCallback(() => {
-    navigation.navigate(screens.Profile);
-  }, [navigation]);
+    setAuraModalVisible(true);
+  }, []);
 
   const contentFade = useMemo(
     () =>
@@ -236,11 +273,10 @@ export function HomeView(): JSX.Element {
         </Animated.View>
 
         <Animated.View style={[styles.summaryContainer, { opacity: contentFade }]}>
-          {summaryLoading ? (
-            <Text style={styles.summaryLoadingText}>Calibrating your recent focus…</Text>
-          ) : (
-            <HomeTasteLine action={tasteAction} />
+          {summaryLoading && (
+            <Text style={styles.summaryLoadingText}>Personalizing your next walk…</Text>
           )}
+          <HomeTasteLine action={tasteAction} />
         </Animated.View>
 
         <Animated.View style={{ opacity: contentFade }}>
@@ -279,6 +315,12 @@ export function HomeView(): JSX.Element {
         quest={selectedQuest}
         onStartQuest={handleStartQuest}
         timeRemaining={questTimeRemaining}
+      />
+
+      <AuraBreakdownModal
+        visible={auraModalVisible}
+        segments={auraSegments}
+        onClose={() => setAuraModalVisible(false)}
       />
     </View>
   );
