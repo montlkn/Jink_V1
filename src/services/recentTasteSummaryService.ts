@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { log } from "@/lib/log";
 import {
@@ -8,6 +9,9 @@ import {
 import { fetchWalkSummaries } from "@/services/gateways";
 import type { WalkSummary } from "../types/walks";
 import { getArchetypeInfo } from "./aestheticScoringService";
+
+const CACHE_KEY_PREFIX = "@taste_summary_cache_";
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type ArchetypeDatum = {
   name?: string;
@@ -334,6 +338,71 @@ function formatContextShort(
   return { ctx: `Recent walks${loc}`, source: "activity" };
 }
 
+// Cache helpers
+type CachedTasteSummary = {
+  text: string;
+  timestamp: number;
+  cacheKey: string;
+};
+
+function generateCacheKey(archetypes: ArchetypeDatum[], context: string): string {
+  const archetypeStr = archetypes
+    .slice(0, 2)
+    .map((a) => `${a.name || a.archetype}:${Math.round((a.percentage || a.score || 0) * 10) / 10}`)
+    .join("|");
+  return `${CACHE_KEY_PREFIX}${context}_${archetypeStr}`;
+}
+
+async function getCachedSummary(cacheKey: string): Promise<string | null> {
+  try {
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (!cached) return null;
+
+    const parsed: CachedTasteSummary = JSON.parse(cached);
+    const age = Date.now() - parsed.timestamp;
+
+    if (age > CACHE_EXPIRY_MS) {
+      await AsyncStorage.removeItem(cacheKey);
+      return null;
+    }
+
+    return parsed.text;
+  } catch (error) {
+    log.warn("[tasteCache] Failed to read cache", error);
+    return null;
+  }
+}
+
+async function setCachedSummary(cacheKey: string, text: string): Promise<void> {
+  try {
+    const cached: CachedTasteSummary = {
+      text,
+      timestamp: Date.now(),
+      cacheKey,
+    };
+    await AsyncStorage.setItem(cacheKey, JSON.stringify(cached));
+  } catch (error) {
+    log.warn("[tasteCache] Failed to write cache", error);
+  }
+}
+
+/**
+ * Clear all cached taste summaries. Call this when user's profile changes significantly
+ * (e.g., after completing quiz, after many new scans/walks).
+ */
+export async function clearTasteSummaryCache(): Promise<void> {
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    const cacheKeys = allKeys.filter((key) => key.startsWith(CACHE_KEY_PREFIX));
+    if (cacheKeys.length > 0) {
+      await AsyncStorage.multiRemove(cacheKeys);
+      log.debug(`[tasteCache] Cleared ${cacheKeys.length} cached summaries`);
+    }
+  } catch (error) {
+    log.warn("[tasteCache] Failed to clear cache", error);
+  }
+}
+
 export async function getRecentTasteSummary(
   options: SummaryOptions
 ): Promise<SummaryResult | null> {
@@ -429,9 +498,6 @@ export async function getRecentTasteLine(
     primaryPhrase.label
   );
 
-  const verb = verbForIntensity(Math.round(intensity));
-  const text = `${ctx} ${verb} ${theme}.`;
-
   const keywords = [
     primaryPhrase.label.toLowerCase(),
     theme,
@@ -439,7 +505,60 @@ export async function getRecentTasteLine(
     ...(secondaryPhrase?.descriptors ?? []),
   ];
 
-  return { text, keywords, source };
+  // Check cache first
+  const cacheKey = generateCacheKey(archetypes, ctx);
+  const cachedText = await getCachedSummary(cacheKey);
+
+  if (cachedText) {
+    log.debug("[recentTasteLine] Using cached summary:", cachedText);
+    return { text: cachedText, keywords, source };
+  }
+
+  // Use Gemini to generate natural-sounding taste summary
+  log.debug("[recentTasteLine] Generating new AI summary...");
+  try {
+    const { getGeminiModel } = await import("@/services/gateways/aiGateway");
+    const model = getGeminiModel("gemini-2.0-flash-exp");
+
+    const prompt = `Generate a very short, casual summary of architectural taste. Max 8-10 words total.
+
+Data:
+- Context: ${ctx}
+- Style: ${primaryPhrase.label}
+- Theme: ${theme}
+
+Rules:
+- MUST be 8-10 words maximum
+- Casual, conversational tone
+- No "pro..." truncation - must fit on one line
+- Simple, direct language
+- Examples (notice the brevity):
+  * "Recent walks favor playful forms"
+  * "Manhattan taste leans theatrical"
+  * "Strong preference for minimal restraint"
+
+Generate:`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+
+    log.debug("[recentTasteLine] AI generated:", text);
+
+    // Cache the result
+    await setCachedSummary(cacheKey, text);
+
+    return { text, keywords, source };
+  } catch (error) {
+    log.error("[recentTasteLine] Failed to generate AI summary, falling back", error);
+
+    // Fallback to template-based generation
+    const verb = verbForIntensity(Math.round(intensity));
+    const text = `${ctx} ${verb} ${theme}.`;
+
+    log.debug("[recentTasteLine] Using template fallback:", text);
+
+    return { text, keywords, source };
+  }
 }
 
 export async function getActionableTaste(input: {

@@ -1,12 +1,12 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NavigationProp } from "@react-navigation/native";
-import { screens, type RootParams } from "@/navigation/routes";
 import {
   DEFAULT_TASTE_ACTION,
   type TasteAction,
 } from "@/features/home/tasteActions";
+import { screens, type RootParams } from "@/navigation/routes";
+import { useOrbTransition } from "@/state/orbTransitionContext";
+import type { NavigationProp } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   action?: TasteAction | null;
@@ -32,6 +32,7 @@ const buildFallbackHeadline = (action: TasteAction | null | undefined): string =
 
 export default function HomeTasteLine({ action }: Props): JSX.Element {
   const navigation = useNavigation<NavigationProp<RootParams>>();
+  const { startHomeToJinkTransition, pinToJink } = useOrbTransition();
   const resolved =
     action && typeof action.headline === "string" && action.headline.trim().length
       ? action
@@ -51,7 +52,17 @@ export default function HomeTasteLine({ action }: Props): JSX.Element {
   const filters = resolved.filters ?? DEFAULT_TASTE_ACTION.filters;
 
   const handlePress = () => {
-    navigation.navigate(screens.WalkStart, { filters });
+    startHomeToJinkTransition()
+      .catch(() => false)
+      .then((completed) => {
+        navigation.navigate(screens.Main, {
+          screen: screens.WalkStart,
+          params: filters ? { filters } : undefined,
+        });
+        if (completed) {
+          pinToJink(true);
+        }
+      });
   };
 
   return (
@@ -64,7 +75,7 @@ export default function HomeTasteLine({ action }: Props): JSX.Element {
     >
       <View style={styles.copyWrapper}>
         <Text style={styles.label}>Recent taste</Text>
-        <Text style={styles.headline} numberOfLines={2} ellipsizeMode="tail">
+        <Text style={styles.headline}>
           {finalHeadline}
         </Text>
       </View>
@@ -78,12 +89,16 @@ export default function HomeTasteLine({ action }: Props): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     marginTop: 12,
+    width: "100%",
+    maxWidth: 340,
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
   },
   copyWrapper: {
     flex: 1,
+    minWidth: 0,
     paddingRight: 12,
   },
   label: {
@@ -103,5 +118,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: "#1A1A1A",
+    marginLeft: 12,
   },
 });

@@ -10,6 +10,10 @@ export const screens = {
   Main: "Main",
   Profile: "ProfileDetail",
   Passport: "Passport",
+  PassportStamps: "PassportStamps",
+  PassportAchievements: "PassportAchievements",
+  PassportVisas: "PassportVisas",
+  PassportLists: "PassportLists",
   PassportListDetail: "PassportListDetail",
   Search: "Search",
   Scan: "ScanScreen",
@@ -62,6 +66,10 @@ export type RootParams = {
   Main: NavigatorScreenParams<MainTabParams> | undefined;
   ProfileDetail: { userId?: string; initialArchetype?: string } | undefined;
   Passport: undefined;
+  PassportStamps: undefined;
+  PassportAchievements: undefined;
+  PassportVisas: undefined;
+  PassportLists: undefined;
   PassportListDetail: { listId?: string } | undefined;
   Search: undefined;
   ScanScreen: undefined;

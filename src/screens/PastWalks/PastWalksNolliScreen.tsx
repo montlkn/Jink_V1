@@ -6,11 +6,20 @@ import {
   Platform,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import MapView, { Polygon, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Circle, Polygon, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import {
+  FOG_BOUNDARY,
+  MASTER_WALK_ID,
+  demoWalks,
+  type DemoWalk,
+  type NolliFeatureCollection,
+} from "./nolliDemoData";
+import type { Feature as GeoFeature, Polygon as GeoPolygon } from "geojson";
 
 // -------------------- Types --------------------
 
@@ -22,83 +31,41 @@ type Props = NativeStackScreenProps<PastWalksStackParamList, "PastWalksNolli">;
 
 type Position = { latitude: number; longitude: number };
 
-type GeoJSONPolygon = {
-  type: "Polygon";
-  coordinates: number[][][]; // rings -> [lng, lat]
-  properties?: Record<string, unknown>;
-  id?: string | number;
-};
-
-type GeoJSONMultiPolygon = {
-  type: "MultiPolygon";
-  coordinates: number[][][][]; // polys -> rings -> [lng, lat]
-  properties?: Record<string, unknown>;
-  id?: string | number;
-};
-
-type GeoJSONFeature = {
-  type: "Feature";
-  id?: string | number;
-  properties?: Record<string, unknown>;
-  geometry: GeoJSONPolygon | GeoJSONMultiPolygon;
-};
-
-type GeoJSONFeatureCollection = {
-  type: "FeatureCollection";
-  features: GeoJSONFeature[];
-};
-
 type ProjectedPolygon = {
   id: string;
   rings: Position[][];
+  walkId?: string;
+};
+
+type PreparedPolygon = {
+  id: string;
+  walkId?: string;
+  outer: Position[];
+  holes: Position[][];
 };
 
 // -------------------- Constants --------------------
 
 const DEFAULT_REGION = {
-  latitude: 40.712776,
-  longitude: -74.005974,
-  latitudeDelta: 0.0922,
-  longitudeDelta: 0.0421,
+  latitude: 40.718,
+  longitude: -74.006,
+  latitudeDelta: 0.08,
+  longitudeDelta: 0.04,
 };
 
-// -------------------- Data --------------------
-
-const _cache = new Map<string, GeoJSONFeatureCollection>();
-
-async function loadNolliGeoJSON(walkId?: string): Promise<GeoJSONFeatureCollection> {
-  if (!walkId) throw new Error("walkId required");
-
-  const cached = _cache.get(walkId);
-  if (cached) return cached;
-
-  // Replace with your real endpoint.
-  const res = await fetch(
-    `https://api.yourdomain.com/walks/${encodeURIComponent(walkId)}/nolli`,
-    { headers: { Accept: "application/json" } }
-  );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-  const data = (await res.json()) as unknown;
-  assertFeatureCollection(data);
-  _cache.set(walkId, data);
-  return data;
-}
-
-function assertFeatureCollection(x: any): asserts x is GeoJSONFeatureCollection {
-  if (!x || x.type !== "FeatureCollection" || !Array.isArray(x.features)) {
-    throw new Error("Invalid GeoJSON: not a FeatureCollection");
-  }
-  for (const f of x.features) {
-    if (!f?.geometry || (f.geometry.type !== "Polygon" && f.geometry.type !== "MultiPolygon")) {
-      throw new Error("Invalid GeoJSON: only Polygon or MultiPolygon supported");
-    }
-  }
-}
+const WALK_COLORS = [
+  { accent: "#F7685B", fill: "rgba(247, 104, 91, 0.32)" },
+  { accent: "#6274FF", fill: "rgba(98, 116, 255, 0.32)" },
+  { accent: "#4DD6A7", fill: "rgba(77, 214, 167, 0.32)" },
+  { accent: "#F0A24C", fill: "rgba(240, 162, 76, 0.32)" },
+];
 
 // -------------------- Helpers --------------------
 
-function convertGeoJsonRing(ring: number[][]): Position[] {
+function convertGeoJsonRing(ring: GeoPolygon["coordinates"][number]): Position[] {
+  if (!Array.isArray(ring)) {
+    return [];
+  }
   return ring
     .filter(
       (p): p is [number, number] =>
@@ -107,90 +74,281 @@ function convertGeoJsonRing(ring: number[][]): Position[] {
     .map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
 }
 
-function extractProjectedPolygons(fc: GeoJSONFeatureCollection): ProjectedPolygon[] {
+function extractProjectedPolygons(fc: NolliFeatureCollection): ProjectedPolygon[] {
   const out: ProjectedPolygon[] = [];
-  for (const feature of fc.features) {
-    const geom = feature.geometry;
-    const baseId = String(feature.id ?? out.length);
-    if (geom.type === "Polygon") {
-      const rings = geom.coordinates.map((ring) => convertGeoJsonRing(ring));
-      out.push({ id: baseId, rings });
-    } else {
-      geom.coordinates.forEach((polyCoords, idx) => {
-        const rings = polyCoords.map((ring) => convertGeoJsonRing(ring));
-        out.push({ id: `${baseId}-${idx}`, rings });
-      });
+  fc.features.forEach((feature, index) => {
+    if (!feature?.geometry || feature.geometry.type !== "Polygon") {
+      return;
     }
-  }
+    const baseId = String(feature.id ?? index);
+    const props = feature.properties;
+    const walkId =
+      props && typeof props === "object" && "walkId" in props && typeof (props as any).walkId === "string"
+        ? ((props as any).walkId as string)
+        : undefined;
+    const sourceCoords = Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates : [];
+    const rings = sourceCoords
+      .map((ring) => convertGeoJsonRing(ring))
+      .filter((ring) => ring.length >= 3);
+    if (!rings.length) {
+      return;
+    }
+    out.push({ id: baseId, rings, walkId });
+  });
   return out;
+}
+
+function combineFeatureCollections(walks: DemoWalk[]): NolliFeatureCollection {
+  const features: GeoFeature<GeoPolygon, Record<string, unknown>>[] = [];
+
+  walks.forEach((walk) => {
+    walk.featureCollection.features.forEach((feature) => {
+      const baseProps =
+        feature.properties && typeof feature.properties === "object" ? feature.properties : {};
+      const props: Record<string, unknown> = { ...baseProps, walkId: walk.id };
+      const clonedCoords: GeoPolygon["coordinates"] = feature.geometry.coordinates.map((ring) =>
+        ring.map(([lng, lat]) => [lng, lat] as [number, number])
+      );
+
+      const cloned: GeoFeature<GeoPolygon, Record<string, unknown>> = {
+        type: "Feature",
+        id: feature.id,
+        properties: props,
+        geometry: {
+          type: "Polygon",
+          coordinates: clonedCoords,
+        },
+      };
+
+      features.push(cloned);
+    });
+  });
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
+}
+
+function getRingCentroid(ring: Position[]): Position | null {
+  if (!ring.length) return null;
+  const unique = ring[0].latitude === ring[ring.length - 1]?.latitude ? ring.slice(0, -1) : ring;
+  const len = unique.length;
+  if (!len) return null;
+  const sum = unique.reduce(
+    (acc, point) => ({
+      latitude: acc.latitude + point.latitude,
+      longitude: acc.longitude + point.longitude,
+    }),
+    { latitude: 0, longitude: 0 }
+  );
+  return {
+    latitude: sum.latitude / len,
+    longitude: sum.longitude / len,
+  };
+}
+
+function ensureClosedRing(ring: Position[]): Position[] {
+  if (!ring.length) return ring;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  if (first.latitude === last.latitude && first.longitude === last.longitude) {
+    return ring.slice();
+  }
+  return [...ring, { ...first }];
+}
+
+function isValidPosition(point: unknown): point is Position {
+  if (!point || typeof point !== "object") {
+    return false;
+  }
+  const candidate = point as Position;
+  return (
+    typeof candidate.latitude === "number" &&
+    Number.isFinite(candidate.latitude) &&
+    typeof candidate.longitude === "number" &&
+    Number.isFinite(candidate.longitude)
+  );
+}
+
+function toClosedRing(ring?: Position[]): Position[] | null {
+  if (!Array.isArray(ring)) return null;
+  const filtered = ring.filter(isValidPosition);
+  if (filtered.length < 3) return null;
+  const closed = ensureClosedRing(filtered);
+  return closed.map(({ latitude, longitude }) => ({ latitude, longitude }));
+}
+
+function setAlpha(rgba: string, alpha: number): string {
+  return rgba.replace(/rgba\(([^)]+),\s*[\d.]+\)/, (_match, groups) => `rgba(${groups}, ${alpha})`);
 }
 
 // -------------------- Screen --------------------
 
 export default function PastWalksNolliScreen({ route, navigation }: Props) {
   const mapRef = useRef<MapView | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [fc, setFc] = useState<GeoJSONFeatureCollection | null>(null);
-
+  const [walks] = useState<DemoWalk[]>(demoWalks);
   const walkId = route.params?.walkId;
 
+  const [selectedWalkId, setSelectedWalkId] = useState<string>(() => {
+    if (walkId && walks.some((w) => w.id === walkId)) {
+      return walkId;
+    }
+    if (walkId) {
+      console.warn(
+        `[PastWalksNolli] Unknown walkId "${walkId}" provided. Falling back to master view.`
+      );
+    }
+    return MASTER_WALK_ID;
+  });
+
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const data = await loadNolliGeoJSON(walkId);
-        if (!mounted) return;
-        setFc(data);
-        setError(null);
-      } catch (e: any) {
-        if (!mounted) return;
-        setError(e?.message ?? "Failed to load map data");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [walkId]);
-
-  const projected = useMemo(() => (fc ? extractProjectedPolygons(fc) : []), [fc]);
-
-  // Fit to all coordinates only. Avoid animate* calls.
-  useEffect(() => {
-    if (!projected.length || !mapRef.current) return;
-    const coords = projected.flatMap((p) => p.rings).flat();
-    if (!coords.length) return;
-    mapRef.current.fitToCoordinates(coords, {
-      edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-      animated: true,
-    });
-  }, [projected]);
-
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Pressable
-        onPress={() => navigation.goBack()}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        style={styles.backBtn}
-      >
-        <Ionicons name="chevron-back" size={20} />
-        <Text style={styles.backTxt}>Back</Text>
-      </Pressable>
-      <Text style={styles.title}>Nolli Overlay</Text>
-      <View style={{ width: 56 }} />
-    </View>
-  );
+    if (walkId && walks.some((w) => w.id === walkId)) {
+      setSelectedWalkId(walkId);
+    }
+  }, [walkId, walks]);
 
   const mapProvider =
     Platform.OS === "ios" || Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
 
+  const walkColorMap = useMemo(() => {
+    const entries = new Map<string, (typeof WALK_COLORS)[number]>();
+    walks.forEach((walk, index) => {
+      entries.set(walk.id, WALK_COLORS[index % WALK_COLORS.length]);
+    });
+    return entries;
+  }, [walks]);
+
+  const getPaletteForWalk = (walkId?: string) =>
+    (walkId ? walkColorMap.get(walkId) : undefined) ?? WALK_COLORS[0];
+
+  const isMasterView = selectedWalkId === MASTER_WALK_ID;
+
+  const activeWalks = useMemo(
+    () => (isMasterView ? walks : walks.filter((walk) => walk.id === selectedWalkId)),
+    [isMasterView, selectedWalkId, walks]
+  );
+
+  const combinedFeatures: NolliFeatureCollection = useMemo(
+    () => combineFeatureCollections(activeWalks),
+    [activeWalks]
+  );
+
+  const projected = useMemo(() => extractProjectedPolygons(combinedFeatures), [combinedFeatures]);
+
+  const preparedPolygons = useMemo(
+    () =>
+      projected
+        .map((poly) => {
+          const outer = toClosedRing(poly.rings[0]);
+          if (!outer) return null;
+          const holes = poly.rings
+            .slice(1)
+            .map((ring) => toClosedRing(ring))
+            .filter((ring): ring is Position[] => Boolean(ring));
+          return { id: poly.id, walkId: poly.walkId, outer, holes };
+        })
+        .filter((poly): poly is PreparedPolygon => Boolean(poly)),
+    [projected]
+  );
+
+  const activePath = useMemo(() => {
+    if (isMasterView) return [];
+    return activeWalks[0]?.path ?? [];
+  }, [activeWalks, isMasterView]);
+
+  const safeActivePath = useMemo(
+    () =>
+      activePath
+        .filter((point): point is Position => isValidPosition(point))
+        .map(({ latitude, longitude }) => ({ latitude, longitude })),
+    [activePath]
+  );
+
+  const fogHoles = useMemo(() => preparedPolygons.map((poly) => poly.outer), [preparedPolygons]);
+
+  const highlightCenters = useMemo(() => {
+    if (isMasterView) return [];
+    return preparedPolygons
+      .filter((poly) => poly.walkId === selectedWalkId)
+      .map((poly) => getRingCentroid(poly.outer))
+      .filter((point): point is Position => Boolean(point));
+  }, [isMasterView, preparedPolygons, selectedWalkId]);
+
+  const focusCoords = useMemo(() => {
+    const polygonCoords = preparedPolygons.flatMap((poly) => poly.outer);
+    if (isMasterView) return polygonCoords;
+    return [...polygonCoords, ...safeActivePath];
+  }, [preparedPolygons, isMasterView, safeActivePath]);
+
+  // Fit to coordinates when overlays update
+  useEffect(() => {
+    if (!focusCoords.length || !mapRef.current) return;
+    mapRef.current.fitToCoordinates(focusCoords, {
+      edgePadding: { top: 48, right: 48, bottom: 48, left: 48 },
+      animated: true,
+    });
+  }, [focusCoords]);
+
+  const tabs = useMemo(
+    () => [
+      { id: MASTER_WALK_ID, label: "Master Map" },
+      ...walks.map((walk) => ({ id: walk.id, label: walk.name })),
+    ],
+    [walks]
+  );
+
+  const activeSummary = !isMasterView ? activeWalks[0]?.summary : undefined;
+
   return (
     <SafeAreaView style={styles.root}>
-      {renderHeader()}
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={styles.backBtn}
+        >
+          <Ionicons name="chevron-back" size={20} />
+          <Text style={styles.backTxt}>Back</Text>
+        </Pressable>
+        <Text style={styles.title}>Nolli Fog</Text>
+        <View style={{ width: 56 }} />
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabBarContent}
+        style={styles.tabBar}
+      >
+        {tabs.map((tab) => {
+          const active = tab.id === selectedWalkId;
+          return (
+            <Pressable
+              key={tab.id}
+              onPress={() => setSelectedWalkId(tab.id)}
+              style={[styles.tab, active && styles.tabActive]}
+            >
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {activeSummary ? (
+        <View style={styles.summary}>
+          <Text style={styles.summaryLabel}>Lore</Text>
+          <Text style={styles.summaryText}>{activeSummary}</Text>
+        </View>
+      ) : (
+        <View style={styles.masterSummary}>
+          <Text style={styles.masterSummaryText}>
+            The master view reveals every visited structure while the fog keeps uncharted blocks
+            in shadow.
+          </Text>
+        </View>
+      )}
 
       <View style={styles.mapWrap}>
         <MapView
@@ -199,29 +357,57 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
           style={StyleSheet.absoluteFill}
           {...(mapProvider ? { provider: mapProvider } : {})}
         >
-          {projected.map((poly) =>
-            poly.rings.map((ring, idx) => (
+          {preparedPolygons.length > 0 ? (
+            <Polygon
+              coordinates={FOG_BOUNDARY}
+              holes={fogHoles.length ? fogHoles : undefined}
+              fillColor="rgba(9, 13, 24, 0.62)"
+              strokeWidth={0}
+            />
+          ) : null}
+
+          {preparedPolygons.map((poly) => {
+            const palette = getPaletteForWalk(poly.walkId);
+            const fill = isMasterView ? palette.fill : setAlpha(palette.fill, 0.42);
+            return (
               <Polygon
-                key={`${poly.id}-${idx}`}
-                coordinates={ring}
-                strokeWidth={1}
-                strokeColor="rgba(0,0,0,0.6)"
-                fillColor="rgba(0,0,0,0.15)"
+                key={`poly-${poly.id}`}
+                coordinates={poly.outer}
+                holes={poly.holes.length ? poly.holes : undefined}
+                strokeColor={palette.accent}
+                strokeWidth={isMasterView ? 1 : 2}
+                fillColor={fill}
               />
-            ))
-          )}
+            );
+          })}
+
+          {!isMasterView && safeActivePath.length > 1 ? (
+            <Polyline
+              coordinates={safeActivePath}
+              strokeColor={getPaletteForWalk(selectedWalkId).accent}
+              strokeWidth={4}
+              lineCap="round"
+              lineJoin="round"
+            />
+          ) : null}
+
+          {!isMasterView
+            ? highlightCenters.map((center, idx) => (
+                <Circle
+                  key={`halo-${idx}`}
+                  center={center}
+                  radius={130}
+                  fillColor={setAlpha(getPaletteForWalk(selectedWalkId).fill, 0.55)}
+                  strokeWidth={0}
+                />
+              ))
+            : null}
         </MapView>
 
-        {loading && (
+        {walks.length === 0 && (
           <View style={styles.overlay}>
             <ActivityIndicator />
-            <Text style={styles.overlayTxt}>Loading</Text>
-          </View>
-        )}
-
-        {!!error && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorText}>{error}</Text>
+            <Text style={styles.overlayTxt}>Loading walks…</Text>
           </View>
         )}
       </View>
@@ -232,7 +418,7 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
 // -------------------- Styles --------------------
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#fff" },
+  root: { flex: 1, backgroundColor: "#07090F" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -247,17 +433,85 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     width: 56,
   },
-  backTxt: { marginLeft: 2, fontSize: 16 },
-  title: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600" },
+  backTxt: { marginLeft: 2, fontSize: 16, color: "#F8F9FF" },
+  title: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600", color: "#F8F9FF" },
+  tabBar: {
+    maxHeight: 44,
+  },
+  tabBarContent: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  tab: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(17, 20, 30, 0.66)",
+  },
+  tabActive: {
+    borderColor: "rgba(255, 255, 255, 0.4)",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  tabText: {
+    color: "rgba(255, 255, 255, 0.72)",
+    fontSize: 14,
+  },
+  tabTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  summary: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "rgba(16, 19, 28, 0.9)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.08)",
+    gap: 4,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.52)",
+  },
+  summaryText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.84)",
+    lineHeight: 20,
+  },
+  masterSummary: {
+    marginTop: 12,
+    marginHorizontal: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  masterSummaryText: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.7)",
+    lineHeight: 18,
+  },
   mapWrap: {
     flex: 1,
-    backgroundColor: "#fff", // solid background to silence shadow warning
+    marginTop: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#0B0E17",
   },
   overlay: {
     position: "absolute",
     top: 12,
     alignSelf: "center",
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "rgba(7,7,10,0.9)",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
@@ -265,16 +519,5 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: "center",
   },
-  overlayTxt: { fontSize: 14 },
-  errorBanner: {
-    position: "absolute",
-    bottom: 12,
-    left: 12,
-    right: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: "rgba(220, 38, 38, 0.12)",
-  },
-  errorText: { color: "#991B1B", fontSize: 13, textAlign: "center" },
+  overlayTxt: { fontSize: 14, color: "#FFFFFF" },
 });

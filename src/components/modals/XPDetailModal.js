@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import React from 'react';
 import {
   Dimensions,
   Modal,
@@ -19,9 +18,20 @@ const XPDetailModal = ({
   currentXP = 1250,
   level = 5,
   xpForNextLevel = 2000,
+  streakCount = 0,
 }) => {
   const progressPercent = (currentXP / xpForNextLevel) * 100;
   const remainingXP = xpForNextLevel - currentXP;
+
+  // Calculate streak multiplier
+  const getStreakMultiplier = (streak) => {
+    if (streak >= 30) return { multiplier: '3.0x', color: '#FF6B6B' };
+    if (streak >= 7) return { multiplier: '2.0x', color: '#4ECDC4' };
+    if (streak >= 3) return { multiplier: '1.5x', color: '#95E1D3' };
+    return { multiplier: '1.0x', color: '#666' };
+  };
+
+  const streakInfo = getStreakMultiplier(streakCount);
 
   // Circle SVG properties for expanded view
   const size = 140;
@@ -98,13 +108,22 @@ const XPDetailModal = ({
             </View>
 
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Current Daily Streak</Text>
-            <Text style={styles.statValue}> Days </Text> 
+              <Text style={styles.statLabel}>Total XP</Text>
+              <Text style={styles.statValue}>{currentXP.toLocaleString()} XP</Text>
             </View>
 
             <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Total XP</Text>
-              <Text style={styles.statValue}>{currentXP.toLocaleString()} XP</Text>
+              <View>
+                <Text style={styles.statLabel}>Daily Streak</Text>
+                {streakCount >= 3 && (
+                  <Text style={[styles.multiplierText, { color: streakInfo.color }]}>
+                    {streakInfo.multiplier} XP Bonus
+                  </Text>
+                )}
+              </View>
+              <Text style={styles.statValue}>
+                {streakCount > 0 ? `${streakCount} ${streakCount === 1 ? 'Day' : 'Days'}` : 'Start your streak!'}
+              </Text>
             </View>
 
             <View style={styles.statRow}>
@@ -238,6 +257,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#111',
+  },
+  multiplierText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
   },
   statValueHighlight: {
     fontSize: 15,

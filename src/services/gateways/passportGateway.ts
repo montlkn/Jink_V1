@@ -1,8 +1,16 @@
-import { supabaseGateway as supabase, fetchXpSummary } from "./supabaseGateway";
+import { fetchXpSummary, supabaseGateway as supabase } from "./supabaseGateway";
 
 type ProfileRow = {
   stamps: string[];
   achievements: string[];
+  daily_streak_count?: number;
+  last_activity_date?: string;
+};
+
+export type StreakUpdate = {
+  streak_count: number;
+  is_new_day: boolean;
+  previous_streak: number;
 };
 
 export type PassportList = {
@@ -17,12 +25,14 @@ export type PassportSnapshot = {
   stamps: string[];
   achievements: string[];
   lists: PassportList[];
+  dailyStreak: number;
+  lastActivityDate?: string;
 };
 
 export async function fetchPassportProfile(userId: string): Promise<ProfileRow> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("stamps, achievements")
+    .select("stamps, achievements, daily_streak_count, last_activity_date")
     .eq("id", userId)
     .single();
 
@@ -36,6 +46,8 @@ export async function fetchPassportProfile(userId: string): Promise<ProfileRow> 
   return {
     stamps,
     achievements,
+    daily_streak_count: data?.daily_streak_count ?? 0,
+    last_activity_date: data?.last_activity_date,
   };
 }
 
@@ -56,6 +68,8 @@ export async function fetchPassport(userId: string): Promise<PassportSnapshot> {
     stamps: profile.stamps,
     achievements: profile.achievements,
     lists: [],
+    dailyStreak: profile.daily_streak_count ?? 0,
+    lastActivityDate: profile.last_activity_date,
   };
 }
 
@@ -80,4 +94,42 @@ export async function revokePassport(userId: string, revokedAt: Date = new Date(
   }
 
   return true;
+}
+
+/**
+ * Updates the user's daily streak after a qualifying action
+ * (scan, walk completion, quest completion)
+ */
+export async function updateDailyStreak(userId: string): Promise<StreakUpdate> {
+  const { data, error } = await supabase
+    .rpc("update_daily_streak", { p_user_id: userId });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("No streak data returned");
+  }
+
+  const result = data[0];
+  return {
+    streak_count: result.streak_count,
+    is_new_day: result.is_new_day,
+    previous_streak: result.previous_streak,
+  };
+}
+
+/**
+ * Get the XP multiplier based on current streak count
+ */
+export async function getStreakMultiplier(streakCount: number): Promise<number> {
+  const { data, error } = await supabase
+    .rpc("get_streak_multiplier", { p_streak_count: streakCount });
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? 1.0;
 }

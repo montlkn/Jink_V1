@@ -6,12 +6,15 @@ import {
   fetchActiveQuests,
   fetchXpSnapshot,
   fetchWalkSummaries,
+  fetchUserStreak,
   type ActiveQuestsResponse,
   type XpSnapshot,
+  type StreakSnapshot,
 } from "@/services/gateways";
 import {
   DEFAULT_TASTE_ACTION,
   getRecentTasteSummary,
+  getRecentTasteLine,
   getActionableTaste,
   type RecentScan,
   type RecentWalk,
@@ -38,6 +41,7 @@ type HomeData = {
   userXP: number;
   userLevel: number;
   xpForNextLevel: number;
+  streakCount: number;
   tasteSignals: {
     last10Scans: RecentScan[];
     last3Walks: RecentWalk[];
@@ -72,6 +76,7 @@ export function useHomeData(): HomeDataState {
   const [userXP, setUserXP] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [xpForNextLevelState, setXpForNextLevelState] = useState(100);
+  const [streakCount, setStreakCount] = useState(0);
   const [timers, setTimers] = useState({ daily: "", weekly: "" });
   const [error, setError] = useState<unknown>(null);
   const timersInitialized = useRef(false);
@@ -143,7 +148,7 @@ export function useHomeData(): HomeDataState {
           return;
         }
 
-        const [summary, walkSummaries] = await Promise.all([
+        const [summary, walkSummaries, tasteLine] = await Promise.all([
           getRecentTasteSummary({
             userId: session.user.id,
             archetypes: archetypeData,
@@ -151,6 +156,10 @@ export function useHomeData(): HomeDataState {
           fetchWalkSummaries({
             userId: session.user.id,
             platform: Platform.OS,
+          }),
+          getRecentTasteLine({
+            userId: session.user.id,
+            archetypes: archetypeData,
           }),
         ]);
 
@@ -219,13 +228,36 @@ export function useHomeData(): HomeDataState {
           last3Walks: recentWalks,
         });
 
+        // Prefer AI-generated tasteLine over action headline
+        const aiGeneratedHeadline = tasteLine?.text?.trim();
+        const fallbackHeadline = firstNonEmptyText([
+          summary?.text,
+        ]);
+        const fallbackCentral = extractPrimaryArchetype(archetypeData);
+
+        const resolvedAction = aiGeneratedHeadline
+          ? {
+              ...(action ?? DEFAULT_TASTE_ACTION),
+              headline: aiGeneratedHeadline,
+              central: fallbackCentral ?? (action?.central ?? DEFAULT_TASTE_ACTION.central),
+            }
+          : action && action !== DEFAULT_TASTE_ACTION
+          ? action
+          : fallbackHeadline
+          ? {
+              ...DEFAULT_TASTE_ACTION,
+              headline: clampTasteHeadline(fallbackHeadline),
+              central: fallbackCentral ?? DEFAULT_TASTE_ACTION.central,
+            }
+          : DEFAULT_TASTE_ACTION;
+
         if (alive) {
           setTasteSummaryRaw(summary);
           setTasteSignals({
             last10Scans: [],
             last3Walks: recentWalks,
           });
-          setTasteAction(action ?? DEFAULT_TASTE_ACTION);
+          setTasteAction(resolvedAction);
         }
       } catch (err) {
         log.error("[home] Error building taste summary", err);
@@ -261,11 +293,15 @@ export function useHomeData(): HomeDataState {
           throw new Error("No session");
         }
 
-        const [{ daily, weekly }, xpSnapshot]: [ActiveQuestsResponse, XpSnapshot] =
-          await Promise.all([
-            fetchActiveQuests({ userId: session.user.id }),
-            fetchXpSnapshot({ userId: session.user.id }),
-          ]);
+        const [{ daily, weekly }, xpSnapshot, streakSnapshot]: [
+          ActiveQuestsResponse,
+          XpSnapshot,
+          StreakSnapshot
+        ] = await Promise.all([
+          fetchActiveQuests({ userId: session.user.id }),
+          fetchXpSnapshot({ userId: session.user.id }),
+          fetchUserStreak(session.user.id),
+        ]);
 
         if (!alive) return;
 
@@ -277,6 +313,7 @@ export function useHomeData(): HomeDataState {
         setUserXP(xpValue);
         setUserLevel(levelValue);
         setXpForNextLevelState(getXpForNextLevel(levelValue));
+        setStreakCount(streakSnapshot?.streakCount ?? 0);
       } catch (err) {
         log.error("[home] Error loading quests", err);
         if (alive) {
@@ -334,6 +371,7 @@ export function useHomeData(): HomeDataState {
         userXP,
         userLevel,
         xpForNextLevel: xpForNextLevelState,
+        streakCount,
         tasteSignals,
         tasteAction,
         timers,
@@ -346,6 +384,7 @@ export function useHomeData(): HomeDataState {
     profileRaw,
     quests,
     summaryLoading,
+    streakCount,
     tasteSignals,
     tasteAction,
     tasteSummaryRaw,
@@ -354,4 +393,47 @@ export function useHomeData(): HomeDataState {
     userXP,
     xpForNextLevelState,
   ]);
+}
+
+function firstNonEmptyText(candidates: Array<string | null | undefined>): string | null {
+  for (const candidate of candidates) {
+    if (typeof candidate === "string") {
+      const trimmed = candidate.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
+}
+
+function clampTasteHeadline(headline: string): string {
+  // No clamping - AI is instructed to keep it short (8-10 words)
+  return headline.replace(/\s+/g, " ").trim();
+}
+
+function extractPrimaryArchetype(
+  archetypes: Record<string, unknown>[]
+): TasteAction["central"] | null {
+  if (!Array.isArray(archetypes) || archetypes.length === 0) {
+    return null;
+  }
+  const primary = archetypes[0];
+  if (!primary || typeof primary !== "object") {
+    return null;
+  }
+  const primaryRecord = primary as Record<string, unknown>;
+  let rawName: string | null = null;
+  if (typeof primaryRecord.name === "string") {
+    rawName = primaryRecord.name;
+  } else if (typeof primaryRecord.archetype === "string") {
+    rawName = primaryRecord.archetype;
+  }
+  if (typeof rawName === "string") {
+    const label = rawName.trim();
+    if (label.length > 0) {
+      return { kind: "style", label };
+    }
+  }
+  return null;
 }

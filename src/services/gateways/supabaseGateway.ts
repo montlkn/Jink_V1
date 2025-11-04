@@ -475,13 +475,37 @@ export async function awardXp(params: AwardXpParams): Promise<void> {
     throw new Error("No user logged in");
   }
 
+  // Fetch user's streak to apply multiplier
+  let finalAmount = amount;
+  try {
+    const streakData = await fetchUserStreak(userId);
+    finalAmount = Math.round(amount * streakData.multiplier);
+    if (streakData.multiplier > 1) {
+      log.info(`[supabaseGateway] XP multiplier applied: ${amount} × ${streakData.multiplier} = ${finalAmount}`);
+    }
+  } catch (streakError) {
+    log.warn("[supabaseGateway] Failed to fetch streak for XP multiplier, using base amount", streakError);
+  }
+
   const { error } = await supabase.rpc("award_xp", {
     p_user_id: userId,
-    p_amount: amount,
+    p_amount: finalAmount,
   });
 
   if (error) {
     throw error;
+  }
+
+  // Update daily streak after awarding XP
+  if (source === "building_scan") {
+    try {
+      const streakUpdate = await updateDailyStreak(userId);
+      if (streakUpdate.isNewDay) {
+        log.info(`[supabaseGateway] Daily streak updated: ${streakUpdate.streakCount} days`);
+      }
+    } catch (streakUpdateError) {
+      log.warn("[supabaseGateway] Failed to update daily streak", streakUpdateError);
+    }
   }
 
   if (source !== "building_scan") {
@@ -670,6 +694,16 @@ export async function completeQuest(
 
   if (updateError) {
     throw updateError;
+  }
+
+  // Update daily streak after completing quest
+  try {
+    const streakUpdate = await updateDailyStreak(userId);
+    if (streakUpdate.isNewDay) {
+      log.info(`[supabaseGateway] Daily streak updated after quest completion: ${streakUpdate.streakCount} days`);
+    }
+  } catch (streakError) {
+    log.warn("[supabaseGateway] Failed to update daily streak after quest completion", streakError);
   }
 
   return {
@@ -901,5 +935,82 @@ export async function completeWalk(
     walkId,
     userId,
     completedAt: completedAtIso,
+  };
+}
+
+// ============================================================================
+// STREAK TRACKING
+// ============================================================================
+
+export type StreakSnapshot = {
+  streakCount: number;
+  lastActivityDate: string | null;
+  streakStartedAt: string | null;
+  multiplier: number;
+};
+
+export type UpdateStreakResult = {
+  streakCount: number;
+  isNewDay: boolean;
+  previousStreak: number;
+};
+
+/**
+ * Fetch current streak data for a user
+ */
+export async function fetchUserStreak(userId: string): Promise<StreakSnapshot> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("daily_streak_count, last_activity_date, streak_started_at")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  const streakCount = coerceNumber(data.daily_streak_count, 0);
+
+  // Calculate multiplier based on streak count
+  let multiplier = 1.0;
+  if (streakCount >= 30) {
+    multiplier = 3.0;
+  } else if (streakCount >= 7) {
+    multiplier = 2.0;
+  } else if (streakCount >= 3) {
+    multiplier = 1.5;
+  }
+
+  return {
+    streakCount,
+    lastActivityDate: data.last_activity_date || null,
+    streakStartedAt: data.streak_started_at || null,
+    multiplier,
+  };
+}
+
+/**
+ * Update daily streak for a user after a qualifying action
+ * (scan, walk completion, quest completion)
+ */
+export async function updateDailyStreak(userId: string): Promise<UpdateStreakResult> {
+  const { data, error } = await supabase.rpc("update_daily_streak", {
+    p_user_id: userId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error("No data returned from update_daily_streak");
+  }
+
+  const row = data[0];
+
+  return {
+    streakCount: coerceNumber(row.streak_count, 0),
+    isNewDay: Boolean(row.is_new_day),
+    previousStreak: coerceNumber(row.previous_streak, 0),
   };
 }

@@ -32,6 +32,14 @@
         <data android:scheme="com.lucienmount.architectureapp"/>
         <data android:scheme="exp+jink"/>
       </intent-filter>
+      <intent-filter data-generated="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <data android:scheme="jink"/>
+        <data android:scheme="https" android:host="jink.city" android:pathPrefix="/"/>
+        <data android:scheme="exp+jink"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
     </activity>
   </application>
 </manifest>

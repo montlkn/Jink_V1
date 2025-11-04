@@ -75,6 +75,11 @@ if (Platform.OS === 'ios') {
 }
 import AnimatedRegion from './AnimatedRegion';
 
+const IS_NEW_ARCHITECTURE_ENABLED =
+  typeof globalThis !== 'undefined' &&
+  // @ts-ignore - global flag injected by RN when Fabric is enabled
+  (globalThis as any).__IS_NEW_ARCHITECTURE_ENABLED__ === true;
+
 export const MAP_TYPES: MapTypes = {
   STANDARD: 'standard',
   SATELLITE: 'satellite',
@@ -1222,6 +1227,23 @@ class MapView extends React.Component<MapViewProps, State> {
 
     const childrenNodes = this.state.isReady ? children : null;
 
+    if (!IS_NEW_ARCHITECTURE_ENABLED) {
+      const legacyProps = props as unknown as NativeProps;
+
+      const LegacyComponent =
+        resolvedProvider === 'google' && Platform.OS === 'ios'
+          ? airMaps.google
+          : airMaps.default;
+
+      return (
+        <ProviderContext.Provider value={resolvedProvider}>
+          <LegacyComponent ref={this.map} {...legacyProps}>
+            {childrenNodes}
+          </LegacyComponent>
+        </ProviderContext.Provider>
+      );
+    }
+
     if (resolvedProvider === 'google' && Platform.OS === 'ios') {
       return (
         <ProviderContext.Provider value={resolvedProvider}>
@@ -1230,15 +1252,15 @@ class MapView extends React.Component<MapViewProps, State> {
           </FabricGoogleMap>
         </ProviderContext.Provider>
       );
-    } else {
-      return (
-        <ProviderContext.Provider value={resolvedProvider}>
-          <FabricMap {...props} ref={this.fabricMap}>
-            {childrenNodes}
-          </FabricMap>
-        </ProviderContext.Provider>
-      );
     }
+
+    return (
+      <ProviderContext.Provider value={resolvedProvider}>
+        <FabricMap {...props} ref={this.fabricMap}>
+          {childrenNodes}
+        </FabricMap>
+      </ProviderContext.Provider>
+    );
   }
 }
 
@@ -1253,9 +1275,13 @@ const airMaps: {
 if (Platform.OS === 'android') {
   airMaps.google = airMaps.default;
 } else {
-  airMaps.google = createNotSupportedComponent(
-    'react-native-maps: AirGoogleMaps dir must be added to your xCode project to support GoogleMaps on iOS.',
-  );
+  try {
+    airMaps.google = requireNativeComponent<NativeProps>('AIRGoogleMap');
+  } catch (error) {
+    airMaps.google = createNotSupportedComponent(
+      'react-native-maps: AirGoogleMaps dir must be added to your xCode project to support GoogleMaps on iOS.',
+    );
+  }
 }
 
 export const AnimatedMapView = RNAnimated.createAnimatedComponent(MapView);

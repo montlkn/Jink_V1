@@ -45,6 +45,22 @@ export function AppStack() {
             <Stack.Screen name={screens.Profile} getComponent={ScreenLoaders.Profile} />
             <Stack.Screen name={screens.Passport} getComponent={ScreenLoaders.Passport} />
             <Stack.Screen
+              name={screens.PassportStamps}
+              getComponent={ScreenLoaders.PassportStamps}
+            />
+            <Stack.Screen
+              name={screens.PassportAchievements}
+              getComponent={ScreenLoaders.PassportAchievements}
+            />
+            <Stack.Screen
+              name={screens.PassportVisas}
+              getComponent={ScreenLoaders.PassportVisas}
+            />
+            <Stack.Screen
+              name={screens.PassportLists}
+              getComponent={ScreenLoaders.PassportLists}
+            />
+            <Stack.Screen
               name={screens.PassportListDetail}
               getComponent={ScreenLoaders.PassportListDetail}
             />

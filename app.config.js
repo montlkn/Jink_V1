@@ -53,6 +53,7 @@ module.exports = () => {
       },
     },
     ios: {
+      newArchEnabled: true,
       bundleIdentifier: "com.lucienmount.architectureapp",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,

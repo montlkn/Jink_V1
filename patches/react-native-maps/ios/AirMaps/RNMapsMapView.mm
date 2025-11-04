@@ -229,20 +229,17 @@ using namespace facebook::react;
             NSDictionary* coordinateDict = dictionary[@"coordinate"];
             NSDictionary* positionDict = dictionary[@"position"];
 
-            // Populate the OnMapPressCoordinate struct
             facebook::react::RNMapsMapViewEventEmitter::OnDoublePressCoordinate coordinate = {
                 .latitude = [coordinateDict[@"latitude"] doubleValue],
                 .longitude = [coordinateDict[@"longitude"] doubleValue],
             };
 
-            // Populate the OnMapPressPosition struct
             facebook::react::RNMapsMapViewEventEmitter::OnDoublePressPosition position = {
                 .x = [positionDict[@"x"] doubleValue],
                 .y = [positionDict[@"y"] doubleValue],
             };
             auto mapViewEventEmitter = std::static_pointer_cast<RNMapsMapViewEventEmitter const>(_eventEmitter);
             facebook::react::RNMapsMapViewEventEmitter::OnDoublePress data = {
-                .action = std::string([@"double-press" UTF8String]),
                 .position = position,
                 .coordinate = coordinate
             };
@@ -262,16 +259,6 @@ using namespace facebook::react;
     return self;
 }
 
-- (void)updateProps:(const Props::Shared &)props oldProps:(const Props::Shared &)oldProps
-{
-    RCTRNMapsMapViewHandlePropsUpdate(self, props, oldProps);
-}
-
-- (void)onPropSet:(const Props::Shared &)oldProps propName:(PropName)propName
-{
-    RCTRNMapsMapViewHandlePropSet(self, propName, _props, oldProps, _propUpdater);
-}
-
 - (id<RNMapsHostViewDelegate>) createMapView
 {
     [self prepareMapView];
@@ -283,17 +270,6 @@ using namespace facebook::react;
     [super layoutSubviews];
     _view.frame = self.bounds;
     [_view didSetProps:@[@"frame"]];
-}
-
-- (void)didUpdateChildren
-{
-    [super didUpdateChildren];
-}
-
-- (void)prepareForMounting
-{
-    [super prepareForMounting];
-    [self prepareMapView];
 }
 
 - (void)dealloc
@@ -346,4 +322,3 @@ Class<RCTComponentViewProtocol> RNMapsMapViewCls(void)
 }
 
 #endif
-

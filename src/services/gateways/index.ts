@@ -17,10 +17,14 @@ export {
   fetchXpSnapshot,
   completeQuest,
   awardXp,
+  fetchUserStreak,
+  updateDailyStreak,
   type ActiveQuestsResponse,
   type FetchActiveQuestsResult,
   type FetchXpSummaryResult,
   type XpSnapshot,
+  type StreakSnapshot,
+  type UpdateStreakResult,
 } from "./supabaseGateway";
 export { getGeminiModel, getGeminiClient, resetGeminiClient } from "./aiGateway";
 export { httpGateway, httpClient } from "./http";

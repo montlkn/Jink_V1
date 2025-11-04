@@ -133,6 +133,12 @@ export default function GlassOrb({
       onCreated={({ gl }: { gl: any }) => {
         // Patch renderbufferStorageMultisample BEFORE any other operations
         const ctx = gl.getContext() as any;
+        console.log('[GlassOrb] created', {
+          drawingBufferWidth: gl.drawingBufferWidth,
+          drawingBufferHeight: gl.drawingBufferHeight,
+          canvasWidth: gl.canvas?.width,
+          canvasHeight: gl.canvas?.height,
+        });
         if (ctx && ctx.renderbufferStorageMultisample) {
           ctx.renderbufferStorageMultisample = function(target: number, samples: number, internalformat: number, width: number, height: number) {
             // Expo GL doesn't support multisampling - fall back to single-sample

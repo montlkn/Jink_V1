@@ -35,6 +35,20 @@ function applyReactNativeMapsPatch() {
   console.log('[patches] Applied react-native-maps patch (with onLongPress disabled)');
 }
 
+function applyExpoConstantsPatch() {
+  const repoRoot = process.cwd();
+  const patchSource = path.join(repoRoot, 'patches', 'expo-constants');
+  const moduleTarget = path.join(repoRoot, 'node_modules', 'expo-constants');
+
+  if (!fs.existsSync(moduleTarget)) {
+    console.warn('[patches] expo-constants not installed, skipping patch.');
+    return;
+  }
+
+  copyRecursive(patchSource, moduleTarget);
+  console.log('[patches] Applied expo-constants patch (deviceYear stub)');
+}
+
 function fixThreeTypes() {
   const indexPath = path.join(process.cwd(), 'node_modules/@types/three/index.d.ts');
 
@@ -58,5 +72,5 @@ function fixThreeTypes() {
 }
 
 applyReactNativeMapsPatch();
+applyExpoConstantsPatch();
 fixThreeTypes();
-

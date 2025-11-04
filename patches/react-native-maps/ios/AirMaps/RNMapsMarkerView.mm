@@ -253,23 +253,13 @@ using namespace facebook::react;
             }
 
             if ([superview isKindOfClass:[AIRMap class]]) {
-                ((AIRMap*)superview).delegate = _view;
+                ((AIRMap*)superview).delegate = (id<MKMapViewDelegate>)_view;
                 _view.map = (AIRMap*)superview;
             }
         }
     } else {
         _view.map = nil;
     }
-}
-
-- (void)updateProps:(const Props::Shared &)props oldProps:(const Props::Shared &)oldProps
-{
-    RCTRNMapsMarkerViewHandlePropsUpdate(self, props, oldProps);
-}
-
-- (void)onPropSet:(const Props::Shared &)oldProps propName:(PropName)propName
-{
-    RCTRNMapsMarkerViewHandlePropSet(self, propName, _props, oldProps, _propUpdater);
 }
 
 - (AIRMapMarker *) createMarker
@@ -285,23 +275,6 @@ using namespace facebook::react;
 
     [_view didSetProps:@[@"frame"]];
     [_view setCenterOffset:_view.centerOffset];
-}
-
-- (void)didUpdateChildren
-{
-    [super didUpdateChildren];
-    _view.frame = self.bounds;
-    [_view didSetProps:@[@"frame"]];
-}
-
-- (void)prepareForMounting
-{
-    [super prepareForMounting];
-    [self prepareMarkerView];
-
-    [_view addObserver:self forKeyPath:@"coordinate" options:0 context:NULL];
-    [_view removeFromSuperview];
-    [self.contentView addSubview:_view];
 }
 
 - (void)dealloc
@@ -346,26 +319,6 @@ using namespace facebook::react;
     return YES;
 }
 
-- (void)didAddSubview:(UIView *)subview
-{
-    [super didAddSubview:subview];
-    [self onSubviewsUpdated];
-}
-
-- (void)willRemoveSubview:(UIView *)subview
-{
-    [super willRemoveSubview:subview];
-    [self onSubviewsUpdated];
-}
-- (void) onSubviewsUpdated
-{
-    if (_view.hasChildren == self.subviews.count > 0) return;
-    _view.hasChildren = self.subviews.count > 0;
-    _view.tracksViewChanges = _view.hasChildren;
-
-    [_view didSetProps:@[@"hasChildren", @"tracksViewChanges"]];
-}
-
 - (void)didSetProps:(facebook::react::PropNameHashSet const &)changedProps
 {
     [super didSetProps: changedProps];
@@ -376,18 +329,7 @@ using namespace facebook::react;
                         change:(NSDictionary<NSKeyValueChangeKey,id> *)change
                        context:(void *)context
 {
-    if ([keyPath isEqualToString:@"coordinate"]) {
-        RCTManagedPointer cManagedPointer = {_view.coordinateWrapper};
-
-        facebook::react::RNMapsMarkerEventEmitter::OnSetCoordinate data = {
-            .coordinate = facebook::react::RNMapsMarkerEventEmitter::OnSetCoordinateCoordinate{
-                .latitude = cManagedPointer.geometry.coordinates.latitude,
-                .longitude = cManagedPointer.geometry.coordinates.longitude,
-            }
-        };
-        auto eventEmitter = std::static_pointer_cast<RNMapsMarkerEventEmitter const>(_eventEmitter);
-        eventEmitter->onSetCoordinate(data);
-    }
+    // Intentionally no-op: the legacy marker view already emits drag events.
 }
 
 @end

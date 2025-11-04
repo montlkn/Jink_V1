@@ -31,6 +31,8 @@ export type PassportUiData = {
   stamps: PassportUiStamp[];
   achievements: PassportUiAchievement[];
   lists: PassportUiList[];
+  dailyStreak: number;
+  streakMultiplier: number;
 };
 
 type BuildPassportParams = {
@@ -43,6 +45,9 @@ export function toPassportUi({ user, snapshot }: BuildPassportParams): PassportU
   const issueDateLabel = formatIssueDate(user.created_at);
   const xpForNextLevel = getXpForNextLevel(snapshot.level);
   const xpProgress = clampProgress(xpForNextLevel > 0 ? snapshot.xpTotal / xpForNextLevel : 0);
+
+  const dailyStreak = snapshot.dailyStreak ?? 0;
+  const streakMultiplier = getStreakMultiplierLocal(dailyStreak);
 
   return {
     passportNumber,
@@ -60,7 +65,16 @@ export function toPassportUi({ user, snapshot }: BuildPassportParams): PassportU
       name,
     })),
     lists: snapshot.lists,
+    dailyStreak,
+    streakMultiplier,
   };
+}
+
+function getStreakMultiplierLocal(streakCount: number): number {
+  if (streakCount >= 30) return 3.0;
+  if (streakCount >= 7) return 2.0;
+  if (streakCount >= 3) return 1.5;
+  return 1.0;
 }
 
 function formatPassportNumber(userId: string): string {

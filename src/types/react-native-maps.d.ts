@@ -51,4 +51,24 @@ declare module "react-native-maps" {
   }
 
   export class Polygon extends React.Component<PolygonProps> {}
+
+  export interface PolylineProps {
+    coordinates: LatLng[];
+    strokeColor?: string;
+    strokeWidth?: number;
+    lineCap?: "round" | "butt" | "square";
+    lineJoin?: "round" | "miter" | "bevel";
+  }
+
+  export class Polyline extends React.Component<PolylineProps> {}
+
+  export interface CircleProps {
+    center: LatLng;
+    radius: number;
+    fillColor?: string;
+    strokeColor?: string;
+    strokeWidth?: number;
+  }
+
+  export class Circle extends React.Component<CircleProps> {}
 }

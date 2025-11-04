@@ -13,17 +13,11 @@ XP is the single connective currency. It measures exploration, powers unlocks fo
 - **Dérive / Walk complete**: 10 XP per stop + 5 XP per minute walking + 10 XP for completion of walk (proportional to stops/length). If walk garners achievement, visa, or specific stamps upon completion of walk those XP's are added on top of the base XP formula plus an additonal 10 XP is given for a multi-award walk.
 - **Daily quest**: 250 XP (+50 early-bird).
 - **Weekly quest**: 1000 XP (+200 perfect week).
-- **Streaks**: daily streak bonus for scans or derives:
+- **Streaks**: daily streak multipliers for consistent engagement. See [streaks.md](./streaks.md) for full mechanics.
   - 3-day streak → 1.5x XP multiplier
   - 7-day streak → 2x XP multiplier
   - 30-day streak → 3x XP multiplier + "Dedicated Explorer" achievement
 - **Social / contribution**: referral or verified contribution bonuses.
-
-## Daily-streak mechanics (your edit)
-- A **daily streak** counts one qualifying action per UTC day. Qualifying actions: scan or derive (configurable).
-- Streak persists across sessions and survives short offline windows if reconciled within 48 hours.
-- Streak multiplier applies to XP awarded for qualifying actions that day.
-- Missing a day resets the streak unless within grace window (configurable 24–48h).
 
 ## Free vs Pro (summary)
 - **Free**: XP gates feature depth and access to richer writeups. Free users can spend XP to unlock individual writeups or temporary features; spending below a level threshold removes those level gates (feature decay). Daily streaks are key progression for Free users.

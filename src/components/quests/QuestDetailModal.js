@@ -172,7 +172,7 @@ const QuestDetailModal = ({
                     • Unlock detailed building histories (Free tier){'\n'}
                     • Access expert architectural analysis{'\n'}
                     • Earn bonus stamps and achievements{'\n'}
-                    • Pro users: Boost your leaderboard ranking
+                    • Level up to unlock exclusive passport perks
                   </Text>
                 </View>
               </View>

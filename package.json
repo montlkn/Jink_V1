@@ -11,7 +11,7 @@
     "lint": "eslint src --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "verify": "npm run lint && npm run typecheck",
-    "prepare": "husky install",
+    "prepare": "husky",
     "postinstall": "node ./scripts/apply-patches.js"
   },
   "dependencies": {
@@ -31,7 +31,7 @@
     "expo-asset": "~11.0.5",
     "expo-blur": "~14.0.3",
     "expo-camera": "~16.0.18",
-    "expo-constants": "~17.0.8",
+    "expo-constants": "^17.0.8",
     "expo-dev-client": "~5.0.20",
     "expo-file-system": "~18.0.12",
     "expo-gl": "~15.0.5",
@@ -47,6 +47,7 @@
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
     "react-native-dotenv": "^3.4.11",
+    "react-native-draggable-flatlist": "^4.0.3",
     "react-native-gesture-handler": "~2.20.2",
     "react-native-maps": "^1.26.18",
     "react-native-reanimated": "~3.16.1",
@@ -61,11 +62,13 @@
     "zustand": "^5.0.6"
   },
   "overrides": {
-    "three": "0.180.0"
+    "three": "0.180.0",
+    "core-js": "^3.38.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo/config-plugins": "~9.0.0",
+    "@react-native-community/hooks": "^100.1.0",
     "@types/react": "~18.3.12",
     "@types/three": "^0.180.0",
     "eslint": "^8.57.0",
