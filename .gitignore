@@ -65,4 +65,7 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Testing
+coverage/
+
 # @end expo-cli
