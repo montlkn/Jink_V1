@@ -236,21 +236,21 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
 
   const projected = useMemo(() => extractProjectedPolygons(combinedFeatures), [combinedFeatures]);
 
-  const preparedPolygons = useMemo(
-    () =>
-      projected
-        .map((poly) => {
-          const outer = toClosedRing(poly.rings[0]);
-          if (!outer) return null;
-          const holes = poly.rings
-            .slice(1)
-            .map((ring) => toClosedRing(ring))
-            .filter((ring): ring is Position[] => Boolean(ring));
-          return { id: poly.id, walkId: poly.walkId, outer, holes };
-        })
-        .filter((poly): poly is PreparedPolygon => Boolean(poly)),
-    [projected]
-  );
+  const preparedPolygons = useMemo(() => {
+    const results: PreparedPolygon[] = [];
+    projected.forEach((poly) => {
+      const outer = toClosedRing(poly.rings[0]);
+      if (!outer) {
+        return;
+      }
+      const holes = poly.rings
+        .slice(1)
+        .map((ring) => toClosedRing(ring))
+        .filter((ring): ring is Position[] => Boolean(ring));
+      results.push({ id: poly.id, walkId: poly.walkId, outer, holes });
+    });
+    return results;
+  }, [projected]);
 
   const activePath = useMemo(() => {
     if (isMasterView) return [];

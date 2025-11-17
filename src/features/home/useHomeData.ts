@@ -395,7 +395,7 @@ export function useHomeData(): HomeDataState {
   ]);
 }
 
-function firstNonEmptyText(candidates: Array<string | null | undefined>): string | null {
+function firstNonEmptyText(candidates: (string | null | undefined)[]): string | null {
   for (const candidate of candidates) {
     if (typeof candidate === "string") {
       const trimmed = candidate.trim();

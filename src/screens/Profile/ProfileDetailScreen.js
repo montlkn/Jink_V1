@@ -213,7 +213,7 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [highlightedArchetype, setHighlightedArchetype] = useState(null);
+  const [highlightedArchetype] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedArchetype, setSelectedArchetype] = useState(null);
   const [segmentModalVisible, setSegmentModalVisible] = useState(false);
@@ -450,12 +450,6 @@ const ProfileDetailScreen = ({ navigation }) => {
       setRefreshing(false);
     }
   };
-  const handleSegmentPress = (segment) => {
-    setSelectedSegment(segment);
-    setSegmentModalVisible(true);
-    setHighlightedArchetype(segment.archetype);
-  };
-
   const handleMoreInfoFromSegment = (segmentData) => {
     // Close segment modal first
     setSegmentModalVisible(false);

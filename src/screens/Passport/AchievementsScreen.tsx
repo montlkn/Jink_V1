@@ -13,9 +13,11 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { achievementLedger, type AchievementDefinition } from "@/constants/passportContent";
 import { screens, type RootParams } from "@/navigation/routes";
-import PassportBackdrop from "@/components/passport/PassportBackdrop";
-import PassportInfoButton from "@/components/passport/PassportInfoButton";
-import AchievementDetailModal from "@/components/modals/AchievementDetailModal";
+import {
+  AchievementDetailModal,
+  PassportBackdrop,
+  PassportInfoButton,
+} from "@/features/passport/components";
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportAchievements>;
 

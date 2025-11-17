@@ -1,9 +1,9 @@
+import { useHomeOrbTransition } from "@/features/home/orbTransitionFacade";
 import {
   DEFAULT_TASTE_ACTION,
   type TasteAction,
 } from "@/features/home/tasteActions";
 import { screens, type RootParams } from "@/navigation/routes";
-import { useOrbTransition } from "@/state/orbTransitionContext";
 import type { NavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -32,7 +32,7 @@ const buildFallbackHeadline = (action: TasteAction | null | undefined): string =
 
 export default function HomeTasteLine({ action }: Props): JSX.Element {
   const navigation = useNavigation<NavigationProp<RootParams>>();
-  const { startHomeToJinkTransition, pinToJink } = useOrbTransition();
+  const { startHomeToJinkTransition, pinToJink } = useHomeOrbTransition();
   const resolved =
     action && typeof action.headline === "string" && action.headline.trim().length
       ? action

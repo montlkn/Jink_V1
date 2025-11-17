@@ -8,10 +8,10 @@ Stamps are durable, collectible tokens that record discovery and craft identity.
   - Awarded on first-time building scan. Cosmetic. Tied to base XP for scan.
 - **Quest Stamps (Rare)**  
   - Awarded for completing quests. Gold-bordered. Show issuance rank and date. Missable.
-- **Achievement Stamps (Epic)**  
-  - Issued when an achievement fires. Signal milestone.
+- **Temporal Quest Stamps (Epic)**  
+  - Issued when an temporal/rare quest is completed. Signal milestone.
 - **Legendary Stamps (Legendary)**  
-  - Tied to leaderboards or curated team prizes. Very rare.
+  - Tied to leaderboards. Very rare.
 
 ## Data model
 - `stamps_def`: `id, slug, title, rarity, artwork, series, is_quest_variant, metadata`

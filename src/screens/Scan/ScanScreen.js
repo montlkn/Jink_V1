@@ -1,6 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { Accelerometer, Magnetometer } from 'expo-sensors';
+import * as ImageManipulator from 'expo-image-manipulator';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
@@ -211,12 +212,21 @@ export default function ScanScreen({ navigation }) {
         quality: 0.8,
       });
 
+      // Compress image client-side before upload (max 1024px, quality 0.85)
+      log.info('[scan] Compressing image before upload...');
+      const compressedPhoto = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ resize: { width: 1024 } }], // Resize to max 1024px width, maintaining aspect ratio
+        { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      log.info('[scan] Image compressed:', compressedPhoto.uri);
+
       // Create FormData for multipart/form-data upload
       const formData = new FormData();
 
-      // Add photo as a file
+      // Add compressed photo as a file
       formData.append('photo', {
-        uri: photo.uri,
+        uri: compressedPhoto.uri,
         type: 'image/jpeg',
         name: 'scan.jpg',
       });
@@ -255,12 +265,37 @@ export default function ScanScreen({ navigation }) {
       const data = await response.json();
 
       // Navigate based on result
-      if (data.building && data.building.name) {
+      if (data.matches && data.matches.length > 0 && !data.error) {
         // Award XP for successful scan (50 XP base)
         await questsActions.awardXp({ amount: 50, source: 'building_scan' });
 
+        // Get top match from the API response
+        const topMatch = data.matches[0];
+
+        // Transform Modal API response to BuildingInfo format
+        const buildingData = {
+          bin: topMatch.bin,
+          bbl: topMatch.bbl,
+          address: topMatch.address,
+          confidence: topMatch.confidence,
+          scan_id: data.scan_id,
+          show_picker: data.show_picker,
+          all_matches: data.matches,
+          processing_time_ms: data.processing_time_ms,
+        };
+
         // Successfully identified building
-        navigation.navigate(screens.BuildingInfo, { buildingData: data.building });
+        navigation.navigate(screens.BuildingInfo, { buildingData });
+      } else if (data.error === 'no_candidates') {
+        // No buildings found in view
+        navigation.navigate(screens.NotFound, {
+          message: data.message || 'No buildings found in your view. Try getting closer or adjusting your angle.'
+        });
+      } else if (data.error === 'no_reference_images') {
+        // Buildings found but no reference images
+        navigation.navigate(screens.NotFound, {
+          message: data.message || 'No reference images available for these buildings. Our database is still growing!'
+        });
       } else {
         // Could not identify building
         navigation.navigate(screens.NotFound, {

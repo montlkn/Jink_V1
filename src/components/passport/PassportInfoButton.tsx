@@ -16,7 +16,7 @@ export function PassportInfoButton({ onPress, style, accessibilityLabel }: Passp
     try {
       const resolved = Image.resolveAssetSource(require("../../../assets/icons/More_Info_Button2.svg"));
       return resolved?.uri ?? null;
-    } catch (error) {
+    } catch {
       return null;
     }
   }, []);

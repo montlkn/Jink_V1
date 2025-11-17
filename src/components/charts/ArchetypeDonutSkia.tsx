@@ -200,10 +200,6 @@ const ArchetypeDonutSkia: React.FC<Props> = ({
     Canvas && Path && Skia?.Path?.Make && typeof Skia.Path.Make === "function"
   );
 
-  if (!hasSkiaSupport) {
-    return <View style={{ width: size, height: size }} />;
-  }
-
   const labelFontSize = Math.max(10, size * LABEL_FONT_RATIO);
   const percentFontSize = Math.max(10, size * PERCENT_FONT_RATIO);
   const labelFont = useFont(LABEL_FONT_PATH, labelFontSize);
@@ -213,6 +209,10 @@ const ArchetypeDonutSkia: React.FC<Props> = ({
     () => buildSlices(data, highlightCount),
     [data, highlightCount]
   );
+
+  if (!hasSkiaSupport) {
+    return <View style={{ width: size, height: size }} />;
+  }
 
   const outerRadius = size / 2;
   const fillOuterRadius = outerRadius * (1 - OUTER_TO_FILL_OFFSET_RATIO);
