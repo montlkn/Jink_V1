@@ -6,8 +6,8 @@
 
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
 // MUST be before importing expo-three
-import "expo-three";
 import "@/lib/log";
+import "expo-three";
 import React, { useEffect } from "react";
 import RootNavigator from "@/navigation/RootNavigator";
 import { Asset } from "expo-asset";
@@ -158,7 +158,7 @@ const ORB_ASSETS = [
 ];
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     ArchetypeLabel: require("./assets/fonts/Jacquard12-Regular.ttf"),
   });
 
@@ -168,8 +168,12 @@ export default function App() {
     });
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
+  }
+
+  if (fontError) {
+    console.warn("[App] Font loading failed, continuing without custom font:", fontError);
   }
 
   return <RootNavigator />;

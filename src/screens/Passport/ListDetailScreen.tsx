@@ -8,8 +8,7 @@ import DraggableFlatList, { type RenderItemParams } from "react-native-draggable
 import * as Haptics from "expo-haptics";
 import { passportLists, type BuildingDetail } from "@/constants/passportContent";
 import { screens, type RootParams } from "@/navigation/routes";
-import PassportBackdrop from "@/components/passport/PassportBackdrop";
-import PassportInfoButton from "@/components/passport/PassportInfoButton";
+import { PassportBackdrop, PassportInfoButton } from "@/features/passport";
 
 type Route = RouteProp<RootParams, typeof screens.PassportListDetail>;
 

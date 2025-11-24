@@ -13,8 +13,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import { passportLists, type PassportListDefinition } from "@/constants/passportContent";
 import { screens, type RootParams } from "@/navigation/routes";
-import PassportBackdrop from "@/components/passport/PassportBackdrop";
-import PassportInfoButton from "@/components/passport/PassportInfoButton";
+import { PassportBackdrop, PassportInfoButton } from "@/features/passport";
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportLists>;
 

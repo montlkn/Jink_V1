@@ -237,9 +237,9 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
   const projected = useMemo(() => extractProjectedPolygons(combinedFeatures), [combinedFeatures]);
 
   const preparedPolygons = useMemo(
-    () =>
+    (): PreparedPolygon[] =>
       projected
-        .map((poly) => {
+        .map((poly): PreparedPolygon | null => {
           const outer = toClosedRing(poly.rings[0]);
           if (!outer) return null;
           const holes = poly.rings
@@ -248,7 +248,7 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
             .filter((ring): ring is Position[] => Boolean(ring));
           return { id: poly.id, walkId: poly.walkId, outer, holes };
         })
-        .filter((poly): poly is PreparedPolygon => Boolean(poly)),
+        .filter((poly): poly is PreparedPolygon => poly !== null),
     [projected]
   );
 

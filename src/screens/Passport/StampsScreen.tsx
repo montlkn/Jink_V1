@@ -12,12 +12,9 @@ import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useNavigation } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
-import PassportStamp from "@/components/passport/PassportStamp";
 import { stampCollection, type StampDefinition } from "@/constants/passportContent";
 import { screens, type RootParams } from "@/navigation/routes";
-import PassportBackdrop from "@/components/passport/PassportBackdrop";
-import PassportInfoButton from "@/components/passport/PassportInfoButton";
-import StampDetailModal from "@/components/modals/StampDetailModal";
+import { PassportStamp, PassportBackdrop, PassportInfoButton, StampDetailModal } from "@/features/passport";
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportStamps>;
 

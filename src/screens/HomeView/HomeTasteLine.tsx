@@ -3,7 +3,7 @@ import {
   type TasteAction,
 } from "@/features/home/tasteActions";
 import { screens, type RootParams } from "@/navigation/routes";
-import { useOrbTransition } from "@/state/orbTransitionContext";
+import { useOrbTransition } from "@/features/home";
 import type { NavigationProp } from "@react-navigation/native";
 import { useNavigation } from "@react-navigation/native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
