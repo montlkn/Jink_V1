@@ -2,7 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { log } from "@/lib/log";
 import type { ArchetypeDatum } from "./archetypeHelpers";
 
-const CACHE_KEY_PREFIX = "@taste_summary_cache_";
+const CACHE_VERSION = "v4"; // Increment this to invalidate all caches
+const CACHE_KEY_PREFIX = `@taste_summary_cache_${CACHE_VERSION}_`;
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type CachedTasteSummary = {

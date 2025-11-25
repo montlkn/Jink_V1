@@ -63,10 +63,10 @@ export function fillTemplateData(template: TasteTemplate, data: TemplateData): s
   let text = template.template;
 
   // Replace placeholders
-  text = text.replace(/{archetype}/g, data.archetype.toLowerCase());
-  text = text.replace(/{descriptor}/g, data.descriptor);
-  text = text.replace(/{theme}/g, data.theme);
-  text = text.replace(/{style}/g, data.style.toLowerCase());
+  text = text.replace(/{archetype}/g, data.archetype); // Keep original capitalization
+  text = text.replace(/{descriptor}/g, data.descriptor.toLowerCase());
+  text = text.replace(/{theme}/g, data.theme.toLowerCase());
+  text = text.replace(/{style}/g, data.style); // Keep original capitalization
 
   if (data.location) {
     text = text.replace(/{location}/g, data.location);

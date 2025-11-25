@@ -15,7 +15,7 @@ export const screens = {
   PassportVisas: "PassportVisas",
   PassportLists: "PassportLists",
   PassportListDetail: "PassportListDetail",
-  Search: "Search",
+  // Search: "Search", // ARCHIVED for v2 - Search removed for v1 beta
   Scan: "ScanScreen",
   ScanCamera: "ScanCamera",
   ScanContribution: "ContributionScreen",
@@ -71,7 +71,7 @@ export type RootParams = {
   PassportVisas: undefined;
   PassportLists: undefined;
   PassportListDetail: { listId?: string } | undefined;
-  Search: undefined;
+  // Search: undefined; // ARCHIVED for v2 - Search removed for v1 beta
   ScanScreen: undefined;
   ScanCamera: undefined;
   ContributionScreen: undefined;

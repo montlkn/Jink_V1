@@ -30,7 +30,7 @@ export const linking: LinkingOptions<RootParams> = {
       [screens.PassportVisas]: "passport/visas",
       [screens.PassportLists]: "passport/lists",
       [screens.PassportListDetail]: "passport/list/:listId?",
-      [screens.Search]: "search",
+      // [screens.Search]: "search", // ARCHIVED for v2 - Search removed for v1 beta
       [screens.Scan]: "scan",
       [screens.ScanCamera]: "scan/camera",
       [screens.ScanContribution]: "scan/contribute",

@@ -8,31 +8,31 @@ export type TasteTemplate = {
 export const TASTE_TEMPLATES: TasteTemplate[] = [
   // Discovery templates (5)
   {
-    template: "You're developing an eye for {descriptor} {archetype} details",
+    template: "You're drawn to {descriptor} {archetype} architecture",
     category: "discovery",
     requiredData: ["descriptor", "archetype"],
     weight: 3,
   },
   {
-    template: "Your {location} explorations reveal a taste for {theme}",
+    template: "Your {location} walks show a preference for {archetype} buildings",
     category: "discovery",
     requiredData: ["location", "archetype"],
     weight: 4,
   },
   {
-    template: "After {scanCount} scans, {descriptor} facades are calling to you",
+    template: "{scanCount} scans in, you're noticing {descriptor} facades",
     category: "discovery",
     requiredData: ["scanCount", "descriptor"],
     weight: 5,
   },
   {
-    template: "You're drawn to something {descriptor} in {location}",
+    template: "Something {descriptor} keeps catching your eye in {location}",
     category: "discovery",
     requiredData: ["descriptor", "location"],
     weight: 4,
   },
   {
-    template: "Your eye keeps finding {descriptor} {theme}",
+    template: "You're consistently finding {descriptor} {archetype} details",
     category: "discovery",
     requiredData: ["descriptor", "archetype"],
     weight: 3,
@@ -40,31 +40,31 @@ export const TASTE_TEMPLATES: TasteTemplate[] = [
 
   // Pattern templates (5)
   {
-    template: "Your walks keep returning to {descriptor} buildings",
+    template: "A pattern: you're gravitating toward {descriptor} buildings",
     category: "pattern",
     requiredData: ["descriptor"],
     weight: 3,
   },
   {
-    template: "{location} streets show your preference for {archetype} style",
+    template: "Your {location} walks reveal a {archetype} sensibility",
     category: "pattern",
     requiredData: ["location", "archetype"],
     weight: 4,
   },
   {
-    template: "There's a {theme} thread in your recent {scanCount} scans",
+    template: "Your last {scanCount} scans lean {archetype}",
     category: "pattern",
     requiredData: ["archetype", "scanCount"],
     weight: 5,
   },
   {
-    template: "Your recent walks hint at {archetype} sensibilities",
+    template: "You're developing {archetype} instincts",
     category: "pattern",
     requiredData: ["archetype"],
     weight: 3,
   },
   {
-    template: "You keep discovering {descriptor} moments in {location}",
+    template: "{location} keeps showing you {descriptor} architecture",
     category: "pattern",
     requiredData: ["descriptor", "location"],
     weight: 4,
@@ -72,31 +72,31 @@ export const TASTE_TEMPLATES: TasteTemplate[] = [
 
   // Evolution templates (5)
   {
-    template: "Something's shifting—more {descriptor} {style} lately",
+    template: "Your taste is shifting toward {descriptor} {style}",
     category: "evolution",
     requiredData: ["descriptor", "archetype"],
     weight: 4,
   },
   {
-    template: "Your taste is moving toward {archetype} {theme}",
+    template: "Lately, more {archetype} architecture",
     category: "evolution",
     requiredData: ["archetype"],
     weight: 3,
   },
   {
-    template: "This week: {scanCount} buildings with {descriptor} character",
+    template: "This week: {scanCount} {descriptor} buildings scanned",
     category: "evolution",
     requiredData: ["scanCount", "descriptor"],
     weight: 5,
   },
   {
-    template: "Lately you're finding {descriptor} details everywhere",
+    template: "You're noticing {descriptor} details more often",
     category: "evolution",
     requiredData: ["descriptor"],
     weight: 3,
   },
   {
-    template: "Your {location} walks are revealing {archetype} patterns",
+    template: "Your {location} explorations lean {archetype}",
     category: "evolution",
     requiredData: ["location", "archetype"],
     weight: 4,
@@ -104,31 +104,31 @@ export const TASTE_TEMPLATES: TasteTemplate[] = [
 
   // Streak/Engagement templates (5)
   {
-    template: "Your {streak}-day streak reveals a weakness for {descriptor} details",
+    template: "{streak} days of exploring {descriptor} architecture",
     category: "streak",
     requiredData: ["streak", "descriptor"],
     weight: 6,
   },
   {
-    template: "{streak} days of {archetype} discoveries across {location}",
+    template: "{streak}-day streak across {location}, finding {archetype} gems",
     category: "streak",
     requiredData: ["streak", "archetype", "location"],
     weight: 7,
   },
   {
-    template: "After {scanCount} scans, your {archetype} instincts are sharpening",
+    template: "{scanCount} scans deep, your {archetype} eye is developing",
     category: "streak",
     requiredData: ["scanCount", "archetype"],
     weight: 5,
   },
   {
-    template: "{streak} days in, you're drawn to {descriptor} {theme}",
+    template: "Day {streak}: drawn to {descriptor} {archetype} buildings",
     category: "streak",
     requiredData: ["streak", "descriptor", "archetype"],
     weight: 6,
   },
   {
-    template: "Day {streak}: still finding new {descriptor} facades",
+    template: "{streak} days in, still discovering {descriptor} facades",
     category: "streak",
     requiredData: ["streak", "descriptor"],
     weight: 5,
@@ -136,33 +136,33 @@ export const TASTE_TEMPLATES: TasteTemplate[] = [
 
   // Mystery/Intrigue templates (5)
   {
-    template: "There's a {theme} quality to your {scanCount} recent scans",
+    template: "Your last {scanCount} scans show {archetype} leanings",
     category: "mystery",
     requiredData: ["archetype", "scanCount"],
     weight: 4,
   },
   {
-    template: "Something {descriptor} is catching your attention",
+    template: "{descriptor} buildings keep catching your eye",
     category: "mystery",
     requiredData: ["descriptor"],
     weight: 3,
   },
   {
-    template: "Your {location} walks whisper {archetype} preferences",
+    template: "Your {location} walks hint at {archetype} taste",
     category: "mystery",
     requiredData: ["location", "archetype"],
     weight: 4,
   },
   {
-    template: "You're collecting {descriptor} moments without realizing it",
+    template: "You're drawn to {descriptor} architecture more than you realize",
     category: "mystery",
     requiredData: ["descriptor"],
     weight: 3,
   },
   {
-    template: "A pattern emerges: {descriptor} {theme} in {location}",
+    template: "{location}: a taste for {archetype} architecture",
     category: "mystery",
-    requiredData: ["descriptor", "archetype", "location"],
+    requiredData: ["archetype", "location"],
     weight: 5,
   },
 ];

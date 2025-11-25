@@ -2,16 +2,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react"; // useState archived for v2 - was used for search
 import {
   Animated,
   Dimensions,
   Easing,
-  Keyboard,
+  // Keyboard, // ARCHIVED for v2 - was used for search
   Platform,
   StyleSheet,
   Text,
-  TextInput,
+  // TextInput, // ARCHIVED for v2 - was used for search
   TouchableOpacity,
   View,
 } from "react-native";
@@ -22,21 +22,23 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const EDGE = 16;
 const PILL_HEIGHT = 62;
-const SEARCH_SIZE = 58;
+// ARCHIVED for v2 - Search functionality removed for v1 beta
+// const SEARCH_SIZE = 58;
 const TAB_COUNT = 4;
 const BUBBLE_SIZE = 66;
 const BUBBLE_MOVE_SPRING = { speed: 50, bounciness: 7 };
 const BUBBLE_SCALE_UP_TIMING = { duration: 55, easing: Easing.out(Easing.cubic) };
 const BUBBLE_SCALE_REBOUND = { speed: 26, bounciness: 9 };
-const SEARCH_OPEN_SPRING = { speed: 32, bounciness: 9 };
-const SEARCH_CLOSE_SPRING = { speed: 24, bounciness: 10 };
-const SEARCH_FOCUS_DELAY = 16;
-const SEARCH_PULSE_UP_TIMING = { duration: 100, easing: Easing.out(Easing.cubic) };
-const SEARCH_PULSE_REBOUND = { speed: 20, bounciness: 11 };
-const SEARCH_SYNC_DELAY = 0;
-const KEYBOARD_MIN_PREDICT_DURATION = 80;
-const KEYBOARD_PREDICT_OFFSET = 20;
-const KEYBOARD_HIDE_DURATION = 110;
+// ARCHIVED for v2 - Search animation constants
+// const SEARCH_OPEN_SPRING = { speed: 32, bounciness: 9 };
+// const SEARCH_CLOSE_SPRING = { speed: 24, bounciness: 10 };
+// const SEARCH_FOCUS_DELAY = 16;
+// const SEARCH_PULSE_UP_TIMING = { duration: 100, easing: Easing.out(Easing.cubic) };
+// const SEARCH_PULSE_REBOUND = { speed: 20, bounciness: 11 };
+// const SEARCH_SYNC_DELAY = 0;
+// const KEYBOARD_MIN_PREDICT_DURATION = 80;
+// const KEYBOARD_PREDICT_OFFSET = 20;
+// const KEYBOARD_HIDE_DURATION = 110;
 
 export default function LiquidGlassBottomTab({ state, descriptors, navigation }) {
   const routes = state.routes.slice(0, TAB_COUNT);
@@ -52,24 +54,24 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
     screens.WalkStart;
   const hideForWalkNav = isJinkFocused && jinkStackScreen === screens.WalkNav;
 
-  const pillWidth = Math.min(SCREEN_WIDTH * 0.8, SCREEN_WIDTH - 120);
-  const pillLeft = EDGE;
+  const pillWidth = Math.min(SCREEN_WIDTH * 0.8, SCREEN_WIDTH - (EDGE * 2));
+  const pillLeft = (SCREEN_WIDTH - pillWidth) / 2; // Center the tab bar
 
-  const [isSearching, setIsSearching] = useState(false);
-
-  const searchAnim = useRef(new Animated.Value(0)).current;
-  const searchScale = useRef(new Animated.Value(1)).current;
+  // ARCHIVED for v2 - Search state and animations
+  // const [isSearching, setIsSearching] = useState(false);
+  // const searchAnim = useRef(new Animated.Value(0)).current;
+  // const searchScale = useRef(new Animated.Value(1)).current;
   const bubbleX = useRef(new Animated.Value(0)).current;
   const bubbleScale = useRef(new Animated.Value(1)).current;
-  const searchInputRef = useRef(null);
-  const focusTimeoutRef = useRef(null);
-  const searchStartTimeoutRef = useRef(null);
-  const searchPulseTimeoutRef = useRef(null);
-  const keyboardAnimated = useRef(new Animated.Value(0)).current;
-  const bottomBaseValue = useRef(new Animated.Value(20)).current;
-  const bottomShiftValue = useRef(new Animated.Value(-4)).current;
-  const lastKeyboardHeightRef = useRef(320);
-  const lastKeyboardDurationRef = useRef(140);
+  // const searchInputRef = useRef(null);
+  // const focusTimeoutRef = useRef(null);
+  // const searchStartTimeoutRef = useRef(null);
+  // const searchPulseTimeoutRef = useRef(null);
+  // const keyboardAnimated = useRef(new Animated.Value(0)).current;
+  // const bottomBaseValue = useRef(new Animated.Value(20)).current;
+  // const bottomShiftValue = useRef(new Animated.Value(-4)).current;
+  // const lastKeyboardHeightRef = useRef(320);
+  // const lastKeyboardDurationRef = useRef(140);
 
   const itemWidth = pillWidth / TAB_COUNT;
   const bubbleBaseLeft = itemWidth / 2 - BUBBLE_SIZE / 2;
@@ -82,61 +84,62 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
     }
   }, [isJinkFocused, pinToJink]);
 
-  // Keyboard lift listener
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+  // ARCHIVED for v2 - Keyboard lift listener for search
+  // useEffect(() => {
+  //   const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+  //   const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
-    const show = Keyboard.addListener(showEvent, (e) => {
-      const height = e?.endCoordinates?.height ?? lastKeyboardHeightRef.current;
-      lastKeyboardHeightRef.current = height;
-      const duration =
-        Platform.OS === "ios"
-          ? e?.duration ?? lastKeyboardDurationRef.current
-          : Math.max(90, lastKeyboardDurationRef.current);
-      lastKeyboardDurationRef.current = duration;
-      keyboardAnimated.stopAnimation();
-      Animated.timing(keyboardAnimated, {
-        toValue: height,
-        duration,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
-    });
+  //   const show = Keyboard.addListener(showEvent, (e) => {
+  //     const height = e?.endCoordinates?.height ?? lastKeyboardHeightRef.current;
+  //     lastKeyboardHeightRef.current = height;
+  //     const duration =
+  //       Platform.OS === "ios"
+  //         ? e?.duration ?? lastKeyboardDurationRef.current
+  //         : Math.max(90, lastKeyboardDurationRef.current);
+  //     lastKeyboardDurationRef.current = duration;
+  //     keyboardAnimated.stopAnimation();
+  //     Animated.timing(keyboardAnimated, {
+  //       toValue: height,
+  //       duration,
+  //       easing: Easing.out(Easing.ease),
+  //       useNativeDriver: false,
+  //     }).start();
+  //   });
 
-    const hide = Keyboard.addListener(hideEvent, (e) => {
-      const duration = Platform.OS === "ios" ? e?.duration ?? KEYBOARD_HIDE_DURATION : KEYBOARD_HIDE_DURATION;
-      keyboardAnimated.stopAnimation();
-      Animated.timing(keyboardAnimated, {
-        toValue: 0,
-        duration,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
-    });
+  //   const hide = Keyboard.addListener(hideEvent, (e) => {
+  //     const duration = Platform.OS === "ios" ? e?.duration ?? KEYBOARD_HIDE_DURATION : KEYBOARD_HIDE_DURATION;
+  //     keyboardAnimated.stopAnimation();
+  //     Animated.timing(keyboardAnimated, {
+  //       toValue: 0,
+  //       duration,
+  //       easing: Easing.out(Easing.ease),
+  //       useNativeDriver: false,
+  //     }).start();
+  //   });
 
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, [keyboardAnimated]);
+  //   return () => {
+  //     show.remove();
+  //     hide.remove();
+  //   };
+  // }, [keyboardAnimated]);
 
-  useEffect(() => {
-    return () => {
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
-        focusTimeoutRef.current = null;
-      }
-      if (searchStartTimeoutRef.current) {
-        clearTimeout(searchStartTimeoutRef.current);
-        searchStartTimeoutRef.current = null;
-      }
-      if (searchPulseTimeoutRef.current) {
-        clearTimeout(searchPulseTimeoutRef.current);
-        searchPulseTimeoutRef.current = null;
-      }
-    };
-  }, []);
+  // ARCHIVED for v2 - Search timeout cleanup
+  // useEffect(() => {
+  //   return () => {
+  //     if (focusTimeoutRef.current) {
+  //       clearTimeout(focusTimeoutRef.current);
+  //       focusTimeoutRef.current = null;
+  //     }
+  //     if (searchStartTimeoutRef.current) {
+  //       clearTimeout(searchStartTimeoutRef.current);
+  //       searchStartTimeoutRef.current = null;
+  //     }
+  //     if (searchPulseTimeoutRef.current) {
+  //       clearTimeout(searchPulseTimeoutRef.current);
+  //       searchPulseTimeoutRef.current = null;
+  //     }
+  //   };
+  // }, []);
 
   // Focus blob overshoot + settle
   useEffect(() => {
@@ -157,113 +160,114 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
     ]).start();
   }, [focusIndex, targetX, bubbleX, bubbleScale]);
 
-  const startSearch = () => {
-    Haptics.selectionAsync();
-    setIsSearching(true);
-    searchAnim.stopAnimation();
-    if (searchStartTimeoutRef.current) {
-      clearTimeout(searchStartTimeoutRef.current);
-    }
-    searchStartTimeoutRef.current = setTimeout(() => {
-      searchStartTimeoutRef.current = null;
-      Animated.spring(searchAnim, {
-        toValue: 1,
-        ...SEARCH_OPEN_SPRING,
-        useNativeDriver: false,
-      }).start();
-    }, SEARCH_SYNC_DELAY);
-    keyboardAnimated.stopAnimation();
-    Animated.timing(keyboardAnimated, {
-      toValue: lastKeyboardHeightRef.current,
-      duration: Math.max(
-        KEYBOARD_MIN_PREDICT_DURATION,
-        lastKeyboardDurationRef.current - KEYBOARD_PREDICT_OFFSET
-      ),
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-    searchScale.stopAnimation();
-    searchScale.setValue(0.98);
-    if (searchPulseTimeoutRef.current) {
-      clearTimeout(searchPulseTimeoutRef.current);
-    }
-    searchPulseTimeoutRef.current = setTimeout(() => {
-      searchPulseTimeoutRef.current = null;
-      Animated.timing(searchScale, {
-        toValue: 1.05,
-        ...SEARCH_PULSE_UP_TIMING,
-        useNativeDriver: false,
-      }).start(() => {
-        Animated.spring(searchScale, {
-          toValue: 1,
-          ...SEARCH_PULSE_REBOUND,
-          useNativeDriver: false,
-        }).start();
-      });
-    }, SEARCH_SYNC_DELAY);
-    if (focusTimeoutRef.current) {
-      clearTimeout(focusTimeoutRef.current);
-    }
-    focusTimeoutRef.current = setTimeout(() => {
-      focusTimeoutRef.current = null;
-      requestAnimationFrame(() => searchInputRef.current?.focus());
-    }, SEARCH_FOCUS_DELAY);
-  };
+  // ARCHIVED for v2 - Search start/end functions
+  // const startSearch = () => {
+  //   Haptics.selectionAsync();
+  //   setIsSearching(true);
+  //   searchAnim.stopAnimation();
+  //   if (searchStartTimeoutRef.current) {
+  //     clearTimeout(searchStartTimeoutRef.current);
+  //   }
+  //   searchStartTimeoutRef.current = setTimeout(() => {
+  //     searchStartTimeoutRef.current = null;
+  //     Animated.spring(searchAnim, {
+  //       toValue: 1,
+  //       ...SEARCH_OPEN_SPRING,
+  //       useNativeDriver: false,
+  //     }).start();
+  //   }, SEARCH_SYNC_DELAY);
+  //   keyboardAnimated.stopAnimation();
+  //   Animated.timing(keyboardAnimated, {
+  //     toValue: lastKeyboardHeightRef.current,
+  //     duration: Math.max(
+  //       KEYBOARD_MIN_PREDICT_DURATION,
+  //       lastKeyboardDurationRef.current - KEYBOARD_PREDICT_OFFSET
+  //     ),
+  //     easing: Easing.out(Easing.cubic),
+  //     useNativeDriver: false,
+  //   }).start();
+  //   searchScale.stopAnimation();
+  //   searchScale.setValue(0.98);
+  //   if (searchPulseTimeoutRef.current) {
+  //     clearTimeout(searchPulseTimeoutRef.current);
+  //   }
+  //   searchPulseTimeoutRef.current = setTimeout(() => {
+  //     searchPulseTimeoutRef.current = null;
+  //     Animated.timing(searchScale, {
+  //       toValue: 1.05,
+  //       ...SEARCH_PULSE_UP_TIMING,
+  //       useNativeDriver: false,
+  //     }).start(() => {
+  //       Animated.spring(searchScale, {
+  //         toValue: 1,
+  //         ...SEARCH_PULSE_REBOUND,
+  //         useNativeDriver: false,
+  //       }).start();
+  //     });
+  //   }, SEARCH_SYNC_DELAY);
+  //   if (focusTimeoutRef.current) {
+  //     clearTimeout(focusTimeoutRef.current);
+  //   }
+  //   focusTimeoutRef.current = setTimeout(() => {
+  //     focusTimeoutRef.current = null;
+  //     requestAnimationFrame(() => searchInputRef.current?.focus());
+  //   }, SEARCH_FOCUS_DELAY);
+  // };
 
-  const endSearch = () => {
-    Keyboard.dismiss();
-    if (focusTimeoutRef.current) {
-      clearTimeout(focusTimeoutRef.current);
-      focusTimeoutRef.current = null;
-    }
-    if (searchStartTimeoutRef.current) {
-      clearTimeout(searchStartTimeoutRef.current);
-      searchStartTimeoutRef.current = null;
-    }
-    if (searchPulseTimeoutRef.current) {
-      clearTimeout(searchPulseTimeoutRef.current);
-      searchPulseTimeoutRef.current = null;
-    }
-    searchAnim.stopAnimation();
-    Animated.spring(searchAnim, {
-      toValue: 0,
-      ...SEARCH_CLOSE_SPRING,
-      useNativeDriver: false,
-    }).start(() => setIsSearching(false));
-    searchScale.stopAnimation();
-    Animated.spring(searchScale, {
-      toValue: 1,
-      ...SEARCH_PULSE_REBOUND,
-      useNativeDriver: false,
-    }).start();
-    keyboardAnimated.stopAnimation();
-    Animated.timing(keyboardAnimated, {
-      toValue: 0,
-      duration: KEYBOARD_HIDE_DURATION,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: false,
-    }).start();
-  };
+  // const endSearch = () => {
+  //   Keyboard.dismiss();
+  //   if (focusTimeoutRef.current) {
+  //     clearTimeout(focusTimeoutRef.current);
+  //     focusTimeoutRef.current = null;
+  //   }
+  //   if (searchStartTimeoutRef.current) {
+  //     clearTimeout(searchStartTimeoutRef.current);
+  //     searchStartTimeoutRef.current = null;
+  //   }
+  //   if (searchPulseTimeoutRef.current) {
+  //     clearTimeout(searchPulseTimeoutRef.current);
+  //     searchPulseTimeoutRef.current = null;
+  //   }
+  //   searchAnim.stopAnimation();
+  //   Animated.spring(searchAnim, {
+  //     toValue: 0,
+  //     ...SEARCH_CLOSE_SPRING,
+  //     useNativeDriver: false,
+  //   }).start(() => setIsSearching(false));
+  //   searchScale.stopAnimation();
+  //   Animated.spring(searchScale, {
+  //     toValue: 1,
+  //     ...SEARCH_PULSE_REBOUND,
+  //     useNativeDriver: false,
+  //   }).start();
+  //   keyboardAnimated.stopAnimation();
+  //   Animated.timing(keyboardAnimated, {
+  //     toValue: 0,
+  //     duration: KEYBOARD_HIDE_DURATION,
+  //     easing: Easing.out(Easing.ease),
+  //     useNativeDriver: false,
+  //   }).start();
+  // };
 
-  // Search expand interpolations
-  const maxExpandedWidth = Math.max(SEARCH_SIZE, SCREEN_WIDTH - EDGE * 2);
+  // ARCHIVED for v2 - Search expand interpolations
+  // const maxExpandedWidth = Math.max(SEARCH_SIZE, SCREEN_WIDTH - EDGE * 2);
 
-  const iWidth = searchAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [SEARCH_SIZE, maxExpandedWidth],
-  });
-  const iRadius = searchAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [SEARCH_SIZE / 2, 20],
-  });
-  const iBottom = Animated.add(
-    bottomBaseValue,
-    Animated.multiply(searchAnim, Animated.add(keyboardAnimated, bottomShiftValue))
-  );
-  const tabOpacity = searchAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0],
-  });
+  // const iWidth = searchAnim.interpolate({
+  //   inputRange: [0, 1],
+  //   outputRange: [SEARCH_SIZE, maxExpandedWidth],
+  // });
+  // const iRadius = searchAnim.interpolate({
+  //   inputRange: [0, 1],
+  //   outputRange: [SEARCH_SIZE / 2, 20],
+  // });
+  // const iBottom = Animated.add(
+  //   bottomBaseValue,
+  //   Animated.multiply(searchAnim, Animated.add(keyboardAnimated, bottomShiftValue))
+  // );
+  // const tabOpacity = searchAnim.interpolate({
+  //   inputRange: [0, 1],
+  //   outputRange: [1, 0],
+  // });
 
   if (hideForWalkNav) {
     return null;
@@ -286,10 +290,7 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
                 },
               ]}
             />
-            <Animated.View
-              style={[styles.tabRow, { opacity: tabOpacity }]}
-              pointerEvents={isSearching ? "none" : "auto"}
-            >
+            <View style={styles.tabRow}>
               {routes.map((route, index) => {
                 const { options } = descriptors[route.key];
                 const label = options.tabBarLabel ?? options.title ?? route.name;
@@ -317,13 +318,13 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
                   />
                 );
               })}
-            </Animated.View>
+            </View>
           </BlurView>
         </View>
       </View>
 
-      {/* FLOATING SEARCH BUTTON / BAR */}
-      <Animated.View
+      {/* ARCHIVED for v2 - FLOATING SEARCH BUTTON / BAR */}
+      {/* <Animated.View
         style={[
           styles.searchContainer,
           {
@@ -366,7 +367,7 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
             </TouchableOpacity>
           )}
         </BlurView>
-      </Animated.View>
+      </Animated.View> */}
     </>
   );
 }
@@ -428,49 +429,49 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // SEARCH FLOAT
-  searchContainer: {
-    position: "absolute",
-    height: SEARCH_SIZE,
-    borderRadius: SEARCH_SIZE / 2,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  searchBlur: {
-    flex: 1,
-    borderRadius: SEARCH_SIZE / 2,
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchIconButton: {
-    width: SEARCH_SIZE,
-    height: SEARCH_SIZE,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchExpandedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    width: "100%",
-    height: "100%",
-  },
-  searchBackButton: {
-    padding: 6,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    marginLeft: 6,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    fontSize: 16,
-    color: "#111",
-    backgroundColor: "transparent",
-  },
-  
+  // ARCHIVED for v2 - SEARCH FLOAT STYLES
+  // searchContainer: {
+  //   position: "absolute",
+  //   height: SEARCH_SIZE,
+  //   borderRadius: SEARCH_SIZE / 2,
+  //   overflow: "hidden",
+  //   shadowColor: "#000",
+  //   shadowOpacity: 0.1,
+  //   shadowRadius: 10,
+  //   shadowOffset: { width: 0, height: 4 },
+  // },
+  // searchBlur: {
+  //   flex: 1,
+  //   borderRadius: SEARCH_SIZE / 2,
+  //   overflow: "hidden",
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  // },
+  // searchIconButton: {
+  //   width: SEARCH_SIZE,
+  //   height: SEARCH_SIZE,
+  //   alignItems: "center",
+  //   justifyContent: "center",
+  // },
+  // searchExpandedRow: {
+  //   flexDirection: "row",
+  //   alignItems: "center",
+  //   paddingHorizontal: 12,
+  //   width: "100%",
+  //   height: "100%",
+  // },
+  // searchBackButton: {
+  //   padding: 6,
+  // },
+  // searchInput: {
+  //   flex: 1,
+  //   height: 40,
+  //   marginLeft: 6,
+  //   borderRadius: 12,
+  //   paddingHorizontal: 10,
+  //   fontSize: 16,
+  //   color: "#111",
+  //   backgroundColor: "transparent",
+  // },
+
 });

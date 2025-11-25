@@ -25,19 +25,19 @@ const complete = async (params: CompleteWalkParams) => {
     log.warn("[walks] Failed to update daily streak", error);
   }
 
-  // Clear taste summary cache every 10 walks
+  // Clear taste summary cache every 5 walks to keep taste fresh
   try {
     const countStr = await AsyncStorage.getItem(WALK_COUNT_KEY);
     const currentCount = countStr ? parseInt(countStr, 10) : 0;
     const newCount = currentCount + 1;
 
-    if (newCount >= 10) {
+    if (newCount >= 5) {
       await clearTasteSummaryCache();
       await AsyncStorage.setItem(WALK_COUNT_KEY, "0");
-      log.debug("[walks] Cleared taste summary cache after 10 walks");
+      log.debug("[walks] Cleared taste summary cache after 5 walks");
     } else {
       await AsyncStorage.setItem(WALK_COUNT_KEY, String(newCount));
-      log.debug(`[walks] Walk count: ${newCount}/10 until cache refresh`);
+      log.debug(`[walks] Walk count: ${newCount}/5 until cache refresh`);
     }
   } catch (error) {
     log.warn("[walks] Failed to update taste cache walk counter", error);

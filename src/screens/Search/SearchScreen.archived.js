@@ -1,3 +1,8 @@
+// ARCHIVED for v2 - Search functionality removed for v1 beta
+// This file was archived on 2025-11-25
+// Original functionality: Placeholder search screen (not fully implemented)
+// Will be implemented in v2 with full search capabilities
+
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 

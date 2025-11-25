@@ -64,7 +64,8 @@ export function AppStack() {
               name={screens.PassportListDetail}
               getComponent={ScreenLoaders.PassportListDetail}
             />
-            <Stack.Screen name={screens.Search} getComponent={ScreenLoaders.Search} />
+            {/* ARCHIVED for v2 - Search screen removed for v1 beta */}
+            {/* <Stack.Screen name={screens.Search} getComponent={ScreenLoaders.Search} /> */}
             <Stack.Screen name={screens.Scan} getComponent={ScreenLoaders.Scan} />
             <Stack.Screen
               name={screens.ScanCamera}
