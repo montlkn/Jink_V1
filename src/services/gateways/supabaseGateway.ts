@@ -997,18 +997,30 @@ export async function fetchRecentScanCount(userId: string, days = 7): Promise<nu
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
+  // First fetch the walk IDs
+  const { data: walkData, error: walkError } = await supabase
+    .from("walk_summaries")
+    .select("id")
+    .eq("user_id", userId)
+    .gte("started_at", cutoffDate.toISOString());
+
+  if (walkError) {
+    log.warn("[supabaseGateway] Failed to fetch recent walks", walkError);
+    return 0;
+  }
+
+  if (!walkData || walkData.length === 0) {
+    return 0; // No walks in the time period
+  }
+
+  const walkIds = walkData.map((walk) => walk.id);
+
+  // Then count scanned points from those walks
   const { count, error } = await supabase
     .from("walk_seen_points")
     .select("*", { count: "exact", head: true })
     .eq("scanned", true)
-    .in(
-      "walk_id",
-      supabase
-        .from("walk_summaries")
-        .select("id")
-        .eq("user_id", userId)
-        .gte("started_at", cutoffDate.toISOString())
-    );
+    .in("walk_id", walkIds);
 
   if (error) {
     log.warn("[supabaseGateway] Failed to fetch recent scan count", error);
