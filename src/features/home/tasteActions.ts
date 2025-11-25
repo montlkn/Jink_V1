@@ -4,4 +4,4 @@ export {
   type RecentScan,
   type RecentWalk,
   type TasteAction,
-} from "@/services/recentTasteSummaryService";
+} from "@/services/recentTasteSummary";

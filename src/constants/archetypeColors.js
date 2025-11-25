@@ -35,11 +35,8 @@ const ID_ALIAS = {
 
 // NEW SAFE VERSION - renamed to bypass Metro cache
 export const getArchetypeColorSafe = (nameOrId) => {
-  log.debug('[getArchetypeColorSafe] Called with:', typeof nameOrId, nameOrId);
-
   // Guard against null, undefined, or non-string values
   if (nameOrId === null || nameOrId === undefined || nameOrId === '') {
-    log.debug('[getArchetypeColorSafe] Null/undefined/empty -> returning white');
     return '#FFFFFF';
   }
 
@@ -57,7 +54,9 @@ export const getArchetypeColorSafe = (nameOrId) => {
       raw = raw.trim();
     }
   } catch (e) {
-    log.error('[getArchetypeColorSafe] ERROR:', e);
+    if (__DEV__) {
+      log.error('[getArchetypeColorSafe] ERROR:', e);
+    }
     return '#FFFFFF';
   }
 
@@ -67,7 +66,6 @@ export const getArchetypeColorSafe = (nameOrId) => {
 
   // Direct match
   if (ARCHETYPE_COLORS[raw]) {
-    log.debug('[getArchetypeColorSafe] Matched:', raw, '->', ARCHETYPE_COLORS[raw]);
     return ARCHETYPE_COLORS[raw];
   }
 
@@ -75,7 +73,6 @@ export const getArchetypeColorSafe = (nameOrId) => {
   const lowered = raw.toLowerCase();
   const display = ID_ALIAS[lowered];
   if (display && ARCHETYPE_COLORS[display]) {
-    log.debug('[getArchetypeColorSafe] Alias matched:', raw, '->', display);
     return ARCHETYPE_COLORS[display];
   }
 
@@ -86,14 +83,14 @@ export const getArchetypeColorSafe = (nameOrId) => {
       .replace(/_/g, ' ')
       .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
     if (ARCHETYPE_COLORS[title]) {
-      log.debug('[getArchetypeColorSafe] Title case matched:', title);
       return ARCHETYPE_COLORS[title];
     }
   } catch (e) {
-    log.error('[getArchetypeColorSafe] Title case error:', e);
+    if (__DEV__) {
+      log.error('[getArchetypeColorSafe] Title case error:', e);
+    }
   }
 
-  log.debug('[getArchetypeColorSafe] No match for:', raw, '-> white');
   return '#FFFFFF';
 };
 

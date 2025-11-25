@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { completeWalk, fetchNearbyBuildings } from "@/services/gateways";
 import { updateDailyStreak } from "@/services/gateways/passportGateway";
-import { clearTasteSummaryCache } from "@/services/recentTasteSummaryService";
+import { clearTasteSummaryCache } from "@/services/recentTasteSummary";
 import { log } from "@/lib/log";
 
 type CompleteWalkParams = {

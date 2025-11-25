@@ -3,16 +3,11 @@ import {
   ReactThreeFiber,
   useFrame,
   useLoader,
-  useThree,
 } from "@react-three/fiber/native";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Color, ShaderMaterial, Texture, TextureLoader, Vector2 } from "three";
 import { log } from "@/lib/log";
-import { loadKtx2TextureFromAsset } from "../../../utils/three/loadKtx2Texture";
-
-const SMOKE_ATLAS_KTX2 = require("../../../../assets/textures/smoke_atlas.ktx2");
-const SMOKE_ATLAS_STARTUP_KTX2 = require("../../../../assets/textures/smoke_atlas_startup.ktx2");
 
 const SMOKE_ATLAS_FALLBACK = require("../../../../assets/textures/smoke_atlas_1080.png");
 const SMOKE_ATLAS_STARTUP_FALLBACK = require("../../../../assets/textures/smoke_atlas_startup_1080.png");
@@ -84,73 +79,11 @@ export function SmokeOrb({
   const startTimeRef = useRef<number | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
 
-  const renderer = useThree((state) => state.gl as THREE.WebGLRenderer);
-  const fallbackLoopTexture = useLoader<Texture>(TextureLoader, SMOKE_ATLAS_FALLBACK);
-  const fallbackStartupTexture = useLoader<Texture>(
+  const loopTexture = useLoader<Texture>(TextureLoader, SMOKE_ATLAS_FALLBACK);
+  const startupTexture = useLoader<Texture>(
     TextureLoader,
     SMOKE_ATLAS_STARTUP_FALLBACK
   );
-
-  const [loopTexture, setLoopTexture] = useState<Texture>(() => fallbackLoopTexture);
-  const [startupTexture, setStartupTexture] = useState<Texture>(() => fallbackStartupTexture);
-
-  useEffect(() => {
-    let isMounted = true;
-    let loadedTexture: Texture | null = null;
-
-    const loadLoop = async () => {
-      const result = await loadKtx2TextureFromAsset(renderer, SMOKE_ATLAS_KTX2);
-      if (!result) {
-        return;
-      }
-
-      if (!isMounted) {
-        result.texture.dispose();
-        return;
-      }
-
-      loadedTexture = result.texture;
-      setLoopTexture(result.texture);
-    };
-
-    loadLoop();
-
-    return () => {
-      isMounted = false;
-      if (loadedTexture) {
-        loadedTexture.dispose();
-      }
-    };
-  }, [renderer]);
-
-  useEffect(() => {
-    let isMounted = true;
-    let loadedTexture: Texture | null = null;
-
-    const loadStartup = async () => {
-      const result = await loadKtx2TextureFromAsset(renderer, SMOKE_ATLAS_STARTUP_KTX2);
-      if (!result) {
-        return;
-      }
-
-      if (!isMounted) {
-        result.texture.dispose();
-        return;
-      }
-
-      loadedTexture = result.texture;
-      setStartupTexture(result.texture);
-    };
-
-    loadStartup();
-
-    return () => {
-      isMounted = false;
-      if (loadedTexture) {
-        loadedTexture.dispose();
-      }
-    };
-  }, [renderer]);
 
   const resolvedColors = useMemo(() => {
     try {
@@ -234,10 +167,6 @@ export function SmokeOrb({
     if (!hasInitializedRef.current) {
       startTimeRef.current = Date.now();
       hasInitializedRef.current = true;
-
-      if (__DEV__) {
-        log.debug("[SmokeOrb] Startup animation initialized");
-      }
     }
 
     if (startTimeRef.current !== null) {
@@ -275,13 +204,6 @@ export function SmokeOrb({
 
   useEffect(() => {
     if (startupTexture) {
-      log.debug(
-        "[SmokeOrb] Startup texture loaded:",
-        startupTexture.image?.width,
-        "x",
-        startupTexture.image?.height
-      );
-
       // Same texture settings for startup atlas
       startupTexture.wrapS = THREE.ClampToEdgeWrapping;
       startupTexture.wrapT = THREE.ClampToEdgeWrapping;
@@ -297,12 +219,6 @@ export function SmokeOrb({
       if (matRef.current && startupTexture.image?.width && startupTexture.image?.height) {
         matRef.current.uniforms.uStartupAtlasSize.value.set(
           startupTexture.image.width,
-          startupTexture.image.height
-        );
-        log.debug(
-          "[SmokeOrb] Startup atlas size set to:",
-          startupTexture.image.width,
-          "x",
           startupTexture.image.height
         );
       }

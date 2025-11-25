@@ -18,6 +18,7 @@ export {
   completeQuest,
   awardXp,
   fetchUserStreak,
+  fetchRecentScanCount,
   updateDailyStreak,
   type ActiveQuestsResponse,
   type FetchActiveQuestsResult,

@@ -113,6 +113,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
     color: "#111827",
+    lineHeight: 20,
+    flexWrap: "wrap",
   },
   arrow: {
     fontSize: 20,

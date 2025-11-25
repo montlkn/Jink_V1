@@ -990,6 +990,35 @@ export async function fetchUserStreak(userId: string): Promise<StreakSnapshot> {
 }
 
 /**
+ * Fetch the count of recent scans for a user within the last N days
+ * Queries walk_seen_points table for buildings scanned during walks
+ */
+export async function fetchRecentScanCount(userId: string, days = 7): Promise<number> {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  const { count, error } = await supabase
+    .from("walk_seen_points")
+    .select("*", { count: "exact", head: true })
+    .eq("scanned", true)
+    .in(
+      "walk_id",
+      supabase
+        .from("walk_summaries")
+        .select("id")
+        .eq("user_id", userId)
+        .gte("started_at", cutoffDate.toISOString())
+    );
+
+  if (error) {
+    log.warn("[supabaseGateway] Failed to fetch recent scan count", error);
+    return 0; // Return 0 on error rather than throwing
+  }
+
+  return count ?? 0;
+}
+
+/**
  * Update daily streak for a user after a qualifying action
  * (scan, walk completion, quest completion)
  */

@@ -1,7 +1,6 @@
 import { Canvas, useThree } from "@react-three/fiber/native";
 import React, { useEffect, useRef } from "react";
 import { ACESFilmicToneMapping, Group, SRGBColorSpace } from "three";
-import { log } from "@/lib/log";
 import { useEnvMap } from "./env/envLoader";
 import { GyroLightRig } from "./GyroLightRig";
 import { RainbowLayer } from "./RainbowLayer";
@@ -25,7 +24,6 @@ function OrbContent({ envAsset }: OrbContentProps) {
   const materialRef = useRef<any>(null);
   const env = useEnvMap(envAsset);
   const { scene } = useThree();
-  const hasLoggedEnv = useRef(false);
 
   // Feed PBR with the env once it exists
   useEffect(() => {
@@ -35,13 +33,6 @@ function OrbContent({ envAsset }: OrbContentProps) {
       if (materialRef.current) {
         materialRef.current.envMap = env;
         materialRef.current.needsUpdate = true;
-      }
-
-      if (__DEV__ && !hasLoggedEnv.current) {
-        hasLoggedEnv.current = true;
-        log.debug(
-          "[XPGlassOrb] Environment map loaded and applied to material"
-        );
       }
     }
 
@@ -131,7 +122,6 @@ export default function XPGlassOrb({
         if (ctx && ctx.renderbufferStorageMultisample) {
           ctx.renderbufferStorageMultisample = function(target: number, samples: number, internalformat: number, width: number, height: number) {
             // Expo GL doesn't support multisampling - fall back to single-sample
-            log.warn('[XPGlassOrb] renderbufferStorageMultisample not supported, using renderbufferStorage fallback');
             return ctx.renderbufferStorage(target, internalformat, width, height);
           };
         }
@@ -151,13 +141,6 @@ export default function XPGlassOrb({
         renderer.autoClearColor = true;
         renderer.autoClearDepth = true;
         renderer.autoClearStencil = true;
-
-        if (__DEV__) {
-          const hasFloat = ctx?.getExtension?.("EXT_color_buffer_float") ? "yes" : "no";
-          log.debug("[XPGlassOrb] isWebGL2:", renderer?.capabilities?.isWebGL2 ?? "unknown");
-          log.debug("[XPGlassOrb] EXT_color_buffer_float:", hasFloat);
-          log.debug("[XPGlassOrb] maxSamples:", renderer?.capabilities?.maxSamples ?? "unknown");
-        }
       }}
     >
       <OrbContent

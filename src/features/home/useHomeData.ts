@@ -7,6 +7,7 @@ import {
   fetchXpSnapshot,
   fetchWalkSummaries,
   fetchUserStreak,
+  fetchRecentScanCount,
   type ActiveQuestsResponse,
   type XpSnapshot,
   type StreakSnapshot,
@@ -19,7 +20,7 @@ import {
   type RecentScan,
   type RecentWalk,
   type TasteAction,
-} from "@/services/recentTasteSummaryService";
+} from "@/services/recentTasteSummary";
 import { extractTopArchetypesFromScores } from "@/utils/archetypeColorBlend";
 import { getTimeUntilMidnight, getTimeUntilMonday } from "@/utils/questTimers";
 import { getXpForNextLevel } from "@/utils/xpLevel";
@@ -100,7 +101,8 @@ export function useHomeData(): HomeDataState {
 
         if (profile?.archetype_scores) {
           const sorted = extractTopArchetypesFromScores(profile.archetype_scores);
-          setArchetypeData(sorted);
+          // Ensure it's a proper array
+          setArchetypeData(Array.isArray(sorted) ? Array.from(sorted) : []);
         } else {
           setArchetypeData([]);
         }
@@ -148,20 +150,42 @@ export function useHomeData(): HomeDataState {
           return;
         }
 
-        const [summary, walkSummaries, tasteLine] = await Promise.all([
-          getRecentTasteSummary({
+        let summary = null;
+        let walkSummaries = null;
+        let tasteLine = null;
+
+        try {
+          summary = await getRecentTasteSummary({
             userId: session.user.id,
             archetypes: archetypeData,
-          }),
-          fetchWalkSummaries({
+          });
+        } catch (err) {
+          log.error("[home] Error in getRecentTasteSummary", err);
+        }
+
+        try {
+          walkSummaries = await fetchWalkSummaries({
             userId: session.user.id,
             platform: Platform.OS,
-          }),
-          getRecentTasteLine({
+          });
+        } catch (err) {
+          log.error("[home] Error in fetchWalkSummaries", err);
+        }
+
+        try {
+          const [streak, scanCount] = await Promise.all([
+            fetchUserStreak(session.user.id),
+            fetchRecentScanCount(session.user.id, 7),
+          ]);
+          tasteLine = await getRecentTasteLine({
             userId: session.user.id,
             archetypes: archetypeData,
-          }),
-        ]);
+            streakCount: streak?.streakCount ?? 0,
+            recentScanCount: scanCount,
+          });
+        } catch (err) {
+          log.error("[home] Error in getRecentTasteLine", err);
+        }
 
         const recentWalks: RecentWalk[] = Array.isArray(walkSummaries)
           ? walkSummaries.slice(0, 3).map((walk) => {

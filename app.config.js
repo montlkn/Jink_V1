@@ -22,6 +22,7 @@ module.exports = () => {
     slug: "jink",
     scheme,
     version: "1.0.0",
+    orientation: "portrait",
     plugins: [
       [
         "expo-location",
