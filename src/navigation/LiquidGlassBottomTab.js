@@ -8,7 +8,7 @@ import {
   Dimensions,
   Easing,
   // Keyboard, // ARCHIVED for v2 - was used for search
-  Platform,
+  // Platform, // ARCHIVED for v2 - was used for search
   StyleSheet,
   Text,
   // TextInput, // ARCHIVED for v2 - was used for search
