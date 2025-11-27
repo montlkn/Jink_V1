@@ -7,11 +7,12 @@
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
 // MUST be before importing expo-three
 import "@/lib/log";
-import "expo-three";
-import React, { useEffect } from "react";
 import RootNavigator from "@/navigation/RootNavigator";
 import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
+import * as ScreenOrientation from "expo-screen-orientation";
+import "expo-three";
+import { useEffect } from "react";
 
 if (typeof global !== 'undefined') {
   const primitiveStoreSymbol = Symbol.for("__weakmapPrimitiveStore");
@@ -163,6 +164,11 @@ export default function App() {
   });
 
   useEffect(() => {
+    // Lock orientation to portrait
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch((err) => {
+      console.warn("[App] Failed to lock orientation:", err);
+    });
+
     Asset.loadAsync(ORB_ASSETS).catch((error) => {
       console.warn("[App] Failed to preload orb assets", error);
     });

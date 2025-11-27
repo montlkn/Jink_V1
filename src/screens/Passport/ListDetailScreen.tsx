@@ -1,16 +1,19 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { APP_COLORS } from "@/constants/appColors";
+import { passportLists, type BuildingDetail } from "@/constants/passportContent";
+import { PassportBackButton, PassportInfoButton } from "@/features/passport";
+import { screens, type RootParams } from "@/navigation/routes";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import type { RouteProp } from "@react-navigation/native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
-import DraggableFlatList, { type RenderItemParams } from "react-native-draggable-flatlist";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
-import { passportLists, type BuildingDetail } from "@/constants/passportContent";
-import { screens, type RootParams } from "@/navigation/routes";
-import { PassportBackdrop, PassportInfoButton } from "@/features/passport";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import DraggableFlatList, { type RenderItemParams } from "react-native-draggable-flatlist";
+import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
 
-type Route = RouteProp<RootParams, typeof screens.PassportListDetail>;
+
 
 type BuildingCardProps = {
   building: BuildingDetail;
@@ -18,20 +21,19 @@ type BuildingCardProps = {
   drag: () => void;
   isActive: boolean;
   onDelete: (buildingId: string) => void;
+  onPress: (building: BuildingDetail) => void;
 };
 
-function BuildingCard({ building, index, drag, isActive, onDelete }: BuildingCardProps) {
+function BuildingCard({ building, index, drag, isActive, onDelete, onPress }: BuildingCardProps) {
   const swipeRef = useRef<Swipeable | null>(null);
 
   const handleDelete = useCallback(() => {
-    // Haptic feedback on delete
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => null);
     swipeRef.current?.close();
     onDelete(building.id);
   }, [building.id, onDelete]);
 
   const handleSwipeOpen = useCallback(() => {
-    // Light haptic when swipe reveals delete button
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
   }, []);
 
@@ -45,7 +47,6 @@ function BuildingCard({ building, index, drag, isActive, onDelete }: BuildingCar
   );
 
   const handleLongPress = useCallback(() => {
-    // Haptic feedback on long press before dragging
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
     drag();
   }, [drag]);
@@ -62,29 +63,31 @@ function BuildingCard({ building, index, drag, isActive, onDelete }: BuildingCar
         activeOpacity={0.92}
         delayLongPress={500}
         onLongPress={handleLongPress}
+        onPress={() => onPress(building)}
         style={[styles.buildingCard, isActive && styles.buildingCardActive]}
       >
         <View style={styles.buildingBadge}>
           <Text style={styles.buildingIndex}>{String(index + 1).padStart(2, "0")}</Text>
         </View>
-        <View style={styles.buildingPreview}>
-          <Text style={styles.buildingPreviewInitial}>{building.name[0] ?? "?"}</Text>
-        </View>
         <View style={styles.buildingBody}>
           <Text style={styles.buildingName}>{building.name}</Text>
           <Text style={styles.buildingMeta}>
-            {building.address} • {building.style} • {building.year}
+            {building.address} • {building.year}
           </Text>
-          <Text style={styles.buildingSummary}>{building.summary}</Text>
         </View>
-        <Ionicons name="reorder-three" size={22} color="#9CA3AF" style={styles.dragHandle} />
+        <Ionicons name="reorder-three" size={22} color={theme.colors.muted} style={styles.dragHandle} />
       </TouchableOpacity>
     </Swipeable>
   );
 }
 
+
+
+type Route = RouteProp<RootParams, typeof screens.PassportListDetail>;
+type Navigation = NativeStackNavigationProp<RootParams>;
+
 export default function ListDetailScreen(): JSX.Element {
-  const navigation = useNavigation();
+  const navigation = useNavigation<Navigation>();
   const route = useRoute<Route>();
 
   const list = useMemo(() => {
@@ -107,8 +110,8 @@ export default function ListDetailScreen(): JSX.Element {
 
   const handleInfo = useCallback(() => {
     Alert.alert(
-      "List Dossier",
-      "Each list is a curated itinerary. Long-press any building tile to drag it to a new position, or swipe left to remove ones you no longer need."
+      "LIST DETAILS",
+      "Each list is a curated itinerary. Long-press any building tile to drag it to a new position."
     );
   }, []);
 
@@ -120,6 +123,10 @@ export default function ListDetailScreen(): JSX.Element {
     setBuildings(data);
   }, []);
 
+  const handleBuildingPress = useCallback((building: BuildingDetail) => {
+    navigation.navigate(screens.BuildingInfo, { buildingData: building });
+  }, [navigation]);
+
   const renderBuilding = useCallback(
     ({ item, drag, isActive, getIndex }: RenderItemParams<BuildingDetail>) => {
       const currentIndex = getIndex() ?? 0;
@@ -130,26 +137,29 @@ export default function ListDetailScreen(): JSX.Element {
           drag={drag}
           isActive={isActive}
           onDelete={handleDelete}
+          onPress={handleBuildingPress}
         />
       );
     },
-    [handleDelete]
+    [handleDelete, handleBuildingPress]
   );
 
   return (
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaView style={styles.container}>
-        <PassportBackdrop tailColor="#F7F4F0" />
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color="#111827" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{listName}</Text>
-          <PassportInfoButton
-            style={styles.infoButton}
-            onPress={handleInfo}
-            accessibilityLabel="Learn about this list"
-          />
+          <View style={styles.headerLeft}>
+            <PassportBackButton onPress={() => navigation.goBack()} />
+          </View>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{listName}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <PassportInfoButton
+              onPress={handleInfo}
+              accessibilityLabel="Learn about this list"
+            />
+          </View>
         </View>
 
         <DraggableFlatList
@@ -164,19 +174,14 @@ export default function ListDetailScreen(): JSX.Element {
             <View>
               <View style={styles.heroCard}>
                 <View style={styles.heroHeader}>
-                  <Text style={styles.heroLabel}>List dossier</Text>
+                  <Text style={styles.heroLabel}>SUBJECT</Text>
                   <TouchableOpacity
                     style={styles.editToggle}
                     onPress={() => setIsEditing(!isEditing)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons
-                      name={isEditing ? "checkmark" : "pencil"}
-                      size={14}
-                      color={isEditing ? "#10B981" : "#6366F1"}
-                    />
                     <Text style={[styles.editToggleText, isEditing && styles.editToggleTextActive]}>
-                      {isEditing ? "Done" : "Edit"}
+                      {isEditing ? "DONE" : "EDIT"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -187,7 +192,7 @@ export default function ListDetailScreen(): JSX.Element {
                     value={listName}
                     onChangeText={setListName}
                     placeholder="List name"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={theme.colors.muted}
                     autoFocus
                   />
                 ) : (
@@ -195,25 +200,20 @@ export default function ListDetailScreen(): JSX.Element {
                 )}
 
                 {isEditing ? (
-                  <View style={styles.taglineRow}>
-                    <Text style={styles.quoteLeft}>&quot;</Text>
-                    <TextInput
-                      style={styles.heroTagline}
-                      value={listTagline}
-                      onChangeText={setListTagline}
-                      placeholder="Tagline"
-                      placeholderTextColor="#9CA3AF"
-                    />
-                    <Text style={styles.quoteRight}>&quot;</Text>
-                  </View>
+                  <TextInput
+                    style={styles.heroTagline}
+                    value={listTagline}
+                    onChangeText={setListTagline}
+                    placeholder="Tagline"
+                    placeholderTextColor={theme.colors.muted}
+                  />
                 ) : (
                   <Text style={styles.heroTaglineText}>&quot;{listTagline}&quot;</Text>
                 )}
 
                 <View style={styles.heroMetaRow}>
-                  <Ionicons name="business" size={16} color="#1D4ED8" />
                   <Text style={styles.heroMeta}>
-                    {buildings.length} building{buildings.length === 1 ? "" : "s"}
+                    {buildings.length} TARGETS
                   </Text>
                 </View>
 
@@ -223,7 +223,7 @@ export default function ListDetailScreen(): JSX.Element {
                     value={listMood}
                     onChangeText={setListMood}
                     placeholder="Description"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={theme.colors.muted}
                     multiline
                     textAlignVertical="top"
                   />
@@ -231,7 +231,7 @@ export default function ListDetailScreen(): JSX.Element {
                   <Text style={styles.heroMoodText}>{listMood}</Text>
                 )}
               </View>
-              <Text style={styles.sectionTitle}>Buildings in this list</Text>
+              <Text style={styles.sectionTitle}>TARGET LIST</Text>
               <View style={styles.divider} />
             </View>
           }
@@ -246,60 +246,55 @@ const styles = StyleSheet.create({
   gestureRoot: { flex: 1 },
   container: {
     flex: 1,
-    backgroundColor: "#F7F4F0",
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 16,
     paddingBottom: 12,
-    gap: 12,
-    zIndex: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+
+  headerLeft: {
+    zIndex: 1,
+  },
+  headerRight: {
+    zIndex: 1,
+  },
+  headerTitleContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
+    zIndex: -1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    flex: 1,
-    textAlign: "center",
-    letterSpacing: 0.6,
-    marginBottom: 2,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    letterSpacing: 2,
+    fontFamily: theme.typography.fontFamily.bold,
   },
-  infoButton: {
-    marginBottom: 2,
-  },
+
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 32,
   },
   heroCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
     padding: 20,
     marginBottom: 24,
-    borderWidth: 1.5,
-    borderColor: "#E0E7FF",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
+    borderWidth: 2,
+    borderColor: theme.colors.accent,
     gap: 8,
+    marginTop: 20,
   },
   heroHeader: {
     flexDirection: "row",
@@ -308,68 +303,53 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroLabel: {
-    fontSize: 12,
-    color: "#6366F1",
+    fontSize: 10,
+    color: theme.colors.accent,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
-    fontWeight: "600",
+    letterSpacing: 1,
+    fontWeight: "bold",
   },
   editToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "#F0F9FF",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: "#DBEAFE",
+    borderColor: theme.colors.primary,
+  },
+  streakText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: APP_COLORS.passport.streak,
+    letterSpacing: 1,
   },
   editToggleText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#6366F1",
-    letterSpacing: 0.5,
+    fontSize: 10,
+    fontWeight: "bold",
+    color: theme.colors.primary,
+    letterSpacing: 1,
     textTransform: "uppercase",
   },
   editToggleTextActive: {
-    color: "#10B981",
+    color: theme.colors.accent,
   },
   heroTitle: {
     fontSize: 24,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: "bold",
+    color: theme.colors.text,
     fontFamily: "Courier",
     padding: 0,
     margin: 0,
   },
-  taglineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  quoteLeft: {
-    fontSize: 15,
-    color: "#1F2937",
-    fontStyle: "italic",
-  },
-  quoteRight: {
-    fontSize: 15,
-    color: "#1F2937",
-    fontStyle: "italic",
-  },
   heroTagline: {
-    flex: 1,
-    fontSize: 15,
-    color: "#1F2937",
+    fontSize: 14,
+    color: theme.colors.muted,
     fontStyle: "italic",
     fontFamily: "Courier",
     padding: 0,
     margin: 0,
   },
   heroTaglineText: {
-    fontSize: 15,
-    color: "#1F2937",
+    fontSize: 14,
+    color: theme.colors.muted,
     fontStyle: "italic",
   },
   heroMetaRow: {
@@ -377,108 +357,91 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: 8,
   },
   heroMeta: {
-    fontSize: 13,
-    color: "#1F2937",
+    fontSize: 12,
+    color: theme.colors.text,
+    fontWeight: "bold",
+    letterSpacing: 1,
   },
   heroMood: {
-    fontSize: 13,
-    color: "#4B5563",
+    fontSize: 12,
+    color: theme.colors.muted,
     fontFamily: "Courier",
     padding: 0,
     margin: 0,
     minHeight: 60,
   },
   heroMoodText: {
-    fontSize: 13,
-    color: "#4B5563",
+    fontSize: 12,
+    color: theme.colors.muted,
     lineHeight: 18,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 12,
+    fontWeight: "bold",
+    color: theme.colors.muted,
     marginBottom: 12,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
   divider: {
-    height: 1,
-    backgroundColor: "#E4E4E7",
+    height: 2,
+    backgroundColor: theme.colors.border,
     marginBottom: 16,
   },
   buildingCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: theme.colors.border,
     gap: 12,
   },
   buildingCardActive: {
-    borderColor: "#6366F1",
-    shadowOpacity: 0.15,
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.background,
   },
   buildingBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#EEF2FF",
+    width: 24,
+    height: 24,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 0,
   },
   buildingIndex: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#4338CA",
-  },
-  buildingPreview: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    backgroundColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buildingPreviewInitial: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#4B5563",
+    fontSize: 10,
+    fontWeight: "bold",
+    color: theme.colors.text,
   },
   buildingBody: {
     flex: 1,
     gap: 4,
   },
   buildingName: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 14,
+    fontWeight: "bold",
+    color: theme.colors.text,
   },
   buildingMeta: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  buildingSummary: {
-    fontSize: 13,
-    color: "#1F2937",
+    fontSize: 10,
+    color: theme.colors.muted,
+    fontWeight: "bold",
   },
   dragHandle: {
     marginLeft: 8,
-    color: "#9CA3AF",
   },
   swipeDelete: {
     justifyContent: "center",
     alignItems: "center",
     width: 64,
-    backgroundColor: "#DC2626",
-    borderRadius: 16,
-    marginBottom: 14,
+    backgroundColor: theme.colors.primary,
+    marginBottom: 12,
   },
 });

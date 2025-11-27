@@ -1,34 +1,77 @@
-import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
+import StreakCard from "@/components/cards/StreakCard";
 import AuraBreakdownModal, {
   type AuraSegment,
 } from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
-import QuestDetailModal from "@/components/quests/QuestDetailModal";
 import QuestCard from "@/components/quests/QuestCard";
-import type { HomeQuest } from "./homeSelectors";
-import { useOrbTransition } from "@/state/orbTransitionContext";
+import QuestDetailModal from "@/components/quests/QuestDetailModal";
+import { getArchetypeColorSafe } from "@/constants/archetypeColors";
+import { DEFAULT_TASTE_ACTION } from "@/features/home/tasteActions";
+import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
 import { screens, type RootParams } from "@/navigation/routes";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import HomeTasteLine from "@/screens/HomeView/HomeTasteLine";
+import { useOrbTransition } from "@/state/orbTransitionContext";
 import { useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
-import { getArchetypeColorSafe } from "@/constants/archetypeColors";
-import { DEFAULT_TASTE_ACTION } from "@/features/home/tasteActions";
+import { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import type { HomeQuest } from "./homeSelectors";
 import { useHomeData } from "./useHomeData";
-import HomeTasteLine from "@/screens/HomeView/HomeTasteLine";
 
 const ORB_SIZE = 360;
 
+
+
 type HomeNavigation = NativeStackNavigationProp<RootParams, typeof screens.Home>;
+
+function SkeletonBlock({ style }: { style: any }) {
+  const opacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.7, { duration: 1000 }),
+        withTiming(0.3, { duration: 1000 })
+      ),
+      -1,
+      true
+    );
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return <Animated.View style={[styles.skeletonBlock, style, animatedStyle]} />;
+}
+
+function HomeSkeleton() {
+  return (
+    <View style={styles.container}>
+      <View style={{ marginTop: 60, alignItems: 'center' }}>
+        <SkeletonBlock style={{ width: ORB_SIZE, height: ORB_SIZE, borderRadius: ORB_SIZE / 2 }} />
+      </View>
+      <View style={{ marginTop: 24, marginHorizontal: 20 }}>
+        <SkeletonBlock style={{ height: 80, borderRadius: 16 }} />
+      </View>
+      <View style={{ marginTop: 12, marginHorizontal: 20 }}>
+        <SkeletonBlock style={{ height: 120, marginBottom: 16 }} />
+        <SkeletonBlock style={{ height: 120, marginBottom: 12 }} />
+        <SkeletonBlock style={{ height: 120, marginBottom: 12 }} />
+      </View>
+    </View>
+  );
+}
+
 export function HomeView(): JSX.Element {
   const navigation = useNavigation<HomeNavigation>();
   const dataState = useHomeData();
@@ -63,6 +106,7 @@ export function HomeView(): JSX.Element {
     timers,
     questCollection,
     tasteAction,
+    streakCount,
   } = useMemo(() => {
     if (!readyValue) {
       return {
@@ -72,6 +116,7 @@ export function HomeView(): JSX.Element {
         timers: { daily: "", weekly: "" },
         questCollection: null,
         tasteAction: DEFAULT_TASTE_ACTION,
+        streakCount: 0,
       };
     }
 
@@ -91,6 +136,7 @@ export function HomeView(): JSX.Element {
           readyValue.tasteAction.headline.trim().length > 0
             ? readyValue.tasteAction
             : DEFAULT_TASTE_ACTION,
+      streakCount: readyValue.streakCount ?? 0,
     };
   }, [readyValue]);
 
@@ -119,8 +165,8 @@ export function HomeView(): JSX.Element {
         id: "daily-placeholder",
         type: "daily",
         questType: "placeholder",
-        title: "Sync up for today's quest",
-        description: "We'll drop a fresh daily objective once your profile is calibrated.",
+        title: "SYNC REQUIRED",
+        description: "CALIBRATE YOUR PROFILE TO RECEIVE DAILY OBJECTIVES.",
         xpReward: 0,
         additionalRewards: [] as HomeQuest["additionalRewards"],
         progress: 0,
@@ -131,8 +177,8 @@ export function HomeView(): JSX.Element {
         id: "weekly-placeholder",
         type: "weekly",
         questType: "placeholder",
-        title: "Weekly expedition incoming",
-        description: "Stick around—weekly quests unlock after your first daily streak.",
+        title: "WEEKLY EXPEDITION LOCKED",
+        description: "COMPLETE A DAILY STREAK TO UNLOCK WEEKLY CHALLENGES.",
         xpReward: 0,
         additionalRewards: [] as HomeQuest["additionalRewards"],
         progress: 0,
@@ -223,11 +269,7 @@ export function HomeView(): JSX.Element {
     return selectedQuest.type === "daily" ? timers.daily : timers.weekly;
   }, [selectedQuest, timers.daily, timers.weekly]);
   if (dataState.status === "loading") {
-    return (
-      <SafeAreaView style={styles.center}>
-        <ActivityIndicator size="large" color="#999" />
-      </SafeAreaView>
-    );
+    return <HomeSkeleton />;
   }
 
   if (dataState.status === "error") {
@@ -281,6 +323,12 @@ export function HomeView(): JSX.Element {
 
         <Animated.View style={{ opacity: contentFade }}>
           <View style={styles.section}>
+            {/* Streak Card */}
+            <View style={styles.streakCardWrapper}>
+              <StreakCard streakCount={streakCount} />
+            </View>
+
+            {/* Quest Cards */}
             {questsToRender.map((quest) => (
               <View key={`${quest.type}-${quest.id ?? "unknown"}`} style={styles.questCardWrapper}>
                 <QuestCard
@@ -356,9 +404,7 @@ const styles = StyleSheet.create({
   },
   summaryContainer: {
     marginTop: 24,
-    marginHorizontal: 32,
-    maxWidth: 340,
-    alignSelf: "center",
+    marginHorizontal: 20,
   },
   summaryLoadingText: {
     fontSize: 15,
@@ -371,6 +417,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 12,
   },
+  streakCardWrapper: {
+    marginBottom: 16,
+  },
   questCardWrapper: {
     marginBottom: 12,
   },
@@ -378,5 +427,9 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     color: "#444",
+  },
+  skeletonBlock: {
+    backgroundColor: "#E5E7EB",
+    borderRadius: 2,
   },
 });

@@ -1,25 +1,25 @@
-import { Ionicons } from "@expo/vector-icons";
+import { PassportBackButton } from "@/features/passport";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { Feature as GeoFeature, Polygon as GeoPolygon } from "geojson";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Platform,
+    Pressable,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import MapView, { Circle, Polygon, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import {
-  FOG_BOUNDARY,
-  MASTER_WALK_ID,
-  demoWalks,
-  type DemoWalk,
-  type NolliFeatureCollection,
+    demoWalks,
+    FOG_BOUNDARY,
+    MASTER_WALK_ID,
+    type DemoWalk,
+    type NolliFeatureCollection,
 } from "./nolliDemoData";
-import type { Feature as GeoFeature, Polygon as GeoPolygon } from "geojson";
 
 // -------------------- Types --------------------
 
@@ -303,15 +303,10 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
-        <Pressable
+        <PassportBackButton
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
           style={styles.backBtn}
-        >
-          <Ionicons name="chevron-back" size={20} />
-          <Text style={styles.backTxt}>Back</Text>
-        </Pressable>
+        />
         <Text style={styles.title}>Nolli Fog</Text>
         <View style={{ width: 56 }} />
       </View>
@@ -369,11 +364,27 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
           {preparedPolygons.map((poly) => {
             const palette = getPaletteForWalk(poly.walkId);
             const fill = isMasterView ? palette.fill : setAlpha(palette.fill, 0.42);
+
+            // Stricter validation: ensure outer coordinates exist and are an array
+            if (!poly.outer || !Array.isArray(poly.outer) || poly.outer.length < 3) {
+              return null;
+            }
+
+            // Defensive check: only pass holes if it's a non-empty array of arrays of valid coordinates
+            const validHoles =
+              poly.holes &&
+              Array.isArray(poly.holes) &&
+              poly.holes.length > 0 &&
+              Array.isArray(poly.holes[0]) &&
+              poly.holes[0].length >= 3
+                ? poly.holes
+                : undefined;
+
             return (
               <Polygon
                 key={`poly-${poly.id}`}
                 coordinates={poly.outer}
-                holes={poly.holes.length ? poly.holes : undefined}
+                holes={validHoles}
                 strokeColor={palette.accent}
                 strokeWidth={isMasterView ? 1 : 2}
                 fillColor={fill}
@@ -427,11 +438,8 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   backBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingRight: 8,
-    width: 56,
+    width: 140,
+    height: 70,
   },
   backTxt: { marginLeft: 2, fontSize: 16, color: "#F8F9FF" },
   title: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "600", color: "#F8F9FF" },

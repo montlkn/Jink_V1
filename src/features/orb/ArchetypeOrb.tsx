@@ -1,4 +1,8 @@
-import React, { useMemo, useRef } from "react";
+import GlassOrb from "@/components/three/orb/GlassOrb";
+import { defaultRainbow } from "@/config/glowConfig";
+import { blendArchetypeColors } from "@/utils/archetypeColorBlend";
+import * as Haptics from "expo-haptics";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Animated,
   Pressable,
@@ -6,9 +10,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import * as Haptics from "expo-haptics";
-import GlassOrb from "@/components/three/orb/GlassOrb";
-import { blendArchetypeColors } from "@/utils/archetypeColorBlend";
+import Glow from "react-native-animated-glow";
 
 export type ArchetypeEntry = {
   color?: string | null;
@@ -58,11 +60,31 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
   );
 
   const colors = useMemo<BlendResult>(
-    () => blendArchetypeColors(sanitizedData) as BlendResult,
+    () => {
+      console.log('[ArchetypeOrb] Computing colors from data:', sanitizedData);
+      const result = blendArchetypeColors(sanitizedData) as BlendResult;
+      console.log('[ArchetypeOrb] Blended colors:', result);
+      return result;
+    },
     [sanitizedData]
   );
 
+
+
+  const [glowState, setGlowState] = useState("default");
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const glowConfig = useMemo(() => {
+    // Clone the config to avoid mutating the original
+    const config = JSON.parse(JSON.stringify(defaultRainbow));
+    // Update cornerRadius for all states to match the orb size
+    config.states.forEach((state: any) => {
+      if (state.preset) {
+        state.preset.cornerRadius = size / 2;
+      }
+    });
+    return config;
+  }, [size]);
 
   const handlePress = () => {
     if (!interactive) {
@@ -71,6 +93,7 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
 
+    setGlowState("press");
     Animated.sequence([
       Animated.spring(scaleAnim, {
         toValue: 0.92,
@@ -84,12 +107,16 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
         friction: 3,
         tension: 80,
       }),
-    ]).start();
+    ]).start(() => {
+        setGlowState("default");
+    });
 
     if (onPress) {
       setTimeout(onPress, 120);
     }
   };
+
+  console.log('[ArchetypeOrb] Rendering with size:', size, 'colors:', colors, 'interactive:', interactive);
 
   return (
     <Animated.View
@@ -98,13 +125,17 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
         style,
       ]}
     >
-      <GlassOrb
-        size={size}
-        colorA={colors.colorA}
-        colorB={colors.colorB}
-        colorC={colors.colorC}
-        palette={colors.palette}
-      />
+      <Glow activeState={glowState as any} preset={glowConfig} style={{ borderRadius: size / 2 }}>
+        <GlassOrb
+            size={size}
+            colorA={colors.colorA}
+            colorB={colors.colorB}
+            colorC={colors.colorC}
+            palette={colors.palette}
+            startupDuration={0}
+            transitionDuration={0}
+        />
+      </Glow>
       {interactive ? (
         <Pressable
           style={StyleSheet.absoluteFill}

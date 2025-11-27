@@ -1,19 +1,20 @@
-import React, { useCallback, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native";
 import { achievementLedger, type AchievementDefinition } from "@/constants/passportContent";
+import { AchievementDetailModal, PassportBackButton, PassportInfoButton } from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
-import { PassportBackdrop, PassportInfoButton, AchievementDetailModal } from "@/features/passport";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useState } from "react";
+import {
+    Alert,
+    FlatList,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportAchievements>;
 
@@ -24,34 +25,28 @@ type AchievementCardProps = {
 
 function AchievementCard({ item, onPress }: AchievementCardProps) {
   const missable = item.missable;
-  const statusColor = missable ? "#F97316" : "#10B981";
+  const statusColor = missable ? theme.colors.primary : theme.colors.secondary;
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => onPress(item)}>
-      <View style={styles.badgeRow}>
-        <View style={styles.iconBadge}>
-          <Ionicons name="ribbon" size={18} color="#6B21A8" />
+    <TouchableOpacity style={[styles.card, { borderColor: statusColor }]} activeOpacity={0.8} onPress={() => onPress(item)}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.iconBadge, { backgroundColor: statusColor }]}>
+          <Ionicons name="ribbon" size={14} color={theme.colors.background} />
         </View>
-        <View style={[styles.missableBadge, { backgroundColor: `${statusColor}1a` }]}>
-          <Ionicons name={missable ? "flash" : "checkmark-circle"} size={14} color={statusColor} />
-          <Text style={[styles.missableText, { color: statusColor }]}>
-            {missable ? "Missable" : "Stable"}
-          </Text>
-        </View>
+        <Text style={[styles.xpText, { color: statusColor }]}>{item.xp.toLocaleString()} XP</Text>
       </View>
-      <View style={styles.cardText}>
+      
+      <View style={styles.cardBody}>
         <Text numberOfLines={2} style={styles.cardTitle}>{item.title}</Text>
-        <Text numberOfLines={2} style={styles.purpose}>{item.purpose}</Text>
-        <Text style={styles.verificationLabel}>How it verifies</Text>
+        <View style={[styles.divider, { backgroundColor: statusColor }]} />
         <Text numberOfLines={3} style={styles.verification}>{item.verification}</Text>
       </View>
-      <View style={styles.xpSection}>
-        <View style={styles.xpBadge}>
-          <Text style={styles.xpText}>{item.xp.toLocaleString()} XP</Text>
-        </View>
-        <Text style={styles.footerNote} numberOfLines={2}>
-          {missable ? "Keep an eye on streak timers." : "Awarded once per profile."}
+
+      <View style={styles.cardFooter}>
+        <Text style={[styles.statusText, { color: statusColor }]}>
+          {missable ? "LIMITED TIME" : "PERMANENT RECORD"}
         </Text>
+        <Ionicons name={missable ? "flash" : "checkmark-circle"} size={12} color={statusColor} />
       </View>
     </TouchableOpacity>
   );
@@ -63,29 +58,21 @@ export default function AchievementsScreen(): JSX.Element {
 
   const handleInfo = useCallback(() => {
     Alert.alert(
-      "Achievements",
-      "Achievements signal milestone skill and streaks. Unlock them by scanning buildings, completing derives, and pursuing special challenges. Missable achievements show limited-time windows, while stable ones can be earned anytime."
+      "ACHIEVEMENT LOG",
+      "Achievements signal milestone skill and streaks. Unlock them by scanning buildings, completing derives, and pursuing special challenges."
     );
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      <PassportBackdrop tailColor="#F9F5F0" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Achievements</Text>
+        <PassportBackButton onPress={() => navigation.goBack()} style={styles.backButton} />
+        <Text style={styles.headerTitle}>ACHIEVEMENT LOG</Text>
         <PassportInfoButton
-          style={styles.infoButton}
           onPress={handleInfo}
-          accessibilityLabel="Achievements details"
+          accessibilityLabel="Learn about achievements"
         />
       </View>
-      <Text style={styles.subheader}>
-        Track your skill markers, rare streaks, and milestone unlocks. Missable achievements expire—stay
-        sharp.
-      </Text>
 
       <FlatList
         data={achievementLedger}
@@ -109,145 +96,100 @@ export default function AchievementsScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9F5F0",
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    gap: 12,
-    zIndex: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
+    width: 44,
   },
   headerTitle: {
     flex: 1,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    letterSpacing: 2,
     textAlign: "center",
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#0F172A",
-    letterSpacing: 0.6,
-    marginBottom: 2,
+    fontFamily: theme.typography.fontFamily.bold,
   },
   infoButton: {
-    marginBottom: 2,
-  },
-  subheader: {
-    fontSize: 14,
-    color: "#475569",
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    zIndex: 2,
+    width: 44,
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+    padding: 16,
   },
   column: {
     justifyContent: "space-between",
+    gap: 16,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: theme.colors.surface,
+    padding: 12,
     marginBottom: 16,
     flex: 1,
-    marginHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: "#E5D9F6",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
-    gap: 12,
-    minHeight: 240,
+    borderWidth: 2,
+    minHeight: 180,
     justifyContent: "space-between",
   },
-  badgeRow: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
   },
   iconBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 24,
+    height: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F0E8FB",
-  },
-  missableBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  missableText: {
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1E293B",
-  },
-  purpose: {
-    fontSize: 13,
-    color: "#374151",
-  },
-  cardText: {
-    flex: 1,
-    gap: 8,
-  },
-  verificationLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#6B7280",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  verification: {
-    fontSize: 12,
-    color: "#475569",
-  },
-  xpSection: {
-    marginTop: 12,
-    gap: 6,
-    flexDirection: "column",
-    alignItems: "flex-start",
-  },
-  xpBadge: {
-    backgroundColor: "#1D4ED8",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    alignSelf: "flex-start",
+    borderRadius: 0,
   },
   xpText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "bold",
+    fontFamily: "Courier",
   },
-  footerNote: {
-    fontSize: 11,
-    color: "#6B7280",
+  cardBody: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  divider: {
+    height: 2,
+    width: 20,
+    marginBottom: 8,
+  },
+  verification: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    lineHeight: 14,
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  statusText: {
+    fontSize: 8,
+    fontWeight: "bold",
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
 });

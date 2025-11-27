@@ -49,6 +49,8 @@ module.exports = () => {
     extra: {
       deepLinkingScheme: scheme,
       appUrl,
+      buildingsSupabaseUrl: process.env.EXPO_PUBLIC_BUILDINGS_SUPABASE_URL,
+      buildingsSupabaseAnonKey: process.env.EXPO_PUBLIC_BUILDINGS_SUPABASE_ANON_KEY,
       eas: {
         projectId: "b12162bd-7319-470b-b952-a352382cfd2c",
       },
@@ -59,6 +61,7 @@ module.exports = () => {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSMotionUsageDescription: "Motion is used to animate lighting reflections.",
+        UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait"],
       },
       appleTeamId: "5JRD794HZ9",
       config: {

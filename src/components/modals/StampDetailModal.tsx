@@ -1,17 +1,12 @@
-import React from "react";
-import {
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import PassportStamp from "@/components/passport/PassportStamp";
 import type { StampDefinition } from "@/constants/passportContent";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+// BlurView removed - using solid overlay instead
+import {
+    Modal, SafeAreaView,
+    ScrollView, StyleSheet, Text, TouchableOpacity, View
+} from "react-native";
+import ModalCloseButton from "./ModalCloseButton";
 
 type StampDetailModalProps = {
   visible: boolean;
@@ -20,17 +15,17 @@ type StampDetailModalProps = {
 };
 
 const rarityColors: Record<StampDefinition["rarity"], string> = {
-  common: "#6B7280",
-  rare: "#2563EB",
-  epic: "#7C3AED",
-  legendary: "#DC2626",
+  common: theme.colors.muted,
+  rare: theme.colors.secondary,
+  epic: theme.colors.primary,
+  legendary: theme.colors.accent,
 };
 
 const rarityLabels: Record<StampDefinition["rarity"], string> = {
-  common: "Common",
-  rare: "Rare (Quest)",
-  epic: "Epic (Achievement)",
-  legendary: "Legendary",
+  common: "COMMON",
+  rare: "RARE",
+  epic: "EPIC",
+  legendary: "LEGENDARY",
 };
 
 export function StampDetailModal({ visible, stamp, onClose }: StampDetailModalProps): JSX.Element {
@@ -40,30 +35,27 @@ export function StampDetailModal({ visible, stamp, onClose }: StampDetailModalPr
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
 
         <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { borderColor: rarityColor }]}>
             {/* Header */}
-            <View style={styles.modalHeader}>
-              <View style={{ width: 36 }} />
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#111827" />
-              </TouchableOpacity>
+            <View style={[styles.modalHeader, { backgroundColor: rarityColor }]}>
+              <Text style={styles.headerTitle}>STAMP DOSSIER</Text>
+              <ModalCloseButton onPress={onClose} />
             </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
               {/* Stamp Display */}
               <View style={styles.stampContainer}>
-                <PassportStamp stamp={stamp.title} date={stamp.issuedAt} />
+                <PassportStamp stamp={stamp.title} date={stamp.issuedAt} size={100} />
               </View>
 
               {/* Title & Rarity */}
               <View style={styles.section}>
                 <Text style={styles.stampTitle}>{stamp.title}</Text>
-                <View style={[styles.rarityBadge, { borderColor: rarityColor, backgroundColor: `${rarityColor}14` }]}>
+                <View style={[styles.rarityBadge, { borderColor: rarityColor }]}>
                   <Text style={[styles.rarityText, { color: rarityColor }]}>
                     {rarityLabels[stamp.rarity]}
                   </Text>
@@ -72,31 +64,32 @@ export function StampDetailModal({ visible, stamp, onClose }: StampDetailModalPr
 
               {/* Description */}
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Description</Text>
+                <Text style={styles.sectionLabel}>DESCRIPTION</Text>
                 <Text style={styles.description}>{stamp.description}</Text>
               </View>
 
               {/* Source */}
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Source</Text>
+                <Text style={styles.sectionLabel}>SOURCE</Text>
                 <Text style={styles.sourceText}>{stamp.source}</Text>
               </View>
 
               {/* Issue Date */}
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Issued</Text>
+                <Text style={styles.sectionLabel}>ISSUED</Text>
                 <Text style={styles.dateText}>
                   {new Date(stamp.issuedAt).toLocaleDateString("en-US", {
-                    month: "long",
+                    month: "numeric",
                     day: "numeric",
                     year: "numeric",
-                  })}
+                  }).split('/').join('.')}
                 </Text>
               </View>
             </ScrollView>
           </View>
         </SafeAreaView>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -106,84 +99,96 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(245, 245, 245, 0.92)",
   },
   modalContainer: {
-    width: "90%",
-    maxHeight: "80%",
+    width: '85%',
+    maxWidth: 380,
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderRadius: 0,
     overflow: "hidden",
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center",
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.background,
+    letterSpacing: 1,
+    fontFamily: "Courier",
   },
+
   scrollView: {
     maxHeight: 500,
   },
   stampContainer: {
     alignItems: "center",
-    paddingVertical: 24,
+    paddingVertical: 32,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   section: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   stampTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: theme.colors.text,
     marginBottom: 12,
     textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   rarityBadge: {
     alignSelf: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1.5,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderRadius: 0,
   },
   rarityText: {
-    fontSize: 13,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    fontFamily: "Courier",
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280",
+    fontSize: 10,
+    fontWeight: "700",
+    color: theme.colors.muted,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 1,
     marginBottom: 8,
+    fontFamily: "Courier",
   },
   description: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#374151",
+    fontSize: 14,
+    lineHeight: 20,
+    color: theme.colors.text,
+    fontFamily: "Courier",
   },
   sourceText: {
     fontSize: 14,
-    color: "#4B5563",
+    color: theme.colors.text,
+    fontFamily: "Courier",
   },
   dateText: {
     fontSize: 14,
-    color: "#4B5563",
+    color: theme.colors.text,
+    fontFamily: "Courier",
   },
 });
 

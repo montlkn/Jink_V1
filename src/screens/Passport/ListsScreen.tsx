@@ -1,19 +1,20 @@
-import React, { useCallback, useMemo, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native";
 import { passportLists, type PassportListDefinition } from "@/constants/passportContent";
+import { PassportBackButton, PassportEditButton } from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
-import { PassportBackdrop, PassportInfoButton } from "@/features/passport";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useCallback, useMemo, useState } from "react";
+import {
+    Alert,
+    FlatList,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportLists>;
 
@@ -42,6 +43,12 @@ function ListCard({ item, editMode, onPress, onDelete }: ListCardProps) {
           <Ionicons name="trash" size={16} color="#fff" />
         </TouchableOpacity>
       ) : null}
+      
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardLabel}>LIST REF</Text>
+        <Text style={styles.cardId}>{item.id.substring(0, 4).toUpperCase()}</Text>
+      </View>
+
       <View style={styles.previewGrid}>
         {preview.map((building) => (
           <View key={building.id} style={styles.previewTile}>
@@ -51,12 +58,14 @@ function ListCard({ item, editMode, onPress, onDelete }: ListCardProps) {
           </View>
         ))}
       </View>
+      
       <View style={styles.cardBody}>
-        <Text style={styles.cardLabel}>List:</Text>
         <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardTagline}>&quot;{item.tagline}&quot;</Text>
-        <Text style={styles.cardMeta}>{item.buildings.length} building{item.buildings.length === 1 ? "" : "s"}</Text>
-        <Text style={styles.cardPrompt}>→ {item.prompt.toUpperCase()}</Text>
+        <Text style={styles.cardTagline}>{item.tagline}</Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.cardMeta}>{item.buildings.length} ENTRIES</Text>
+          <Ionicons name="arrow-forward" size={12} color={theme.colors.accent} />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -71,12 +80,7 @@ export default function ListsScreen(): JSX.Element {
     setEditMode((prev) => !prev);
   }, []);
 
-  const handleInfo = useCallback(() => {
-    Alert.alert(
-      "Saved Lists",
-      "Lists help you group buildings by vibe, walk plan, or study theme. Expand a list to reorder entries, trim any you no longer need, and keep your passport ready for the next derive."
-    );
-  }, []);
+
 
   const handlePress = useCallback(
     (listId: string) => {
@@ -96,12 +100,12 @@ export default function ListsScreen(): JSX.Element {
       }
 
       Alert.alert(
-        "Delete list?",
+        "DELETE LIST?",
         `Remove "${target.name}" from your passport? This action cannot be undone.`,
         [
-          { text: "Cancel", style: "cancel" },
+          { text: "CANCEL", style: "cancel" },
           {
-            text: "Delete",
+            text: "DELETE",
             style: "destructive",
             onPress: () => {
               setLists((current) => current.filter((list) => list.id !== listId));
@@ -115,36 +119,28 @@ export default function ListsScreen(): JSX.Element {
 
   return (
     <SafeAreaView style={styles.container}>
-      <PassportBackdrop tailColor="#FDF7F0" />
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color="#111827" />
-          </TouchableOpacity>
-          <PassportInfoButton onPress={handleInfo} accessibilityLabel="Learn about saved lists" />
+          <PassportBackButton onPress={() => navigation.goBack()} />
         </View>
-        <Text style={styles.headerTitle}>Lists</Text>
-        <TouchableOpacity
-          style={[styles.editButton, editMode && styles.editButtonActive]}
-          onPress={toggleEdit}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.editButtonText, editMode && styles.editButtonTextActive]}>
-            {editMode ? "Done" : "Edit"}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>LISTS</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <PassportEditButton
+            onPress={toggleEdit}
+            style={editMode ? styles.editButtonActive : undefined}
+          />
+        </View>
       </View>
-      {editMode ? <Text style={styles.editModeText}>Tap trash to delete lists</Text> : null}
-      <Text style={styles.subheader}>
-        Curate building lineups by vibe. Tap a list to expand the dossier or long-press inside to
-        reorganize buildings.
-      </Text>
+      
+      {editMode ? <Text style={styles.editModeText}>SELECT TO DELETE</Text> : null}
 
       {lists.length === 0 ? (
         <View style={styles.emptyState}>
-          <Ionicons name="albums-outline" size={36} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>No lists yet</Text>
-          <Text style={styles.emptyCopy}>Create a collection from a walk or stamp unlock to see it here.</Text>
+          <Ionicons name="albums-outline" size={36} color={theme.colors.muted} />
+          <Text style={styles.emptyTitle}>NO DATA</Text>
+          <Text style={styles.emptyCopy}>CREATE NEW LIST</Text>
         </View>
       ) : (
         <FlatList
@@ -166,188 +162,169 @@ export default function ListsScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FDF7F0",
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingLeft: 16,
+    paddingRight: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    gap: 12,
-    zIndex: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   headerLeft: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 10,
+    width: 44,
+    zIndex: 1,
   },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
+  headerTitleContainer: {
+    flex: 1,
     alignItems: "center",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
+    justifyContent: "center",
   },
   headerTitle: {
-    flex: 1,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    letterSpacing: 2,
     textAlign: "center",
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#111827",
-    letterSpacing: 0.6,
-    marginBottom: 2,
+    fontFamily: theme.typography.fontFamily.bold,
   },
-  editButton: {
-    minWidth: 88,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#D6D3D1",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
+  headerRight: {
+    width: 44,
+    zIndex: 1,
   },
   editButtonActive: {
-    backgroundColor: "#111827",
-    borderColor: "#111827",
-    shadowOpacity: 0.12,
+    opacity: 0.5,
   },
+
+
   editButtonText: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "bold",
     letterSpacing: 1,
-    color: "#111827",
+    color: theme.colors.primary,
     textTransform: "uppercase",
-    textAlign: "center",
   },
   editButtonTextActive: {
-    color: "#F5F5F4",
+    color: theme.colors.background,
   },
   editModeText: {
     fontSize: 10,
-    color: "#4B5563",
-    letterSpacing: 0.3,
+    color: theme.colors.primary,
+    letterSpacing: 1,
     textAlign: "center",
     paddingHorizontal: 20,
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  subheader: {
-    fontSize: 14,
-    color: "#52525B",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    zIndex: 2,
+    marginTop: 8,
+    marginBottom: 4,
+    fontWeight: "bold",
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
     paddingBottom: 32,
   },
   column: {
     justifyContent: "space-between",
+    gap: 16,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 18,
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    marginBottom: 16,
     flex: 1,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: "#E4E4E7",
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
-    minHeight: 240,
+    borderWidth: 2,
+    borderColor: theme.colors.accent,
+    minHeight: 200,
   },
   cardEditing: {
-    borderColor: "#F87171",
+    borderColor: theme.colors.primary,
+    borderStyle: 'dashed',
   },
   deleteBadge: {
     position: "absolute",
-    top: 12,
-    right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#DC2626",
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 3,
     zIndex: 2,
+    borderWidth: 1,
+    borderColor: theme.colors.background,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  cardLabel: {
+    fontSize: 8,
+    color: theme.colors.muted,
+    fontWeight: "bold",
+    letterSpacing: 1,
+  },
+  cardId: {
+    fontSize: 8,
+    color: theme.colors.accent,
+    fontWeight: "bold",
+    fontFamily: "Courier",
   },
   previewGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     marginHorizontal: -2,
-    marginBottom: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 2,
   },
   previewTile: {
     width: "50%",
-    padding: 2,
+    padding: 1,
   },
   previewTileInner: {
     aspectRatio: 1,
-    borderRadius: 12,
-    backgroundColor: "#E7E2D9",
+    backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
   },
   previewInitial: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#4B5563",
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.muted,
   },
   cardBody: {
-    gap: 6,
-    paddingTop: 4,
-  },
-  cardLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+    gap: 4,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 14,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    letterSpacing: 0.5,
   },
   cardTagline: {
-    fontSize: 13,
-    color: "#374151",
+    fontSize: 10,
+    color: theme.colors.muted,
     fontStyle: "italic",
   },
-  cardMeta: {
-    fontSize: 12,
-    color: "#6B7280",
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: 4,
   },
-  cardPrompt: {
-    fontSize: 13,
-    color: "#1D4ED8",
-    fontWeight: "700",
-    marginTop: 6,
+  cardMeta: {
+    fontSize: 9,
+    color: theme.colors.accent,
+    fontWeight: "bold",
+    letterSpacing: 1,
   },
   emptyState: {
     marginTop: 48,
@@ -357,12 +334,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2937",
+    fontWeight: "bold",
+    color: theme.colors.text,
+    letterSpacing: 1,
   },
   emptyCopy: {
-    fontSize: 13,
-    color: "#6B7280",
+    fontSize: 12,
+    color: theme.colors.muted,
     textAlign: "center",
+    letterSpacing: 1,
   },
 });

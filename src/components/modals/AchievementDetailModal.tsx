@@ -1,8 +1,9 @@
-import React from "react";
-import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import type { AchievementDefinition } from "@/constants/passportContent";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { Ionicons } from "@expo/vector-icons";
+// BlurView removed - using solid overlay instead
+import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ModalCloseButton from "./ModalCloseButton";
 
 type AchievementDetailModalProps = {
   visible: boolean;
@@ -13,64 +14,62 @@ type AchievementDetailModalProps = {
 export function AchievementDetailModal({ visible, achievement, onClose }: AchievementDetailModalProps): JSX.Element {
   if (!achievement) return <></>;
 
-  const statusColor = achievement.missable ? "#F97316" : "#10B981";
+  const statusColor = achievement.missable ? theme.colors.accent : theme.colors.primary;
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
 
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ width: 36 }} />
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#111827" />
-              </TouchableOpacity>
+              <ModalCloseButton onPress={onClose} />
             </View>
 
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
               <View style={styles.iconSection}>
-                <View style={styles.iconBadge}>
-                  <Ionicons name="ribbon" size={48} color="#6B21A8" />
+                <View style={[styles.iconBadge, { borderColor: statusColor }]}>
+                  <Ionicons name="ribbon" size={30} color={statusColor} />
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: `${statusColor}1a` }]}>
-                  <Ionicons name={achievement.missable ? "flash" : "checkmark-circle"} size={16} color={statusColor} />
+                <View style={[styles.statusBadge, { backgroundColor: theme.colors.background, borderColor: statusColor }]}>
+                  <Ionicons name={achievement.missable ? "flash" : "checkmark-circle"} size={12} color={statusColor} />
                   <Text style={[styles.statusText, { color: statusColor }]}>
-                    {achievement.missable ? "Missable" : "Stable"}
+                    {achievement.missable ? "MISSABLE" : "STABLE"}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.achievementTitle}>{achievement.title}</Text>
-                <View style={styles.xpBadge}>
+                <Text style={styles.achievementTitle}>{achievement.title.toUpperCase()}</Text>
+                <View style={[styles.xpBadge, { backgroundColor: theme.colors.primary }]}>
                   <Text style={styles.xpText}>{achievement.xp.toLocaleString()} XP</Text>
                 </View>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Purpose</Text>
+                <Text style={styles.sectionLabel}>PURPOSE</Text>
                 <Text style={styles.description}>{achievement.purpose}</Text>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionLabel}>How to Unlock</Text>
+                <Text style={styles.sectionLabel}>HOW TO UNLOCK</Text>
                 <Text style={styles.description}>{achievement.verification}</Text>
               </View>
 
               <View style={styles.section}>
                 <Text style={styles.footerNote}>
                   {achievement.missable
-                    ? "⚠️ This achievement has a limited-time window. Keep an eye on streak timers."
-                    : "✓ This achievement can be earned anytime."}
+                    ? "WARNING: LIMITED TIME WINDOW DETECTED."
+                    : "STATUS: PERMANENT RECORD AVAILABLE."}
                 </Text>
               </View>
             </ScrollView>
           </View>
         </SafeAreaView>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -80,16 +79,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(245, 245, 245, 0.92)",
   },
   modalContainer: {
-    width: "90%",
-    maxHeight: "80%",
+    width: '85%',
+    maxWidth: 380,
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 0,
     overflow: "hidden",
+    borderWidth: 2,
+    borderColor: theme.colors.border,
   },
   modalHeader: {
     flexDirection: "row",
@@ -100,12 +101,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 8,
   },
   scrollView: {
     maxHeight: 500,
@@ -116,67 +112,78 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#F0E8FB",
+    width: 60,
+    height: 60,
+    borderRadius: 0,
+    backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    transform: [{ rotate: "45deg" }],
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    borderRadius: 999,
+    borderRadius: 0,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderWidth: 1,
+    marginTop: 12,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "bold",
     textTransform: "uppercase",
+    letterSpacing: 1,
   },
   section: {
     paddingHorizontal: 20,
     marginBottom: 20,
   },
   achievementTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.colors.text,
     marginBottom: 12,
     textAlign: "center",
+    letterSpacing: 1,
   },
   xpBadge: {
     alignSelf: "center",
-    backgroundColor: "#1D4ED8",
-    borderRadius: 12,
+    borderRadius: 0,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   xpText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
+    color: theme.colors.background,
+    fontSize: 12,
+    fontWeight: "bold",
+    fontFamily: "Courier",
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280",
+    fontSize: 10,
+    fontWeight: "bold",
+    color: theme.colors.muted,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 1,
     marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    paddingBottom: 4,
   },
   description: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#374151",
+    fontSize: 14,
+    lineHeight: 20,
+    color: theme.colors.text,
+    fontFamily: "Courier",
   },
   footerNote: {
-    fontSize: 13,
-    color: "#6B7280",
+    fontSize: 10,
+    color: theme.colors.muted,
     fontStyle: "italic",
     textAlign: "center",
+    fontFamily: "Courier",
   },
 });
 

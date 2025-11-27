@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from "react";
-import {
-  Modal,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { useEffect, useState } from "react";
+import {
+    Modal,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import ModalCloseButton from "./ModalCloseButton";
 
 type ListEditModalProps = {
   visible: boolean;
@@ -55,9 +55,9 @@ export function ListEditModal({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit List</Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#111827" />
-              </TouchableOpacity>
+              <View style={styles.headerRight}>
+                <ModalCloseButton onPress={onClose} />
+              </View>
             </View>
 
             <View style={styles.form}>
@@ -146,13 +146,8 @@ const styles = StyleSheet.create({
     fontFamily: "Courier",
     letterSpacing: 0.5,
   },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center",
+  headerRight: {
+    zIndex: 1,
   },
   form: {
     padding: 20,

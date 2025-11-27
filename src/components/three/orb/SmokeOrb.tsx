@@ -1,13 +1,15 @@
+import { log } from "@/lib/log";
 import {
   extend,
   ReactThreeFiber,
   useFrame,
   useLoader,
 } from "@react-three/fiber/native";
-import React, { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Color, ShaderMaterial, Texture, TextureLoader, Vector2 } from "three";
-import { log } from "@/lib/log";
+import { Color, ShaderMaterial, Texture, Vector2 } from "three";
+
+import { TextureLoader as ExpoTextureLoader } from "expo-three";
 
 const SMOKE_ATLAS_FALLBACK = require("../../../../assets/textures/smoke_atlas_1080.png");
 const SMOKE_ATLAS_STARTUP_FALLBACK = require("../../../../assets/textures/smoke_atlas_startup_1080.png");
@@ -79,9 +81,9 @@ export function SmokeOrb({
   const startTimeRef = useRef<number | null>(null);
   const hasInitializedRef = useRef<boolean>(false);
 
-  const loopTexture = useLoader<Texture>(TextureLoader, SMOKE_ATLAS_FALLBACK);
-  const startupTexture = useLoader<Texture>(
-    TextureLoader,
+  const loopTexture = useLoader(ExpoTextureLoader, SMOKE_ATLAS_FALLBACK);
+  const startupTexture = useLoader(
+    ExpoTextureLoader,
     SMOKE_ATLAS_STARTUP_FALLBACK
   );
 
@@ -134,6 +136,14 @@ export function SmokeOrb({
       transitionDuration,
     ]
   );
+
+  const loopOffset = useMemo(() => Math.random() * 1000, []);
+
+  useEffect(() => {
+    if (matRef.current) {
+      matRef.current.uniforms.uLoopOffset = { value: loopOffset };
+    }
+  }, [loopOffset]);
 
   useEffect(() => {
     if (meshRef.current) {
@@ -270,6 +280,7 @@ export function SmokeOrb({
           uniform float uStartupAtlasTotalFrames;
           uniform float uStartupDuration;
           uniform float uTransitionDuration;
+          uniform float uLoopOffset;
           varying vec2 vUv;
 
           vec4 sampleAtlas(sampler2D atlas, float frameFloat, float cols, float rows, float totalFrames, vec2 atlasSize, vec2 zoomed) {
@@ -335,14 +346,14 @@ export function SmokeOrb({
               vec4 startupSample = sampleAtlas(uStartupAtlas, startupHoldFrame, uStartupAtlasCols, uStartupAtlasRows, uStartupAtlasTotalFrames, uStartupAtlasSize, zoomed);
 
               // Sample loop (start from beginning)
-              float loopFrameFloat = mod(uTime * loopFps * uAnimationSpeed, loopTotalFrames);
+              float loopFrameFloat = mod((uTime + uLoopOffset) * loopFps * uAnimationSpeed, loopTotalFrames);
               vec4 loopSample = sampleAtlas(uSmokeAtlas, loopFrameFloat, loopCols, loopRows, loopTotalFrames, uAtlasSize, zoomed);
 
               // Crossfade
               texSample = mix(startupSample, loopSample, transitionProgress);
             } else {
               // Phase 3: Only loop animation
-              float loopFrameFloat = mod(uTime * loopFps * uAnimationSpeed, loopTotalFrames);
+              float loopFrameFloat = mod((uTime + uLoopOffset) * loopFps * uAnimationSpeed, loopTotalFrames);
               vec4 loopSample = sampleAtlas(uSmokeAtlas, loopFrameFloat, loopCols, loopRows, loopTotalFrames, uAtlasSize, zoomed);
               texSample = loopSample;
             }

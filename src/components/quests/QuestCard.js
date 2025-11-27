@@ -1,6 +1,7 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 
@@ -33,6 +34,7 @@ const QuestCard = ({
 
   const isDaily = type === 'daily';
   const progressPercent = (progress / total) * 100;
+  const accentColor = isDaily ? theme.colors.primary : theme.colors.secondary;
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -43,7 +45,7 @@ const QuestCard = ({
     <TouchableOpacity
       style={[
         styles.card,
-        isDaily ? styles.dailyCard : styles.weeklyCard,
+        { backgroundColor: accentColor },
         completed && styles.completedCard,
       ]}
       onPress={handlePress}
@@ -51,64 +53,57 @@ const QuestCard = ({
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <View style={[styles.badge, { backgroundColor: '#FFFFFF' }]}>
           <Ionicons
             name={isDaily ? 'sunny' : 'calendar'}
-            size={20}
-            color={isDaily ? '#FF6B35' : '#4ECDC4'}
+            size={10}
+            color={accentColor}
           />
-          <Text style={[styles.questType, isDaily ? styles.dailyText : styles.weeklyText]}>
-            {isDaily ? 'DAILY QUEST' : 'WEEKLY QUEST'}
+          <Text style={[styles.questType, { color: accentColor }]}>
+            {isDaily ? 'DAILY' : 'WEEKLY'}
           </Text>
         </View>
         <View style={styles.timerBadge}>
-          <Ionicons name="time-outline" size={12} color="#666" />
           <Text style={styles.timerText}>{timeRemaining}</Text>
         </View>
       </View>
 
-      {/* Title & Description */}
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+      {/* Content */}
+      <View style={styles.content}>
+        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+        
+        {/* Mission Directive / Actionable Text */}
+        <View style={styles.directiveContainer}>
+          <Text style={styles.directiveLabel}>MISSION DIRECTIVE:</Text>
+          <Text style={styles.directiveText} numberOfLines={2}>
+            {description || "COMPLETE THE OBJECTIVE TO EARN REWARDS."}
+          </Text>
+        </View>
+
+        <View style={styles.metaRow}>
+          <Text style={styles.rewardText}>{reward} XP</Text>
+          <Text style={styles.progressText}>
+            {progress}/{total}
+          </Text>
+        </View>
+      </View>
 
       {/* Progress Bar */}
       {!completed && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${progressPercent}%` },
-                isDaily ? styles.dailyProgress : styles.weeklyProgress,
-              ]}
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {progress} / {total}
-          </Text>
+        <View style={styles.progressBar}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${progressPercent}%` },
+            ]}
+          />
         </View>
       )}
 
-      {/* Rewards Section */}
-      <View style={styles.rewardsContainer}>
-        <View style={styles.rewardBadge}>
-          <Ionicons name="star" size={14} color="#FFD700" />
-          <Text style={styles.rewardText}>{reward} XP</Text>
-        </View>
-
-        {additionalRewards.map((reward, index) => (
-          <View key={index} style={styles.rewardBadge}>
-            <Ionicons name={reward.icon || 'gift'} size={14} color="#8E44AD" />
-            <Text style={styles.rewardText}>{reward.label}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Completed Badge */}
+      {/* Completed Overlay */}
       {completed && (
-        <View style={styles.completedBadge}>
-          <Ionicons name="checkmark-circle" size={18} color="#2ECC71" />
-          <Text style={styles.completedText}>COMPLETED</Text>
+        <View style={styles.completedOverlay}>
+          <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
         </View>
       )}
     </TouchableOpacity>
@@ -117,26 +112,14 @@ const QuestCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 1.5,
-  },
-  dailyCard: {
-    borderColor: '#FF6B35',
-  },
-  weeklyCard: {
-    borderColor: '#4ECDC4',
+    padding: 12,
+    marginBottom: 8,
+    minHeight: 110,
+    justifyContent: 'space-between',
+    borderRadius: 0, // Ensure square corners if desired, or match theme
   },
   completedCard: {
-    opacity: 0.7,
-    borderColor: '#2ECC71',
+    opacity: 0.8,
   },
   header: {
     flexDirection: 'row',
@@ -144,109 +127,92 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  headerLeft: {
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 0,
+    gap: 4,
   },
   questType: {
-    fontSize: 12,
+    fontSize: 8,
     fontWeight: 'bold',
     letterSpacing: 1,
-    marginLeft: 8,
-  },
-  dailyText: {
-    color: '#FF6B35',
-  },
-  weeklyText: {
-    color: '#4ECDC4',
   },
   timerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(0,0,0,0.2)', // Slight dark background for timer
   },
   timerText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    marginLeft: 4,
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontFamily: 'Courier',
+  },
+  content: {
+    marginBottom: 8,
   },
   title: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 6,
+    color: '#FFFFFF',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  description: {
+  directiveContainer: {
+    marginBottom: 8,
+    padding: 6,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderLeftWidth: 2,
+    borderLeftColor: '#FFFFFF',
+  },
+  directiveLabel: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    marginBottom: 2,
+    fontFamily: 'Courier',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  directiveText: {
     fontSize: 14,
-    color: '#555',
-    lineHeight: 18,
-    marginBottom: 12,
+    color: '#FFFFFF',
+    fontFamily: 'Courier',
+    lineHeight: 16,
   },
-  progressContainer: {
-    marginBottom: 12,
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rewardText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    fontFamily: 'Courier',
+    color: '#FFFFFF',
+  },
+  progressText: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: 'bold',
   },
   progressBar: {
-    height: 6,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 4,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    width: '100%',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
   },
-  dailyProgress: {
-    backgroundColor: '#FF6B35',
-  },
-  weeklyProgress: {
-    backgroundColor: '#4ECDC4',
-  },
-  progressText: {
-    fontSize: 12,
-    color: '#888',
-    textAlign: 'right',
-  },
-  rewardsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  rewardBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF9E6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFD700',
-  },
-  rewardText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000',
-    marginLeft: 4,
-  },
-  completedBadge: {
-    flexDirection: 'row',
+  completedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)', // Darken completed cards
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
-    paddingVertical: 6,
-    backgroundColor: '#E8F8F5',
-    borderRadius: 8,
-  },
-  completedText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#2ECC71',
-    marginLeft: 6,
-    letterSpacing: 1,
   },
 });
 

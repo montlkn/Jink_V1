@@ -1,15 +1,16 @@
+import { walksActions } from "@/features/walks";
+import { log } from "@/lib/log";
+import { screens } from "@/navigation/routes";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Animated, SafeAreaView, StyleSheet, View } from "react-native";
-import { walksActions } from "@/features/walks";
-import { log } from "@/lib/log";
 import StreamingInstructionText from "../../components/walk/StreamingInstructionText";
-import TimeSlider from "../../components/walk/TimeSlider";
 import TimerDisplay from "../../components/walk/TimerDisplay";
+import TimeSlider from "../../components/walk/TimeSlider";
+import TimeStepper from "../../components/walk/TimeStepper";
 import { useOrbTransition } from "../../state/orbTransitionContext";
-import { screens } from "@/navigation/routes";
 
 const WalkStartScreen = ({ navigation, route }) => {
   const { pinToJink } = useOrbTransition();
@@ -74,6 +75,24 @@ const WalkStartScreen = ({ navigation, route }) => {
       entryProgress.interpolate({
         inputRange: [0, 1],
         outputRange: [16, 0],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const stepperOpacity = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 0.15, 1],
+        outputRange: [0, 1, 1],
+        extrapolate: "clamp",
+      }),
+    [entryProgress]
+  );
+  const stepperTranslateY = useMemo(
+    () =>
+      entryProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [10, 0],
         extrapolate: "clamp",
       }),
     [entryProgress]
@@ -221,6 +240,9 @@ const WalkStartScreen = ({ navigation, route }) => {
         <Animated.View style={[styles.timerDisplay, { opacity: timerOpacity, transform: [{ translateY: timerTranslateY }] }]}>
           <TimerDisplay value={time} label="minutes" />
         </Animated.View>
+        <Animated.View style={[styles.stepperWrapper, { opacity: stepperOpacity, transform: [{ translateY: stepperTranslateY }] }]}>
+          <TimeStepper value={time} onChange={setTime} min={5} max={90} />
+        </Animated.View>
         <Animated.View
           style={[
             styles.sliderOrbWrapper,
@@ -277,7 +299,7 @@ const styles = StyleSheet.create({
   },
   sliderOrbWrapper: {
     position: "absolute",
-    top: 0,
+    top: 60,
     left: 0,
     right: 0,
     bottom: 0,
@@ -287,6 +309,13 @@ const styles = StyleSheet.create({
   timerDisplay: {
     position: "absolute",
     top: 64,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  stepperWrapper: {
+    position: "absolute",
+    top: 180,
     left: 0,
     right: 0,
     alignItems: "center",

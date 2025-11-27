@@ -1,36 +1,35 @@
-
+import ArchetypeOrb from '@/features/orb/ArchetypeOrb';
+import { PassportBackButton } from '@/features/passport';
+import {
+  fetchSummary,
+  getUserAestheticProfile,
+  regenerateSummary,
+} from '@/features/profile';
+import { log } from '@/lib/log';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import {
-  getUserAestheticProfile,
-  fetchSummary,
-  regenerateSummary,
-} from '@/features/profile';
 import { useAuth } from '../../auth/authProvider';
-import ArchetypeDonutSkia from '../../components/charts/ArchetypeDonutSkia';
-import ArchetypeOrb from '@/features/orb/ArchetypeOrb';
+import ArchetypePieChart from '../../components/charts/ArchetypePieChart';
+import SegmentModal from '../../components/modals/SegmentModal';
 import AnimatedSummaryText from '../../components/profile/AnimatedSummaryText';
 import { getArchetypeColor } from '../../constants/archetypeColors';
-import ArchetypeDetailModal from '../../components/modals/ArchetypeDetailModal';
-import SegmentModal from '../../components/modals/SegmentModal';
 import { getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
 import { composeLocalSummary } from '../../services/ai/localSummary';
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
-import { log } from '@/lib/log';
 
 const REQUIRED_PROMPT_VERSION = 'prompt-v2';
 const MAX_SUMMARY_REFRESH_ATTEMPTS = 2;
@@ -182,9 +181,6 @@ function formatSuggestionLabel(phrase) {
     .join(' ');
 }
 
-/**
- * Format relative time (e.g., "2 hours ago")
- */
 const formatRelativeTime = (isoDateString) => {
   try {
     const date = new Date(isoDateString);
@@ -214,8 +210,7 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [highlightedArchetype] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedArchetype, setSelectedArchetype] = useState(null);
+
   const [segmentModalVisible, setSegmentModalVisible] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState(null);
   const scrollViewRef = useRef();
@@ -451,30 +446,57 @@ const ProfileDetailScreen = ({ navigation }) => {
     }
   };
 
-  const handleMoreInfoFromSegment = (segmentData) => {
-    // Close segment modal first
-    setSegmentModalVisible(false);
+  const [expandedArchetype, setExpandedArchetype] = useState(null);
+  const [expandedQualities, setExpandedQualities] = useState({});
+  const [expandedSections, setExpandedSections] = useState({});
 
-    // Get detailed info and open detail modal
+  const toggleQuality = useCallback((archetypeKey, qualityIndex) => {
+    const key = `${archetypeKey}-${qualityIndex}`;
+    setExpandedQualities(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  }, []);
+
+  const toggleSection = useCallback((archetypeKey, sectionName) => {
+    const key = `${archetypeKey}-${sectionName}`;
+    setExpandedSections(prev => ({
+      ...prev,
+      [key]: prev[key] === undefined ? false : !prev[key]
+    }));
+  }, []);
+
+  const isSectionExpanded = useCallback((archetypeKey, sectionName) => {
+    const key = `${archetypeKey}-${sectionName}`;
+    return expandedSections[key] !== false;
+  }, [expandedSections]);
+
+  const handleMoreInfoFromSegment = (segmentData) => {
+    setSegmentModalVisible(false);
     const detailedInfo = getDetailedArchetypeInfo(segmentData.archetype);
     if (detailedInfo) {
-      setSelectedArchetype(detailedInfo);
-      setModalVisible(true);
+      // Assuming we want to expand this archetype when clicked from segment
+      if (expandedArchetype === segmentData.archetype) {
+        setExpandedArchetype(null);
+      } else {
+        setExpandedArchetype(segmentData.archetype);
+        console.log('[ProfileDetail] Expanding archetype from segment:', segmentData.archetype, detailedInfo);
+      }
     }
   };
 
   const handleArchetypePress = (archetypeName) => {
-    const detailedInfo = getDetailedArchetypeInfo(archetypeName);
-    if (detailedInfo) {
-      setSelectedArchetype(detailedInfo);
-      setModalVisible(true);
+    // Toggle expansion instead of modal
+    if (expandedArchetype === archetypeName) {
+      setExpandedArchetype(null);
+    } else {
+      setExpandedArchetype(archetypeName);
+      const detailedInfo = getDetailedArchetypeInfo(archetypeName);
+      console.log('[ProfileDetail] Expanding archetype:', archetypeName, detailedInfo);
     }
   };
 
-  const closeModal = () => {
-    setModalVisible(false);
-    setSelectedArchetype(null);
-  };
+
 
   const closeSegmentModal = () => {
     setSegmentModalVisible(false);
@@ -490,8 +512,9 @@ const ProfileDetailScreen = ({ navigation }) => {
 
     const detailedInfo = getDetailedArchetypeInfo(targetArchetype);
     if (detailedInfo) {
-      setSelectedArchetype(detailedInfo);
-      setModalVisible(true);
+      setExpandedArchetype(targetArchetype);
+      // setModalVisible(true); // Removed modal
+      initialArchetypeRef.current = targetArchetype;
       initialArchetypeRef.current = targetArchetype;
       navigation.setParams?.({ initialArchetype: null });
     }
@@ -560,37 +583,15 @@ const ProfileDetailScreen = ({ navigation }) => {
     [profile?.secondary_archetype]
   );
 
-  const centerGlowColor = useMemo(() => {
-    if (primaryInfo?.color) return primaryInfo.color;
-    if (donutSlices.length > 0 && donutSlices[0]?.color) {
-      return donutSlices[0].color;
-    }
-    return undefined;
-  }, [primaryInfo?.color, donutSlices]);
-
-  const donutSize = 380;
-  const donutInnerRadiusRatio = 0.2;
-  const centerOrbSize = Math.max(120, Math.round(donutSize * donutInnerRadiusRatio));
-
-  const donutDecorator = useMemo(() => {
-    try {
-      const source = Image.resolveAssetSource(
-        require('../../../assets/decorators/donutFlipMarker.svg')
-      );
-      if (!source?.uri) return undefined;
-      return { uri: source.uri, size: 28 };
-    } catch (error) {
-      log.warn('[ProfileDetail] donut decorator missing', error);
-      return undefined;
-    }
-  }, []);
+  const donutSize = 300;
+  const centerOrbSize = 80;
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000" />
-          <Text style={styles.loadingText}>Loading your profile...</Text>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>LOADING PROFILE...</Text>
         </View>
       </SafeAreaView>
     );
@@ -600,16 +601,14 @@ const ProfileDetailScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Aesthetic Profile</Text>
+          <PassportBackButton onPress={() => navigation.goBack()} />
+          <Text style={styles.headerTitle}>AESTHETIC PROFILE</Text>
           <View style={{ width: 24 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Unable to load profile</Text>
+          <Text style={styles.errorText}>UNABLE TO LOAD PROFILE</Text>
           <TouchableOpacity onPress={loadUserProfile} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>RETRY</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -638,17 +637,15 @@ const ProfileDetailScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.bannerContainer}>
         <LinearGradient
-          colors={["rgba(255,255,255,1)", "rgba(255,255,255,0)"]}
+          colors={[theme.colors.background, "rgba(242,242,242,0)"]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Aesthetic Profile</Text>
+          <PassportBackButton onPress={() => navigation.goBack()} />
+          <Text style={styles.headerTitle}>AESTHETIC PROFILE</Text>
           <View style={{ width: 24 }} />
         </View>
       </View>
@@ -661,18 +658,16 @@ const ProfileDetailScreen = ({ navigation }) => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#000"
-            colors={['#000']}
+            tintColor={theme.colors.text}
+            colors={[theme.colors.text]}
           />
         }
       >
         <View style={styles.chartSection}>
           <View style={[styles.donutWrapper, { width: donutSize, height: donutSize }]}>
-            <ArchetypeDonutSkia
+            <ArchetypePieChart
               data={donutSlices}
               size={donutSize}
-              centerGlowColor={centerGlowColor}
-              decorator={donutDecorator}
             />
             <View style={styles.donutOrbOverlay} pointerEvents="none">
               <ArchetypeOrb
@@ -686,19 +681,19 @@ const ProfileDetailScreen = ({ navigation }) => {
 
         {/* AI-Generated Profile Summary Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Aesthetic Profile</Text>
           <View style={styles.summaryCard}>
+            <Text style={styles.sectionTitle}>YOUR AESTHETIC PROFILE</Text>
             {summaryPending && (
               <View style={styles.summaryPendingRow}>
                 <ActivityIndicator
                   size="small"
-                  color="#666"
+                  color={theme.colors.text}
                   style={styles.summarySpinner}
                 />
                 <Text style={styles.pendingLabel}>
                   {aiSummary?.placeholder
-                    ? 'Personalizing your aesthetic profile…'
-                    : 'Refreshing with your latest signals…'}
+                    ? 'PERSONALIZING YOUR PROFILE...'
+                    : 'REFRESHING SIGNALS...'}
                 </Text>
               </View>
             )}
@@ -720,14 +715,14 @@ const ProfileDetailScreen = ({ navigation }) => {
             />
             {summaryGeneratedAt && !summaryPlaceholder && summaryText && (
               <Text style={styles.generatedAtText}>
-                Generated {formatRelativeTime(summaryGeneratedAt)}
+                GENERATED {formatRelativeTime(summaryGeneratedAt).toUpperCase()}
               </Text>
             )}
             {suggestionPills.length > 0 && (
               <View style={styles.summarySuggestions}>
                 {suggestionPills.slice(0, 6).map((label, index) => (
                   <View key={`${label}-${index}`} style={styles.suggestionPill}>
-                    <Text style={styles.suggestionPillText}>{label}</Text>
+                    <Text style={styles.suggestionPillText}>{label.toUpperCase()}</Text>
                   </View>
                 ))}
               </View>
@@ -738,19 +733,19 @@ const ProfileDetailScreen = ({ navigation }) => {
         {/* Primary Archetype Section */}
         {primaryInfo && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Primary Archetype</Text>
             <View style={[styles.archetypeCard, { borderLeftColor: primaryInfo.color }]}>
-              <Text style={styles.archetypeName}>{primaryInfo.name}</Text>
+              <Text style={styles.sectionTitle}>PRIMARY ARCHETYPE</Text>
+              <Text style={styles.archetypeName}>{primaryInfo.name.toUpperCase()}</Text>
               <Text style={styles.archetypeDescription}>{primaryInfo.description}</Text>
               <View style={styles.vibeContainer}>
-                <Text style={styles.vibeTitle}>Key Characteristics:</Text>
+                <Text style={styles.vibeTitle}>KEY CHARACTERISTICS:</Text>
                 <View style={styles.vibeList}>
                   {primaryInfo.vibe.map((trait, index) => (
                     <View 
                       key={index} 
-                      style={[styles.vibeTag, { backgroundColor: `${primaryInfo.color}20` }]}
+                      style={[styles.vibeTag, { backgroundColor: theme.colors.surface, borderColor: primaryInfo.color, borderWidth: 1 }]}
                     >
-                      <Text style={[styles.vibeText, { color: primaryInfo.color }]}>{trait}</Text>
+                      <Text style={[styles.vibeText, { color: theme.colors.text }]}>{trait.toUpperCase()}</Text>
                     </View>
                   ))}
                 </View>
@@ -762,19 +757,19 @@ const ProfileDetailScreen = ({ navigation }) => {
         {/* Secondary Archetype Section */}
         {secondaryInfo && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Secondary Archetype</Text>
             <View style={[styles.archetypeCard, { borderLeftColor: secondaryInfo.color }]}>
-              <Text style={styles.archetypeName}>{secondaryInfo.name}</Text>
+              <Text style={styles.sectionTitle}>SECONDARY ARCHETYPE</Text>
+              <Text style={styles.archetypeName}>{secondaryInfo.name.toUpperCase()}</Text>
               <Text style={styles.archetypeDescription}>{secondaryInfo.description}</Text>
               <View style={styles.vibeContainer}>
-                <Text style={styles.vibeTitle}>Key Characteristics:</Text>
+                <Text style={styles.vibeTitle}>KEY CHARACTERISTICS:</Text>
                 <View style={styles.vibeList}>
                   {secondaryInfo.vibe.slice(0, 4).map((trait, index) => (
                     <View 
                       key={index} 
-                      style={[styles.vibeTag, { backgroundColor: `${secondaryInfo.color}20` }]}
+                      style={[styles.vibeTag, { backgroundColor: theme.colors.surface, borderColor: secondaryInfo.color, borderWidth: 1 }]}
                     >
-                      <Text style={[styles.vibeText, { color: secondaryInfo.color }]}>{trait}</Text>
+                      <Text style={[styles.vibeText, { color: theme.colors.text }]}>{trait.toUpperCase()}</Text>
                     </View>
                   ))}
                 </View>
@@ -783,12 +778,11 @@ const ProfileDetailScreen = ({ navigation }) => {
           </View>
         )}
 
-        {/* Aesthetic Affinities - moved to bottom */}
+        {/* Aesthetic Affinities */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Aesthetic Affinities</Text>
           <View style={styles.scoresContainer}>
+            <Text style={styles.sectionTitle}>AESTHETIC AFFINITIES</Text>
             {chartData.map((item, index) => {
-              // Check if this archetype has subtypes
               const hasInfrastructuralistSubtype = item.archetype === 'industrialist' && profile.archetype_scores?.infrastructuralist > 0;
               const hasNaturalistSubtype = item.archetype === 'vernacularist' && profile.archetype_scores?.naturalist > 0;
               
@@ -801,15 +795,20 @@ const ProfileDetailScreen = ({ navigation }) => {
                   >
                     <View style={styles.scoreInfo}>
                       <View style={[styles.colorDot, { backgroundColor: item.color }]} />
-                      <Text style={styles.scoreName}>{item.name}</Text>
+                      <Text style={styles.scoreName}>{item.name.toUpperCase()}</Text>
                     </View>
                     <View style={styles.scoreValues}>
                       <Text style={styles.scorePercentage}>{item.percentage}%</Text>
-                      <Text style={styles.scorePoints}>({item.score} pts)</Text>
+                      <Text style={styles.scorePoints}>({item.score} PTS)</Text>
                     </View>
+                    <Ionicons 
+                      name={expandedArchetype === item.archetype ? "chevron-up" : "chevron-down"} 
+                      size={16} 
+                      color={theme.colors.muted}
+                      style={{ marginLeft: 12 }}
+                    />
                   </TouchableOpacity>
                   
-                  {/* Show infrastructuralist subtype if applicable */}
                   {hasInfrastructuralistSubtype && (
                     <TouchableOpacity 
                       style={[styles.scoreRow, styles.subtypeRow]}
@@ -819,18 +818,17 @@ const ProfileDetailScreen = ({ navigation }) => {
                       <View style={styles.scoreInfo}>
                         <View style={styles.subtypeIndent} />
                         <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: getArchetypeColor('Infrastructuralist') }]} />
-                        <Text style={[styles.scoreName, styles.subtypeName]}>The Infrastructuralist</Text>
+                        <Text style={[styles.scoreName, styles.subtypeName]}>THE INFRASTRUCTURALIST</Text>
                       </View>
                       <View style={styles.scoreValues}>
                         <Text style={[styles.scorePercentage, styles.subtypePercentage]}>
                           {Math.round((profile.archetype_scores.infrastructuralist / Object.values(profile.archetype_scores).reduce((sum, score) => sum + Math.max(0, score), 0)) * 100)}%
                         </Text>
-                        <Text style={[styles.scorePoints, styles.subtypePoints]}>({profile.archetype_scores.infrastructuralist} pts)</Text>
                       </View>
+                      <View style={{ width: 16, marginLeft: 12 }} />
                     </TouchableOpacity>
                   )}
-                  
-                  {/* Show naturalist subtype if applicable */}
+
                   {hasNaturalistSubtype && (
                     <TouchableOpacity 
                       style={[styles.scoreRow, styles.subtypeRow]}
@@ -840,15 +838,169 @@ const ProfileDetailScreen = ({ navigation }) => {
                       <View style={styles.scoreInfo}>
                         <View style={styles.subtypeIndent} />
                         <View style={[styles.colorDot, styles.subtypeDot, { backgroundColor: getArchetypeColor('Naturalist') }]} />
-                        <Text style={[styles.scoreName, styles.subtypeName]}>The Naturalist</Text>
+                        <Text style={[styles.scoreName, styles.subtypeName]}>THE NATURALIST</Text>
                       </View>
                       <View style={styles.scoreValues}>
                         <Text style={[styles.scorePercentage, styles.subtypePercentage]}>
                           {Math.round((profile.archetype_scores.naturalist / Object.values(profile.archetype_scores).reduce((sum, score) => sum + Math.max(0, score), 0)) * 100)}%
                         </Text>
-                        <Text style={[styles.scorePoints, styles.subtypePoints]}>({profile.archetype_scores.naturalist} pts)</Text>
                       </View>
+                      <View style={{ width: 16, marginLeft: 12 }} />
                     </TouchableOpacity>
+                  )}
+
+                  {/* Expanded Content */}
+                  {(expandedArchetype === item.archetype || 
+                    (item.archetype === 'industrialist' && expandedArchetype === 'infrastructuralist') ||
+                    (item.archetype === 'vernacularist' && expandedArchetype === 'naturalist')) && (
+                    <View style={styles.expandedInfoContainer}>
+                       {(() => {
+                         const archetypeToShow = (expandedArchetype === 'infrastructuralist' && item.archetype === 'industrialist') 
+                           ? 'infrastructuralist' 
+                           : (expandedArchetype === 'naturalist' && item.archetype === 'vernacularist')
+                           ? 'naturalist'
+                           : item.archetype;
+                         const info = getDetailedArchetypeInfo(archetypeToShow);
+                         if (!info) return null;
+                         return (
+                           <View style={styles.expandedContent}>
+                                                          {/* Section 1: Core Concept */}
+                              <View style={styles.expandedSection}>
+                                <TouchableOpacity 
+                                  style={styles.expandedHeaderRow}
+                                  onPress={() => toggleSection(archetypeToShow, 'coreConcept')}
+                                  activeOpacity={0.7}
+                                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                >
+                                  <View style={styles.expandedHeaderPill}>
+                                    <Text style={styles.expandedHeaderPillText}>CORE CONCEPT</Text>
+                                  </View>
+                                  <View style={styles.expandedHeaderLine} />
+                                  <Ionicons 
+                                    name={isSectionExpanded(archetypeToShow, 'coreConcept') ? "chevron-up" : "chevron-down"} 
+                                    size={14} 
+                                    color={theme.colors.background}
+                                    style={styles.sectionChevron}
+                                  />
+                                </TouchableOpacity>
+                                {isSectionExpanded(archetypeToShow, 'coreConcept') && (
+                                  <Text style={styles.expandedCoreConcept}>{info.coreConcept}</Text>
+                                )}
+                              </View>
+
+                              {/* Section 2: Core Qualities */}
+                              <View style={styles.expandedSection}>
+                                <TouchableOpacity 
+                                  style={styles.expandedHeaderRow}
+                                  onPress={() => toggleSection(archetypeToShow, 'qualities')}
+                                  activeOpacity={0.7}
+                                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                >
+                                  <View style={styles.expandedHeaderPill}>
+                                    <Text style={styles.expandedHeaderPillText}>QUALITIES</Text>
+                                  </View>
+                                  <View style={styles.expandedHeaderLine} />
+                                  <Ionicons 
+                                    name={isSectionExpanded(archetypeToShow, 'qualities') ? "chevron-up" : "chevron-down"} 
+                                    size={14} 
+                                    color={theme.colors.background}
+                                    style={styles.sectionChevron}
+                                  />
+                                </TouchableOpacity>
+                                {isSectionExpanded(archetypeToShow, 'qualities') && (
+                                <View style={styles.expandedQualitiesContainer}>
+                                  {info.coreQualities.map((quality, qIdx) => {
+                                    const [title, ...descParts] = quality.split(':');
+                                    const description = descParts.join(':').trim();
+                                    const qualityKey = `${archetypeToShow}-${qIdx}`;
+                                    const isExpanded = expandedQualities[qualityKey];
+                                    
+                                    return (
+                                      <View key={qIdx} style={styles.qualityRow}>
+                                        <TouchableOpacity 
+                                          style={styles.qualityPillContainer}
+                                          onPress={() => toggleQuality(archetypeToShow, qIdx)}
+                                          activeOpacity={0.7}
+                                        >
+                                          <View style={styles.qualityPill}>
+                                            <Text style={styles.qualityPillText}>{title.trim().toUpperCase()}</Text>
+                                          </View>
+                                          <Ionicons 
+                                            name={isExpanded ? "chevron-up" : "chevron-down"} 
+                                            size={14} 
+                                            color={theme.colors.text}
+                                            style={{ marginLeft: 8 }}
+                                          />
+                                        </TouchableOpacity>
+                                        {description && isExpanded && (
+                                          <Text style={styles.qualityDescription}>{description}</Text>
+                                        )}
+                                      </View>
+                                    );
+                                  })}
+                                </View>
+                                )}
+                              </View>
+
+                              {/* Section 3: Urban Expression */}
+                              <View style={styles.expandedSection}>
+                                <TouchableOpacity 
+                                  style={styles.expandedHeaderRow}
+                                  onPress={() => toggleSection(archetypeToShow, 'expression')}
+                                  activeOpacity={0.7}
+                                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                >
+                                  <View style={styles.expandedHeaderPill}>
+                                    <Text style={styles.expandedHeaderPillText}>EXPRESSION</Text>
+                                  </View>
+                                  <View style={styles.expandedHeaderLine} />
+                                  <Ionicons 
+                                    name={isSectionExpanded(archetypeToShow, 'expression') ? "chevron-up" : "chevron-down"} 
+                                    size={14} 
+                                    color={theme.colors.background}
+                                    style={styles.sectionChevron}
+                                  />
+                                </TouchableOpacity>
+                                {isSectionExpanded(archetypeToShow, 'expression') && (
+                                  <Text style={styles.expandedUrbanText}>{info.urbanExpression}</Text>
+                                )}
+                              </View>
+
+                              {/* Section 4: Related Movements */}
+                              {info.umbrellaMovements && info.umbrellaMovements.length > 0 && (
+                                <View style={styles.expandedSection}>
+                                  <TouchableOpacity 
+                                    style={styles.expandedHeaderRow}
+                                    onPress={() => toggleSection(archetypeToShow, 'related')}
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                  >
+                                    <View style={styles.expandedHeaderPill}>
+                                      <Text style={styles.expandedHeaderPillText}>RELATED</Text>
+                                    </View>
+                                    <View style={styles.expandedHeaderLine} />
+                                    <Ionicons 
+                                      name={isSectionExpanded(archetypeToShow, 'related') ? "chevron-up" : "chevron-down"} 
+                                      size={14} 
+                                      color={theme.colors.background}
+                                      style={styles.sectionChevron}
+                                    />
+                                  </TouchableOpacity>
+                                  {isSectionExpanded(archetypeToShow, 'related') && (
+                                    <View style={styles.expandedMovementsContainer}>
+                                      {info.umbrellaMovements.map((movement, mIdx) => (
+                                        <View key={mIdx} style={styles.movementPill}>
+                                          <Text style={styles.movementPillText}>{movement.toUpperCase()}</Text>
+                                        </View>
+                                      ))}
+                                    </View>
+                                  )}
+                                </View>
+                              )}
+                            </View>
+                          );
+                       })()}
+                    </View>
                   )}
                 </View>
               );
@@ -856,13 +1008,8 @@ const ProfileDetailScreen = ({ navigation }) => {
           </View>
         </View>
 
-      </ScrollView>
 
-      <ArchetypeDetailModal
-        visible={modalVisible}
-        archetype={selectedArchetype}
-        onClose={closeModal}
-      />
+      </ScrollView>
 
       <SegmentModal
         visible={segmentModalVisible}
@@ -877,7 +1024,7 @@ const ProfileDetailScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -899,15 +1046,17 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 160,
+    paddingTop: 140,
     paddingBottom: 40,
   },
   loadingContainer: {
@@ -917,8 +1066,10 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: theme.colors.muted,
+    fontFamily: 'Courier',
+    letterSpacing: 1,
   },
   errorContainer: {
     flex: 1,
@@ -926,27 +1077,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 18,
-    color: '#666',
+    fontSize: 16,
+    color: theme.colors.muted,
     marginBottom: 20,
+    fontFamily: 'Courier',
   },
   retryButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#000',
-    borderRadius: 25,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 0,
   },
   retryText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
+    color: theme.colors.background,
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
   chartSection: {
     alignItems: 'center',
-    paddingVertical: 25,
+    paddingVertical: 20,
     paddingHorizontal: 20,
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 0,
   },
   donutWrapper: {
     position: 'relative',
@@ -957,28 +1110,27 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
+    elevation: 10,
   },
   section: {
     marginHorizontal: 20,
     marginTop: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   scoresContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 0,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -986,10 +1138,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.border,
   },
   highlightedRow: {
-    backgroundColor: '#f0f8ff',
+    backgroundColor: theme.colors.background,
   },
   scoreInfo: {
     flexDirection: 'row',
@@ -997,61 +1149,63 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 0,
     marginRight: 12,
   },
   scoreName: {
-    fontSize: 14,
-    color: '#000',
-    fontWeight: '500',
+    fontSize: 12,
+    color: theme.colors.text,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   scoreValues: {
     alignItems: 'flex-end',
   },
   scorePercentage: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
+    fontFamily: 'Courier',
   },
   scorePoints: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 10,
+    color: theme.colors.muted,
+    fontFamily: 'Courier',
   },
   archetypeCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 0,
     padding: 20,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   archetypeName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
     marginBottom: 8,
+    letterSpacing: 1,
   },
   archetypeDescription: {
-    fontSize: 15,
-    color: '#333',
-    lineHeight: 22,
+    fontSize: 14,
+    color: theme.colors.text,
+    lineHeight: 20,
     marginBottom: 16,
+    fontFamily: 'Courier',
   },
   vibeContainer: {
     marginTop: 8,
   },
   vibeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: theme.colors.muted,
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   vibeList: {
     flexDirection: 'row',
@@ -1061,61 +1215,58 @@ const styles = StyleSheet.create({
   vibeTag: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: 0,
     marginBottom: 6,
   },
   vibeText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   summaryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 0,
     padding: 20,
     minHeight: 140,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: theme.colors.border,
   },
   subtypeRow: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: theme.colors.background,
     marginLeft: 0,
   },
   subtypeIndent: {
-    width: 20,
+    width: 0,
     height: 1,
   },
   subtypeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 0,
   },
   subtypeName: {
-    fontSize: 13,
-    color: '#555',
+    fontSize: 11,
+    color: theme.colors.muted,
     fontStyle: 'italic',
   },
   subtypePercentage: {
-    fontSize: 14,
-    color: '#555',
+    fontSize: 12,
+    color: theme.colors.muted,
   },
   subtypePoints: {
-    fontSize: 11,
-    color: '#888',
+    fontSize: 10,
+    color: theme.colors.muted,
   },
   aiSummaryText: {
-    fontSize: 16,
-    color: '#000',
-    lineHeight: 24,
+    fontSize: 14,
+    color: '#000000',
+    lineHeight: 22,
     marginBottom: 12,
     fontWeight: '500',
+    fontFamily: 'Courier',
   },
   placeholderSummaryText: {
-    color: '#555',
+    color: theme.colors.muted,
     fontStyle: 'italic',
   },
   summarySpinner: {
@@ -1127,14 +1278,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pendingLabel: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 12,
+    color: theme.colors.muted,
+    fontFamily: 'Courier',
   },
   generatedAtText: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 10,
+    color: theme.colors.muted,
     marginTop: 8,
     fontStyle: 'italic',
+    fontFamily: 'Courier',
   },
   summarySuggestions: {
     flexDirection: 'row',
@@ -1142,18 +1295,136 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   suggestionPill: {
-    backgroundColor: '#f3f3f3',
-    borderRadius: 999,
+    backgroundColor: theme.colors.background,
+    borderRadius: 0,
     paddingVertical: 6,
     paddingHorizontal: 14,
     marginRight: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   suggestionPillText: {
+    fontSize: 10,
+    color: theme.colors.text,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  expandedInfoContainer: {
+    backgroundColor: theme.colors.background,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    marginTop: 0,
+  },
+  expandedContent: {
+    padding: 16,
+    paddingTop: 24,
+  },
+  expandedSection: {
+    marginBottom: 24,
+  },
+  expandedHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  expandedHeaderPill: {
+    backgroundColor: theme.colors.text,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  expandedHeaderPillText: {
+    color: theme.colors.background,
     fontSize: 12,
-    color: '#333',
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    fontWeight: 'bold',
+    fontFamily: 'Courier',
+    letterSpacing: 1,
+  },
+  expandedHeaderLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.border,
+    opacity: 0.5,
+  },
+  sectionChevron: {
+    marginLeft: 8,
+    backgroundColor: theme.colors.text,
+    borderRadius: 10,
+    padding: 2,
+  },
+  expandedCoreConcept: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: theme.colors.text,
+    fontFamily: 'monospace',
+    marginBottom: 12,
+  },
+  expandedQualitiesContainer: {
+    gap: 12,
+  },
+  qualityRow: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  qualityPillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  qualityPill: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.text,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  qualityPillText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    fontFamily: 'Courier',
+    letterSpacing: 0.5,
+  },
+  qualityDescription: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: theme.colors.text,
+    fontFamily: 'monospace',
+    flex: 1,
+    marginTop: 4,
+    paddingLeft: 4,
+  },
+  expandedUrbanText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: theme.colors.text,
+    fontFamily: 'monospace',
+    paddingLeft: 4,
+  },
+  expandedMovementsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingLeft: 4,
+  },
+  movementPill: {
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.muted,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  movementPillText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: theme.colors.muted,
+    fontFamily: 'Courier',
+    letterSpacing: 0.5,
   },
 });
 

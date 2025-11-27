@@ -1,35 +1,36 @@
+import { stampCollection, type StampDefinition } from "@/constants/passportContent";
+import { PassportBackButton, PassportInfoButton, PassportStamp, StampDetailModal } from "@/features/passport";
+import { screens, type RootParams } from "@/navigation/routes";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import * as Haptics from "expo-haptics";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native";
-import * as Haptics from "expo-haptics";
-import { stampCollection, type StampDefinition } from "@/constants/passportContent";
-import { screens, type RootParams } from "@/navigation/routes";
-import { PassportStamp, PassportBackdrop, PassportInfoButton, StampDetailModal } from "@/features/passport";
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportStamps>;
 
 const rarityPalette: Record<StampDefinition["rarity"], string> = {
-  common: "#6B7280",
-  rare: "#2563EB",
-  epic: "#7C3AED",
-  legendary: "#DC2626",
+  common: theme.colors.muted,
+  rare: theme.colors.secondary,
+  epic: theme.colors.primary,
+  legendary: theme.colors.accent,
 };
 
 const rarityLabel: Record<StampDefinition["rarity"], string> = {
-  common: "Common",
-  rare: "Rare (Quest)",
-  epic: "Epic (Achievement)",
-  legendary: "Legendary",
+  common: "COMMON",
+  rare: "RARE",
+  epic: "EPIC",
+  legendary: "LEGENDARY",
 };
 
 function formatDate(isoDate: string): string {
@@ -38,9 +39,9 @@ function formatDate(isoDate: string): string {
     return isoDate;
   }
   return date.toLocaleDateString("en-US", {
-    month: "short",
+    month: "numeric",
     day: "numeric",
-    year: "numeric",
+    year: "2-digit",
   });
 }
 
@@ -57,7 +58,6 @@ function StampCard({ item, pinned, onLongPress, onPress }: StampCardProps) {
 
   const handlePressIn = () => {
     setIsLongPressing(true);
-    // Light haptic on press to indicate interactivity
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
   };
 
@@ -66,14 +66,13 @@ function StampCard({ item, pinned, onLongPress, onPress }: StampCardProps) {
   };
 
   const handleLongPressActivate = () => {
-    // Medium haptic when long press activates
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
     onLongPress(item.id);
   };
 
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       onPress={() => onPress(item)}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -81,27 +80,23 @@ function StampCard({ item, pinned, onLongPress, onPress }: StampCardProps) {
       delayLongPress={500}
       style={[
         styles.cardTouchable,
+        { borderColor: pinned ? theme.colors.accent : theme.colors.border },
         isLongPressing && styles.cardTouchablePressing,
       ]}
     >
-      <View style={styles.stampWrapper}>
-        <PassportStamp stamp={item.title} date={item.issuedAt} />
-        {pinned ? (
-          <View style={[styles.pinBadge, { backgroundColor: strokeColor }]}>
-            <Ionicons name="star" size={16} color="#fff" />
-          </View>
-        ) : null}
+      <View style={styles.cardHeader}>
+        <View style={[styles.rarityIndicator, { backgroundColor: strokeColor }]} />
+        {pinned && <Ionicons name="star" size={10} color={theme.colors.accent} />}
       </View>
+      
+      <View style={styles.stampWrapper}>
+        <PassportStamp stamp={item.title} date={item.issuedAt} size={80} />
+      </View>
+
       <View style={styles.cardBody}>
-        <View style={styles.cardTop}>
-          <Text numberOfLines={2} style={styles.cardTitle}>{item.title}</Text>
-          <View style={[styles.rarityBadge, { borderColor: strokeColor }]}>
-            <Text style={[styles.rarityText, { color: strokeColor }]}>{rarityLabel[item.rarity]}</Text>
-          </View>
-          <Text style={styles.cardMeta}>{item.source}</Text>
-          <Text numberOfLines={3} style={styles.cardDescription}>{item.description}</Text>
-        </View>
-        <Text style={styles.cardFooter}>Issued {formatDate(item.issuedAt)}</Text>
+        <Text numberOfLines={1} style={styles.cardTitle}>{item.title}</Text>
+        <Text style={[styles.rarityText, { color: strokeColor }]}>{rarityLabel[item.rarity]}</Text>
+        <Text style={styles.dateText}>{formatDate(item.issuedAt)}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -130,12 +125,9 @@ export default function StampsScreen(): JSX.Element {
       const wasUnpinned = !next[id];
       next[id] = !next[id];
 
-      // Success haptic with different feedback for pin vs unpin
       if (wasUnpinned) {
-        // Heavier haptic for pinning
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => null);
       } else {
-        // Lighter haptic for unpinning
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
       }
 
@@ -145,19 +137,16 @@ export default function StampsScreen(): JSX.Element {
 
   const handleInfo = useCallback(() => {
     Alert.alert(
-      "Passport Stamps",
-      "Stamps record every discovery, quest finish, and curated honor you unlock. Collect them to track your aesthetic journey and reveal hidden bonuses when sets are completed."
+      "PASSPORT STAMPS",
+      "COLLECT STAMPS TO TRACK YOUR AESTHETIC JOURNEY."
     );
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
-      <PassportBackdrop tailColor="#F8F5EE" />
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Passport Stamps</Text>
+        <PassportBackButton onPress={() => navigation.goBack()} style={styles.backButton} />
+        <Text style={styles.headerTitle}>PASSPORT STAMPS</Text>
         <PassportInfoButton
           style={styles.infoButton}
           onPress={handleInfo}
@@ -166,8 +155,7 @@ export default function StampsScreen(): JSX.Element {
       </View>
 
       <Text style={styles.subheader}>
-        {sortedStamps.length} stamp{sortedStamps.length !== 1 ? "s" : ""} recorded · Long-press any
-        tile to toggle its pinned state.
+        {sortedStamps.length} RECORDED // LONG-PRESS TO PIN
       </Text>
 
       <FlatList
@@ -199,49 +187,40 @@ export default function StampsScreen(): JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F5EE",
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    gap: 12,
-    zIndex: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
+    width: 44,
   },
   headerTitle: {
     flex: 1,
-    textAlign: "center",
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#0F172A",
-    letterSpacing: 0.6,
-    marginBottom: 2,
+    color: theme.colors.text,
+    letterSpacing: 1,
+    textAlign: "center",
   },
   infoButton: {
-    marginBottom: 2,
+    width: 44,
   },
   subheader: {
-    fontSize: 14,
-    color: "#475569",
+    fontSize: 10,
+    color: theme.colors.muted,
     paddingHorizontal: 20,
-    marginBottom: 12,
-    zIndex: 2,
+    paddingVertical: 12,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    // Removed Courier
   },
   listContent: {
     paddingHorizontal: 16,
@@ -251,88 +230,55 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cardTouchable: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 12,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     marginBottom: 16,
     flex: 1,
     marginHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: "#E0E7FF",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
-    minHeight: 260,
+    minHeight: 180,
+    padding: 12,
   },
   cardTouchablePressing: {
+    opacity: 0.8,
     transform: [{ scale: 0.98 }],
-    borderColor: "#A5B4FC",
-    shadowOpacity: 0.12,
   },
-  stampWrapper: {
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  pinBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  rarityIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 0,
+  },
+  stampWrapper: {
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 3,
+    flex: 1,
+    marginBottom: 12,
   },
   cardBody: {
-    flex: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: 2,
-    paddingBottom: 4,
-    gap: 12,
+    gap: 4,
   },
-  cardTop: { gap: 10 },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: "700",
-    color: "#1E293B",
-  },
-  rarityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    backgroundColor: "#fff",
-    alignSelf: "flex-start",
+    color: theme.colors.text,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   rarityText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    fontFamily: "Courier",
   },
-  cardMeta: {
-    fontSize: 12,
-    color: "#6B7280",
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginTop: 2,
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: "#374151",
-    minHeight: 48,
-  },
-  cardFooter: {
-    fontSize: 12,
-    color: "#475569",
-    fontStyle: "italic",
-    marginTop: 4,
+  dateText: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    fontFamily: "Courier",
   },
 });

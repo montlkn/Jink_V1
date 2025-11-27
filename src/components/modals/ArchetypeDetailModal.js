@@ -1,31 +1,33 @@
-import React from 'react';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  SafeAreaView,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
+import ModalCloseButton from './ModalCloseButton';
 
 const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
   if (!archetype) return null;
 
   return (
     <Modal
-      animationType="slide"
-      transparent={false}
+      animationType="fade"
+      transparent={true}
       visible={visible}
       onRequestClose={onClose}
-      presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <View style={styles.overlay}>
+        <View style={styles.modalContainer}>
+          <View style={styles.header}>
+            <ModalCloseButton onPress={onClose} />
+            <Text style={styles.title}>{archetype.name.toUpperCase()}</Text>
+            <View style={{ width: 140 }} />
+          </View>
           <View style={[styles.colorBar, { backgroundColor: archetype.color }]} />
-          <Text style={styles.title}>{archetype.name}</Text>
-        </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Core Concept */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Core Concept</Text>
@@ -73,36 +75,50 @@ const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
             </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  overlay: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxHeight: '80%',
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: theme.colors.border,
   },
   header: {
-    paddingTop: 20,
-    paddingBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    paddingVertical: 16,
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-    position: 'relative',
+    borderBottomColor: theme.colors.border,
   },
+
   colorBar: {
     height: 4,
     width: '100%',
-    marginBottom: 16,
-    borderRadius: 2,
   },
   title: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
     textAlign: 'center',
+    letterSpacing: 1,
+    fontFamily: 'Courier',
   },
   content: {
     flex: 1,
@@ -111,20 +127,25 @@ const styles = StyleSheet.create({
   },
   section: {
     marginVertical: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: 16,
+    backgroundColor: theme.colors.surface,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.muted,
     marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    fontFamily: 'Courier',
   },
   conceptText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    fontStyle: 'italic',
+    fontSize: 14,
+    lineHeight: 22,
+    color: theme.colors.text,
+    fontFamily: 'Courier',
   },
   vibeContainer: {
     flexDirection: 'row',
@@ -135,36 +156,39 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
+    borderRadius: 0,
+    backgroundColor: theme.colors.background,
   },
   vibeText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+    fontFamily: 'Courier',
   },
   qualityItem: {
     flexDirection: 'row',
-    marginBottom: 12,
-    paddingRight: 8,
+    marginBottom: 8,
+    alignItems: 'flex-start',
   },
   bullet: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-    marginTop: 8,
+    borderRadius: 0,
+    marginTop: 6,
     marginRight: 12,
   },
   qualityText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#333',
+    fontSize: 12,
+    lineHeight: 18,
+    color: theme.colors.text,
     flex: 1,
+    fontFamily: 'Courier',
   },
   urbanText: {
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 22,
-    color: '#333',
-    fontStyle: 'italic',
+    color: theme.colors.text,
+    fontFamily: 'Courier',
   },
   movementsContainer: {
     flexDirection: 'row',
@@ -172,15 +196,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   movementTag: {
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 16,
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 0,
   },
   movementText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 10,
+    color: theme.colors.text,
+    fontWeight: 'bold',
+    fontFamily: 'Courier',
   },
 });
 

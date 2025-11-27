@@ -1,3 +1,4 @@
+import type { BuildingDetail } from "@/constants/passportContent";
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
 export const screens = {
@@ -80,7 +81,7 @@ export type RootParams = {
   WalkNavScreen: WalkNavParams;
   WalkCameraScreen: { building?: Record<string, unknown> } | undefined;
   BuildingModule: { building: Record<string, unknown> };
-  BuildingInfo: { buildingData: Record<string, unknown> } | undefined;
+  BuildingInfo: { buildingData: BuildingDetail } | undefined;
   NotFound: { message?: string } | undefined;
   PastWalksNolli: undefined;
 };

@@ -36,6 +36,11 @@ export type BuildingDetail = {
   year: string;
   summary: string;
   image?: ImageSourcePropType;
+  architect?: string;
+  materials?: string;
+  use?: string;
+  type?: string;
+  description?: string;
 };
 
 export type PassportListDefinition = {
@@ -53,7 +58,8 @@ export const stampCollection: StampDefinition[] = [
     title: "Flatiron First Scan",
     rarity: "common",
     issuedAt: "2024-06-21",
-    description: "Building Stamp • Awarded for scanning the Flatiron Building for the first time.",
+    description:
+      "Building Stamp • Awarded for scanning the Flatiron Building for the first time.",
     source: "Building scan",
   },
   {
@@ -61,7 +67,8 @@ export const stampCollection: StampDefinition[] = [
     title: "Quest: Midtown Marvels",
     rarity: "rare",
     issuedAt: "2024-08-05",
-    description: "Quest Stamp • Completed every Midtown Marvels clue before the quest timed out.",
+    description:
+      "Quest Stamp • Completed every Midtown Marvels clue before the quest timed out.",
     source: "Quest completion",
   },
   {
@@ -69,7 +76,8 @@ export const stampCollection: StampDefinition[] = [
     title: "Achievement: First Scan",
     rarity: "epic",
     issuedAt: "2023-12-11",
-    description: "Achievement Stamp • Marked your very first building scan in the city.",
+    description:
+      "Achievement Stamp • Marked your very first building scan in the city.",
     source: "Achievement unlock",
   },
   {
@@ -77,7 +85,8 @@ export const stampCollection: StampDefinition[] = [
     title: "Ticker Tape Legend",
     rarity: "legendary",
     issuedAt: "2024-02-19",
-    description: "Legendary Stamp • Selected by the atelier jury during the Winter Ledger showcase.",
+    description:
+      "Legendary Stamp • Selected by the atelier jury during the Winter Ledger showcase.",
     source: "Curated showcase",
   },
   {
@@ -85,7 +94,8 @@ export const stampCollection: StampDefinition[] = [
     title: "Quest: DUMBO Steel",
     rarity: "rare",
     issuedAt: "2024-04-15",
-    description: "Quest Stamp • Collected during the limited-run DUMBO Steel field quest.",
+    description:
+      "Quest Stamp • Collected during the limited-run DUMBO Steel field quest.",
     source: "Quest completion",
   },
   {
@@ -93,7 +103,8 @@ export const stampCollection: StampDefinition[] = [
     title: "AIA Open House",
     rarity: "common",
     issuedAt: "2024-10-08",
-    description: "Building Stamp • Earned for checking into the AIA Open House tour checkpoint.",
+    description:
+      "Building Stamp • Earned for checking into the AIA Open House tour checkpoint.",
     source: "Event check-in",
   },
   {
@@ -109,7 +120,8 @@ export const stampCollection: StampDefinition[] = [
     title: "Collection Master",
     rarity: "legendary",
     issuedAt: "2024-06-30",
-    description: "Legendary Stamp • Granted for completing every archival quest variant in a chapter.",
+    description:
+      "Legendary Stamp • Granted for completing every archival quest variant in a chapter.",
     source: "Collection mastery",
   },
 ];
@@ -121,7 +133,8 @@ export const achievementLedger: AchievementDefinition[] = [
     purpose: "Scan your first building to prove you’ve started exploring.",
     xp: 25,
     missable: false,
-    verification: "Unlocks once any building scan is recorded for your profile.",
+    verification:
+      "Unlocks once any building scan is recorded for your profile.",
   },
   {
     id: "100_scans",
@@ -129,7 +142,8 @@ export const achievementLedger: AchievementDefinition[] = [
     purpose: "Encourages breadth—visit 100 distinct buildings.",
     xp: 500,
     missable: false,
-    verification: "Checks for 100 distinct building scans logged under your account.",
+    verification:
+      "Checks for 100 distinct building scans logged under your account.",
   },
   {
     id: "style_explorer_modern",
@@ -137,7 +151,8 @@ export const achievementLedger: AchievementDefinition[] = [
     purpose: "Visit ten Modernist buildings to understand the style in depth.",
     xp: 200,
     missable: false,
-    verification: "Validates 10 Modern-style buildings scanned via the architectural dataset.",
+    verification:
+      "Validates 10 Modern-style buildings scanned via the architectural dataset.",
   },
   {
     id: "dedicated_traveler",
@@ -161,15 +176,18 @@ export const achievementLedger: AchievementDefinition[] = [
     purpose: "Finish a daily quest before 08:00 local time.",
     xp: 150,
     missable: true,
-    verification: "Confirms a completed quest with completion time before 08:00.",
+    verification:
+      "Confirms a completed quest with completion time before 08:00.",
   },
   {
     id: "collection_champion",
     title: "Collection Champion",
-    purpose: "Collect every quest stamp in a complete collection—extremely rare.",
+    purpose:
+      "Collect every quest stamp in a complete collection—extremely rare.",
     xp: 10000,
     missable: true,
-    verification: "Validates ownership of all quest variant stamps in a collection.",
+    verification:
+      "Validates ownership of all quest variant stamps in a collection.",
   },
   {
     id: "first_visa",
@@ -177,7 +195,8 @@ export const achievementLedger: AchievementDefinition[] = [
     purpose: "Earn your first neighborhood visa and cement local credentials.",
     xp: 100,
     missable: false,
-    verification: "Granted once any entry exists in user_visas for your account.",
+    verification:
+      "Granted once any entry exists in user_visas for your account.",
   },
 ];
 
@@ -188,7 +207,8 @@ export const visaCarousel: VisaDefinition[] = [
     neighborhood: "Midtown",
     grantedAt: "2024-07-12",
     requirement: "Scan 12 landmark towers between 34th Street and 59th Street.",
-    description: "Issued after you walked the Midtown canyon, capturing deco crowns and glass spires.",
+    description:
+      "Issued after you walked the Midtown canyon, capturing deco crowns and glass spires.",
     accent: "#2D5B91",
   },
   {
@@ -196,7 +216,8 @@ export const visaCarousel: VisaDefinition[] = [
     title: "Bed-Stuy Brownstone Visa",
     neighborhood: "Bedford–Stuyvesant",
     grantedAt: "2024-05-28",
-    requirement: "Visit 10 distinct stoops in the Stuyvesant Heights landmark district.",
+    requirement:
+      "Visit 10 distinct stoops in the Stuyvesant Heights landmark district.",
     description:
       "Awarded for knowing the blocks by heart—detailing lintels, cornices, and backyard stories.",
     accent: "#8B4A2D",
@@ -227,7 +248,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "405 Lexington Ave",
         style: "Art Deco",
         year: "1930",
-        summary: "Iconic crown with radiating metal arches and automotive gargoyles.",
+        summary:
+          "Iconic crown with radiating metal arches and automotive gargoyles.",
       },
       {
         id: "ge",
@@ -243,7 +265,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "45 Rockefeller Plaza",
         style: "Art Deco",
         year: "1933",
-        summary: "Massed limestone with sculpted reliefs and soaring observation deck.",
+        summary:
+          "Massed limestone with sculpted reliefs and soaring observation deck.",
       },
       {
         id: "citybank",
@@ -251,7 +274,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "20 Exchange Pl",
         style: "Art Deco",
         year: "1931",
-        summary: "Tiered ziggurat silhouette with bronze doors and stylized eagles.",
+        summary:
+          "Tiered ziggurat silhouette with bronze doors and stylized eagles.",
       },
       {
         id: "walker",
@@ -276,7 +300,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "55 Water St",
         style: "Warehouse Revival",
         year: "1869",
-        summary: "Civil War coffee warehouse—brick vaults with Brooklyn Bridge framed.",
+        summary:
+          "Civil War coffee warehouse—brick vaults with Brooklyn Bridge framed.",
       },
       {
         id: "neon-pepsi",
@@ -284,7 +309,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "4-09 47th Rd",
         style: "Industrial Neon",
         year: "1936",
-        summary: "Floating red neon script anchored to a converted bottling plant.",
+        summary:
+          "Floating red neon script anchored to a converted bottling plant.",
       },
       {
         id: "knitting-factory",
@@ -292,7 +318,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "141 Flushing Ave",
         style: "Streamline Moderne",
         year: "1942",
-        summary: "Re-skinned supply depot with stepped glass curtain and roof farm.",
+        summary:
+          "Re-skinned supply depot with stepped glass curtain and roof farm.",
       },
       {
         id: "sugar",
@@ -317,7 +344,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "945 Madison Ave",
         style: "Brutalist",
         year: "1966",
-        summary: "Marcel Breuer’s inverted ziggurat with bush-hammered concrete façade.",
+        summary:
+          "Marcel Breuer’s inverted ziggurat with bush-hammered concrete façade.",
       },
       {
         id: "lincoln-center",
@@ -341,7 +369,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "250 Bedford Park Blvd W",
         style: "Brutalist",
         year: "1968",
-        summary: "Cantilevered mass hovering over a reflecting pool with ribbed soffits.",
+        summary:
+          "Cantilevered mass hovering over a reflecting pool with ribbed soffits.",
       },
     ],
   },
@@ -358,7 +387,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "94-00 Shore Front Pkwy",
         style: "Coastal Modern",
         year: "2017",
-        summary: "Wave-like canopy in galvanized steel with skate ribbon below.",
+        summary:
+          "Wave-like canopy in galvanized steel with skate ribbon below.",
       },
       {
         id: "coney",
@@ -366,7 +396,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "1904 Surf Ave",
         style: "Adaptive Reuse",
         year: "2013",
-        summary: "Historic parachute jump framed with new timber decks and views.",
+        summary:
+          "Historic parachute jump framed with new timber decks and views.",
       },
       {
         id: "sunset-harbor",
@@ -374,7 +405,8 @@ export const passportLists: PassportListDefinition[] = [
         address: "Bayview Ave, Broad Channel",
         style: "Sustainable",
         year: "2020",
-        summary: "Resilient wetlands pavilion with passive ventilation corridors.",
+        summary:
+          "Resilient wetlands pavilion with passive ventilation corridors.",
       },
       {
         id: "st-george",

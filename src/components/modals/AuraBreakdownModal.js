@@ -1,15 +1,17 @@
 import { log } from "@/lib/log";
 import { navigate } from "@/navigation/nav";
 import { screens } from "@/navigation/routes";
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
+import ModalCloseButton from './ModalCloseButton';
 
 const AuraBreakdownModal = ({
   visible,
@@ -33,7 +35,7 @@ const AuraBreakdownModal = ({
 
   const formatPoints = (num) => {
     if (typeof num !== 'number') return num;
-    return `${Math.round(num)} pts`;
+    return `${Math.round(num)} PTS`;
   };
 
   return (
@@ -41,19 +43,17 @@ const AuraBreakdownModal = ({
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
           <View style={styles.modalContainer}>
-          <TouchableOpacity style={styles.closeXButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#666" />
-          </TouchableOpacity>
+          <ModalCloseButton onPress={onClose} style={styles.closeButton} />
 
-          <Text style={styles.title}>Your Aesthetic Aura</Text>
+          <Text style={styles.title}>AESTHETIC AURA</Text>
           <Text style={styles.subtitle}>
-            Top aesthetic energies shaping your aura 
+            TOP AESTHETIC ENERGIES SHAPING YOUR AURA
           </Text>
 
           <View style={styles.segmentList}>
             {segments.length === 0 ? (
               <Text style={styles.emptyText}>
-                Take the quiz to reveal your aesthetic makeup.
+                TAKE THE QUIZ TO REVEAL YOUR AESTHETIC MAKEUP.
               </Text>
             ) : (
               segments.map((segment, idx) => (
@@ -75,18 +75,18 @@ const AuraBreakdownModal = ({
                 >
                   <View style={styles.segmentLeft}>
                     <View
-                      style={[styles.colorDot, { backgroundColor: segment.color || '#666' }]}
+                      style={[styles.colorDot, { backgroundColor: segment.color || theme.colors.muted }]}
                     />
                     <View>
                       <Text style={styles.segmentName}>
-                        {segment.name?.charAt(0).toUpperCase() + segment.name?.slice(1)}
+                        {segment.name?.toUpperCase()}
                       </Text>
                       <Text style={styles.segmentMeta}>
                         {formatPercent(segment.percentage)} • {formatPoints(segment.score)}
                       </Text>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                  <Ionicons name="chevron-forward" size={16} color={theme.colors.muted} />
                 </TouchableOpacity>
               ))
             )}
@@ -97,7 +97,7 @@ const AuraBreakdownModal = ({
             activeOpacity={0.85}
             onPress={handleViewProfile}
           >
-            <Text style={styles.viewProfileText}>View Full Profile</Text>
+            <Text style={styles.viewProfileText}>VIEW FULL PROFILE</Text>
           </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -109,44 +109,47 @@ const AuraBreakdownModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(245, 245, 245, 0.92)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 24,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 0,
     paddingHorizontal: 28,
-    paddingTop: 38,
+    paddingTop: 48,
     paddingBottom: 26,
-    width: '82%',
-    maxWidth: 360,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 18,
-    elevation: 10,
-    position: 'relative',
+    width: '85%',
+    maxWidth: 380,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 0,
   },
-  closeXButton: {
+  closeButton: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    padding: 8,
-    zIndex: 1,
+    top: 12,
+    right: 12,
+    zIndex: 10,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.text,
     textAlign: 'center',
+    letterSpacing: 2,
+    fontFamily: theme.typography.fontFamily.bold,
   },
   subtitle: {
     marginTop: 8,
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#666',
+    fontSize: 10,
+    lineHeight: 14,
+    color: theme.colors.muted,
     textAlign: 'center',
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   segmentList: {
     marginTop: 28,
@@ -154,9 +157,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#555',
+    fontSize: 12,
+    color: theme.colors.muted,
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   segmentRow: {
     flexDirection: 'row',
@@ -164,8 +168,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: '#F5F5F7',
+    borderRadius: 0,
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   segmentLeft: {
     flexDirection: 'row',
@@ -173,31 +179,34 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   colorDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 12,
+    height: 12,
+    borderRadius: 0,
   },
   segmentName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111',
-    textTransform: 'capitalize',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    letterSpacing: 1,
   },
   segmentMeta: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: 10,
+    color: theme.colors.muted,
     marginTop: 2,
+    fontFamily: 'Courier',
+    fontWeight: 'bold',
   },
   viewProfileButton: {
-    backgroundColor: '#111',
-    borderRadius: 28,
+    backgroundColor: theme.colors.text,
+    borderRadius: 0,
     paddingVertical: 14,
     alignItems: 'center',
   },
   viewProfileText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.surface,
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
 });
 

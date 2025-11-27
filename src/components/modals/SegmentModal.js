@@ -1,12 +1,12 @@
-import React from 'react';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import {
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import ModalCloseButton from './ModalCloseButton';
 
 const SegmentModal = ({ visible, segment, onClose, onMoreInfo }) => {
   if (!segment) return null;
@@ -24,12 +24,7 @@ const SegmentModal = ({ visible, segment, onClose, onMoreInfo }) => {
         onPress={onClose}
       >
         <View style={styles.modalContainer}>
-          <TouchableOpacity
-            style={styles.closeXButton}
-            onPress={onClose}
-          >
-            <Ionicons name="close" size={24} color="#666" />
-          </TouchableOpacity>
+          <ModalCloseButton onPress={onClose} style={styles.closeButton} />
 
           <View style={[styles.colorBar, { backgroundColor: segment.color }]} />
 
@@ -43,7 +38,7 @@ const SegmentModal = ({ visible, segment, onClose, onMoreInfo }) => {
             style={styles.moreInfoButton}
             onPress={() => onMoreInfo && onMoreInfo(segment)}
           >
-            <Text style={styles.moreInfoButtonText}>More Info</Text>
+            <Text style={styles.moreInfoButtonText}>MORE INFO</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -59,64 +54,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 40,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 0,
+    padding: 24,
     alignItems: 'center',
     marginHorizontal: 30,
-    minWidth: 320,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    minWidth: 300,
+    borderWidth: 2,
+    borderColor: theme.colors.border,
     position: 'relative',
   },
   colorBar: {
     height: 4,
     width: 60,
-    borderRadius: 2,
     marginBottom: 20,
   },
   archetype: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
+    letterSpacing: 1,
+    fontFamily: 'Courier',
+    textTransform: 'uppercase',
   },
   percentage: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    color: theme.colors.text,
+    marginBottom: 8,
+    fontFamily: 'Courier',
   },
   score: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 25,
+    fontSize: 12,
+    color: theme.colors.muted,
+    marginBottom: 24,
+    fontFamily: 'Courier',
+    textTransform: 'uppercase',
   },
-  closeXButton: {
+  closeButton: {
     position: 'absolute',
-    top: 15,
-    right: 15,
+    top: 12,
+    right: 12,
     padding: 8,
     zIndex: 1,
   },
   moreInfoButton: {
-    backgroundColor: '#000',
-    paddingVertical: 14,
-    paddingHorizontal: 35,
-    borderRadius: 25,
-    marginTop: 5,
+    backgroundColor: theme.colors.background,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 0,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.text,
   },
   moreInfoButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.text,
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    fontFamily: 'Courier',
   },
 });
 

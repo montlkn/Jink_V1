@@ -1,14 +1,14 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import React from 'react';
 import {
-  Dimensions,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Dimensions,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 
@@ -24,6 +24,7 @@ const QuestDetailModal = ({
   if (!quest) return null;
 
   const isDaily = quest.type === 'daily';
+  const accentColor = isDaily ? theme.colors.primary : theme.colors.secondary;
 
   // Determine destination based on quest type
   const getQuestDestination = () => {
@@ -55,12 +56,12 @@ const QuestDetailModal = ({
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
 
           <PanGestureHandler onGestureEvent={onGestureEvent}>
-            <View style={styles.modalContainer}>
+            <View style={[styles.modalContainer, { borderColor: accentColor }]}>
               {/* Header with integrated swipe indicator */}
-              <View style={[styles.modalHeader, isDaily ? styles.dailyHeader : styles.weeklyHeader]}>
+              <View style={[styles.modalHeader, { backgroundColor: accentColor }]}>
                 {/* Swipe indicator */}
                 <View style={styles.swipeIndicator} />
 
@@ -68,8 +69,8 @@ const QuestDetailModal = ({
                   <View style={styles.questTypeBadge}>
                     <Ionicons
                       name={isDaily ? 'sunny' : 'calendar'}
-                      size={20}
-                      color="#fff"
+                      size={14}
+                      color={theme.colors.surface}
                     />
                     <Text style={styles.questTypeText}>
                       {isDaily ? 'DAILY QUEST' : 'WEEKLY QUEST'}
@@ -81,8 +82,8 @@ const QuestDetailModal = ({
 
             {/* Timer */}
             <View style={styles.timerContainer}>
-              <Ionicons name="time-outline" size={18} color="#fff" />
-              <Text style={styles.timerText}>Resets in {timeRemaining}</Text>
+              <Ionicons name="time-outline" size={14} color={theme.colors.surface} />
+              <Text style={styles.timerText}>RESETS IN {timeRemaining}</Text>
             </View>
           </View>
 
@@ -102,13 +103,12 @@ const QuestDetailModal = ({
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${(quest.progress / quest.total) * 100}%` },
-                        isDaily ? styles.dailyProgress : styles.weeklyProgress,
+                        { width: `${(quest.progress / quest.total) * 100}%`, backgroundColor: accentColor },
                       ]}
                     />
                   </View>
                   <Text style={styles.progressText}>
-                    {quest.progress} / {quest.total} completed
+                    {quest.progress} / {quest.total} COMPLETED
                   </Text>
                 </View>
               </View>
@@ -120,14 +120,14 @@ const QuestDetailModal = ({
 
               {/* XP Reward */}
               <View style={styles.rewardItem}>
-                <View style={styles.rewardIcon}>
-                  <Ionicons name="star" size={24} color="#FFD700" />
+                <View style={[styles.rewardIcon, { borderColor: accentColor }]}>
+                  <Ionicons name="star" size={16} color={accentColor} />
                 </View>
                 <View style={styles.rewardInfo}>
-                  <Text style={styles.rewardLabel}>Experience</Text>
+                  <Text style={styles.rewardLabel}>EXPERIENCE</Text>
                   <Text style={styles.rewardValue}>{quest.xpReward || quest.epReward} XP</Text>
                   <Text style={styles.rewardDescription}>
-                    Unlock premium features like detailed building info
+                    UNLOCK PREMIUM FEATURES
                   </Text>
                 </View>
               </View>
@@ -135,26 +135,26 @@ const QuestDetailModal = ({
               {/* Additional Rewards */}
               {quest.additionalRewards?.map((reward, index) => (
                 <View key={index} style={styles.rewardItem}>
-                  <View style={styles.rewardIcon}>
+                  <View style={[styles.rewardIcon, { borderColor: theme.colors.accent }]}>
                     <Ionicons
                       name={reward.icon}
-                      size={24}
-                      color={reward.type === 'stamp' ? '#E74C3C' : '#9B59B6'}
+                      size={16}
+                      color={theme.colors.accent}
                     />
                   </View>
                   <View style={styles.rewardInfo}>
                     <Text style={styles.rewardLabel}>
-                      {reward.type === 'stamp' ? 'Passport Stamp' : 'Achievement'}
+                      {reward.type === 'stamp' ? 'PASSPORT STAMP' : 'ACHIEVEMENT'}
                     </Text>
                     <Text style={styles.rewardValue}>{reward.label}</Text>
                     {reward.type === 'stamp' && (
                       <Text style={styles.rewardDescription}>
-                        Add to your passport collection
+                        ADD TO COLLECTION
                       </Text>
                     )}
                     {reward.type === 'achievement' && (
                       <Text style={styles.rewardDescription}>
-                        Display on your profile
+                        DISPLAY ON PROFILE
                       </Text>
                     )}
                   </View>
@@ -165,14 +165,11 @@ const QuestDetailModal = ({
             {/* XP Benefits Explainer */}
             <View style={[styles.section, styles.xpBenefitsSection]}>
               <View style={styles.infoBox}>
-                <Ionicons name="information-circle" size={20} color="#3498DB" />
+                <Ionicons name="information-circle-outline" size={20} color={theme.colors.primary} />
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoTitle}>What can you do with XP?</Text>
+                  <Text style={styles.infoTitle}>XP BENEFITS</Text>
                   <Text style={styles.infoText}>
-                    • Unlock detailed building histories (Free tier){'\n'}
-                    • Access expert architectural analysis{'\n'}
-                    • Earn bonus stamps and achievements{'\n'}
-                    • Level up to unlock exclusive passport perks
+                    UNLOCK HISTORIES • EXPERT ANALYSIS • EXCLUSIVE PERKS
                   </Text>
                 </View>
               </View>
@@ -182,7 +179,7 @@ const QuestDetailModal = ({
           {/* Action Button */}
           <View style={styles.actionContainer}>
             <TouchableOpacity
-              style={[styles.startButton, isDaily ? styles.dailyButton : styles.weeklyButton]}
+              style={[styles.startButton, { backgroundColor: accentColor }]}
               onPress={() => {
                 onStartQuest(destination.params);
                 onClose();
@@ -190,7 +187,7 @@ const QuestDetailModal = ({
               activeOpacity={0.8}
             >
               <Text style={styles.startButtonText}>{destination.label}</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <Ionicons name="arrow-forward" size={16} color={theme.colors.surface} />
             </TouchableOpacity>
           </View>
         </View>
@@ -207,33 +204,29 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
     maxHeight: SCREEN_HEIGHT * 0.85,
     overflow: 'hidden',
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
   },
   swipeIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 2,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 0,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 8,
+    opacity: 0.5,
   },
   modalHeader: {
     paddingTop: 0,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  dailyHeader: {
-    backgroundColor: '#FF6B35',
-  },
-  weeklyHeader: {
-    backgroundColor: '#4ECDC4',
   },
   headerTop: {
     flexDirection: 'row',
@@ -244,32 +237,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 0,
   },
   questTypeText: {
-    color: '#fff',
-    fontSize: 12,
+    color: theme.colors.surface,
+    fontSize: 10,
     fontWeight: 'bold',
     marginLeft: 6,
     letterSpacing: 1,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 12,
+    color: theme.colors.surface,
+    marginBottom: 8,
+    fontFamily: theme.typography.fontFamily.bold,
+    textTransform: 'uppercase',
   },
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   timerText: {
-    color: '#fff',
-    fontSize: 14,
+    color: theme.colors.surface,
+    fontSize: 10,
     fontWeight: '600',
     marginLeft: 6,
+    fontFamily: 'Courier',
   },
   modalContent: {
     padding: 20,
@@ -278,102 +274,105 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
-    color: '#888',
+    color: theme.colors.muted,
     letterSpacing: 1,
     marginBottom: 12,
+    textTransform: 'uppercase',
   },
   description: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
+    fontSize: 14,
+    lineHeight: 20,
+    color: theme.colors.text,
   },
   progressDisplay: {
     marginTop: 8,
   },
   progressBar: {
-    height: 10,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 5,
-    overflow: 'hidden',
+    height: 4,
+    backgroundColor: theme.colors.background,
     marginBottom: 8,
+    width: '100%',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 5,
-  },
-  dailyProgress: {
-    backgroundColor: '#FF6B35',
-  },
-  weeklyProgress: {
-    backgroundColor: '#4ECDC4',
   },
   progressText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 10,
+    color: theme.colors.muted,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   rewardItem: {
     flexDirection: 'row',
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+    padding: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   rewardIcon: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#fff',
-    borderRadius: 24,
+    width: 32,
+    height: 32,
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    borderWidth: 1,
   },
   rewardInfo: {
     flex: 1,
   },
   rewardLabel: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '600',
+    fontSize: 8,
+    color: theme.colors.muted,
+    fontWeight: 'bold',
     marginBottom: 2,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   rewardValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
+    color: theme.colors.text,
+    marginBottom: 2,
   },
   rewardDescription: {
-    fontSize: 12,
-    color: '#666',
-    lineHeight: 16,
+    fontSize: 10,
+    color: theme.colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   xpBenefitsSection: {
     marginBottom: 100,
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3498DB',
+    backgroundColor: theme.colors.background,
+    padding: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: theme.colors.primary,
+    alignItems: 'center',
+    gap: 12,
   },
   infoContent: {
     flex: 1,
-    marginLeft: 12,
   },
   infoTitle: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: 'bold',
-    color: '#2C3E50',
-    marginBottom: 8,
+    color: theme.colors.primary,
+    marginBottom: 4,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   infoText: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#555',
+    fontSize: 10,
+    color: theme.colors.text,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   actionContainer: {
     position: 'absolute',
@@ -381,29 +380,24 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: theme.colors.border,
   },
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: 12,
-  },
-  dailyButton: {
-    backgroundColor: '#FF6B35',
-  },
-  weeklyButton: {
-    backgroundColor: '#4ECDC4',
+    borderRadius: 0,
   },
   startButtonText: {
-    color: '#fff',
-    fontSize: 18,
+    color: theme.colors.surface,
+    fontSize: 14,
     fontWeight: 'bold',
     marginRight: 8,
     letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });
 

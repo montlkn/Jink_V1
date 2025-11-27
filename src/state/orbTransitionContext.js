@@ -1,5 +1,7 @@
+import { getUserAestheticProfile } from "@/features/profile";
+import { log } from "@/lib/log";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, {
+import {
   Suspense,
   createContext,
   useCallback,
@@ -10,8 +12,6 @@ import React, {
   useState,
 } from "react";
 import { Animated, Dimensions, Easing, StyleSheet, View } from "react-native";
-import { getUserAestheticProfile } from "@/features/profile";
-import { log } from "@/lib/log";
 import { useAuth } from "../auth/authProvider";
 import ArchetypeOrb from "../features/orb/ArchetypeOrb";
 import { extractTopArchetypesFromScores } from "../utils/archetypeColorBlend";
@@ -21,7 +21,7 @@ const DEFAULT_EASING = Easing.out(Easing.cubic);
 const ORB_SIZE = 360;
 const JINK_TARGET_SIZE = 220; // Ring radius on WalkStart
 const JINK_OFFSET_X = 0;
-const JINK_OFFSET_Y = 8; // Positive pushes orb downward on Jink
+const JINK_OFFSET_Y = 38; // Positive pushes orb downward on Jink
 const ORB_DATA_STORAGE_KEY = "arch-app/orbData.v1";
 
 const sanitizeOrbEntries = (data) => {
@@ -197,6 +197,8 @@ export const useOrbTransition = () => {
 };
 
 const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) => {
+  if (!visible) return null;
+
   const { width, height } = Dimensions.get("window");
   const baseLeft = width / 2 - ORB_SIZE / 2;
   const baseTop = height / 2 - ORB_SIZE / 2;
@@ -232,7 +234,7 @@ const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) =>
   return (
     <View
       pointerEvents="none"
-      style={[StyleSheet.absoluteFill, styles.overlayRoot, { opacity: visible ? 1 : 0 }]}
+      style={[StyleSheet.absoluteFill, styles.overlayRoot]}
     >
       <Suspense fallback={null}>
         <Animated.View
