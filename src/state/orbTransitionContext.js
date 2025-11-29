@@ -20,9 +20,13 @@ const DEFAULT_TRANSITION_DURATION = 520;
 const DEFAULT_EASING = Easing.out(Easing.cubic);
 const ORB_SIZE = 360;
 const JINK_TARGET_SIZE = 220; // Ring radius on WalkStart
-const JINK_OFFSET_X = 0;
-const JINK_OFFSET_Y = 38; // Positive pushes orb downward on Jink
+const JINK_OFFSET_X = 76;
+const JINK_OFFSET_Y = 112; // Positive pushes orb downward on Jink
 const ORB_DATA_STORAGE_KEY = "arch-app/orbData.v1";
+
+// Calculate glow extent to match ArchetypeOrb
+const GLOW_EXTENT = Math.max(80, ORB_SIZE * 0.35);
+const TOTAL_ORB_SIZE = ORB_SIZE + GLOW_EXTENT * 2;
 
 const sanitizeOrbEntries = (data) => {
   if (!Array.isArray(data)) {
@@ -200,6 +204,8 @@ const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) =>
   if (!visible) return null;
 
   const { width, height } = Dimensions.get("window");
+  
+  // Position based on the visual orb center (not including glow extent)
   const baseLeft = width / 2 - ORB_SIZE / 2;
   const baseTop = height / 2 - ORB_SIZE / 2;
 
@@ -241,8 +247,9 @@ const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) =>
           style={[
             styles.overlayOrb,
             {
-              left: baseLeft,
-              top: baseTop,
+              // Center the orb (the ArchetypeOrb handles its own glow offset)
+              left: baseLeft - GLOW_EXTENT,
+              top: baseTop - GLOW_EXTENT,
               transform: [
                 { translateX },
                 { translateY },
@@ -256,6 +263,7 @@ const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) =>
             size={ORB_SIZE}
             interactive={false}
             lod="standard"
+            showGlow={true}
           />
         </Animated.View>
       </Suspense>
@@ -268,13 +276,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   overlayRoot: {
-    backgroundColor: "transparent",
+    // Fully transparent - no background
     justifyContent: "center",
     alignItems: "center",
+    // Critical: allow glow to extend beyond bounds
+    overflow: "visible",
   },
   overlayOrb: {
     position: "absolute",
-    width: ORB_SIZE,
-    height: ORB_SIZE,
+    // Size includes glow extent
+    width: TOTAL_ORB_SIZE,
+    height: TOTAL_ORB_SIZE,
+    // Critical: allow glow to extend beyond bounds
+    overflow: "visible",
+    // No background - fully transparent
   },
 });

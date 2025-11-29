@@ -1,16 +1,19 @@
 import { getStreakMultiplier } from '@/theme/designConstants';
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
-// BlurView removed - using solid overlay instead
 import {
+  Dimensions,
   Modal,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ModalCloseButton from './ModalCloseButton';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const MODAL_WIDTH = Math.min(SCREEN_WIDTH * 0.92, 420);
 
 const XPDetailModal = ({
   visible,
@@ -26,7 +29,7 @@ const XPDetailModal = ({
   // Use centralized streak multiplier config
   const streakInfo = getStreakMultiplier(streakCount);
 
-  // Circle SVG properties for condensed view
+  // Circle SVG properties
   const size = 100;
   const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
@@ -40,14 +43,8 @@ const XPDetailModal = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-
-        <View style={styles.modalContainer}>
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
           {/* Close button */}
           <ModalCloseButton onPress={onClose} style={styles.closeButton} />
 
@@ -148,9 +145,8 @@ const XPDetailModal = ({
               SCAN BUILDINGS • COMPLETE QUESTS • MAINTAIN STREAK
             </Text>
           </View>
-        </View>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };
@@ -164,9 +160,9 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: theme.colors.surface,
-    padding: 20,
-    width: '75%',
-    maxWidth: 360,
+    padding: 24,
+    paddingTop: 20,
+    width: MODAL_WIDTH,
     borderWidth: 2,
     borderColor: theme.colors.border,
     shadowColor: theme.colors.text,
@@ -185,21 +181,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    marginTop: 8,
     letterSpacing: 2,
     fontFamily: theme.typography.fontFamily.bold,
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 16,
+    marginBottom: 24,
+    gap: 24,
   },
   circleContainer: {
     width: 100,
     height: 100,
     position: 'relative',
+    flexShrink: 0,
   },
   svg: {
     position: 'absolute',
@@ -230,66 +227,69 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flex: 1,
-    gap: 12,
+    gap: 14,
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 4,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
   statLabel: {
-    fontSize: 8,
+    fontSize: 10,
     color: theme.colors.muted,
     fontWeight: 'bold',
     letterSpacing: 1,
     textTransform: 'uppercase',
+    flexShrink: 0,
   },
   statValue: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: theme.colors.text,
     fontFamily: 'Courier',
+    textAlign: 'right',
   },
   streakSection: {
-    marginBottom: 16,
-    padding: 8,
+    marginBottom: 20,
+    padding: 12,
     backgroundColor: theme.colors.background,
-    borderLeftWidth: 2,
+    borderLeftWidth: 3,
     borderLeftColor: theme.colors.secondary,
   },
   streakHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   streakValue: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: theme.colors.text,
     fontFamily: 'Courier',
   },
   multiplierText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: 'bold',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   statValueHighlight: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: theme.colors.accent,
     fontFamily: 'Courier',
+    textAlign: 'right',
   },
   progressSection: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   progressBar: {
-    height: 4,
+    height: 6,
     backgroundColor: theme.colors.background,
-    marginBottom: 6,
+    marginBottom: 8,
     width: '100%',
   },
   progressFill: {
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accent,
   },
   progressText: {
-    fontSize: 8,
+    fontSize: 10,
     color: theme.colors.muted,
     textAlign: 'center',
     fontWeight: 'bold',
@@ -307,14 +307,14 @@ const styles = StyleSheet.create({
   infoBox: {
     flexDirection: 'row',
     backgroundColor: theme.colors.background,
-    padding: 8,
-    borderLeftWidth: 2,
+    padding: 12,
+    borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary,
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   infoText: {
-    fontSize: 8,
+    fontSize: 10,
     color: theme.colors.text,
     fontWeight: '600',
     letterSpacing: 0.5,

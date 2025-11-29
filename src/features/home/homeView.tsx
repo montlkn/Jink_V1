@@ -387,24 +387,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 40,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.25,
-    shadowRadius: 30,
-    elevation: 24,
+    // No shadow here - the orb glow provides the effect
+    // Critical: allow glow to extend beyond bounds
+    overflow: "visible",
   },
   orbWrapper: {
-    width: ORB_SIZE,
-    height: ORB_SIZE,
-    borderRadius: ORB_SIZE / 2,
+    // Let ArchetypeOrb handle its own sizing (includes glow)
     alignItems: "center",
     justifyContent: "center",
-    overflow: "hidden",
-    backgroundColor: "rgba(8, 12, 20, 0)",
+    // Critical: no overflow hidden - glow needs to extend
+    overflow: "visible",
   },
   summaryContainer: {
     marginTop: 24,
     marginHorizontal: 20,
+    // Allow HomeTasteLine glow to extend
+    overflow: "visible",
   },
   summaryLoadingText: {
     fontSize: 15,

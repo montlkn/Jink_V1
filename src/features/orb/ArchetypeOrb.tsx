@@ -1,5 +1,5 @@
+import OrbGlow from "@/components/orb/OrbGlow";
 import GlassOrb from "@/components/three/orb/GlassOrb";
-import { defaultRainbow } from "@/config/glowConfig";
 import { blendArchetypeColors } from "@/utils/archetypeColorBlend";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useRef, useState } from "react";
@@ -8,9 +8,9 @@ import {
   Pressable,
   StyleProp,
   StyleSheet,
+  View,
   ViewStyle,
 } from "react-native";
-import Glow from "react-native-animated-glow";
 
 export type ArchetypeEntry = {
   color?: string | null;
@@ -27,6 +27,7 @@ type ArchetypeOrbProps = {
   xpLevel?: number;
   xpProgress?: number;
   lod?: string;
+  showGlow?: boolean;
 };
 
 type BlendPaletteEntry = {
@@ -48,6 +49,7 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
   onPress,
   interactive = true,
   style,
+  showGlow = true,
 }) => {
   const sanitizedData = useMemo(
     () =>
@@ -59,44 +61,36 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
     [archetypeData]
   );
 
-  const colors = useMemo<BlendResult>(
-    () => {
-      console.log('[ArchetypeOrb] Computing colors from data:', sanitizedData);
-      const result = blendArchetypeColors(sanitizedData) as BlendResult;
-      console.log('[ArchetypeOrb] Blended colors:', result);
-      return result;
-    },
-    [sanitizedData]
-  );
+  const colors = useMemo<BlendResult>(() => {
+    const result = blendArchetypeColors(sanitizedData) as BlendResult;
+    return result;
+  }, [sanitizedData]);
 
-
-
-  const [glowState, setGlowState] = useState("default");
+  const [glowState, setGlowState] = useState<"default" | "hover" | "press">("default");
+  const [isOrbReady, setIsOrbReady] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
 
-  const glowConfig = useMemo(() => {
-    // Clone the config to avoid mutating the original
-    const config = JSON.parse(JSON.stringify(defaultRainbow));
-    // Update cornerRadius for all states to match the orb size
-    config.states.forEach((state: any) => {
-      if (state.preset) {
-        state.preset.cornerRadius = size / 2;
-      }
-    });
-    return config;
-  }, [size]);
+  // Fade in glow when orb is ready
+  React.useEffect(() => {
+    if (isOrbReady) {
+      Animated.timing(glowOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isOrbReady, glowOpacity]);
 
   const handlePress = () => {
-    if (!interactive) {
-      return;
-    }
+    if (!interactive) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
 
     setGlowState("press");
     Animated.sequence([
       Animated.spring(scaleAnim, {
-        toValue: 0.92,
+        toValue: 1.08,
         useNativeDriver: true,
         speed: 40,
         bounciness: 0,
@@ -108,7 +102,7 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
         tension: 80,
       }),
     ]).start(() => {
-        setGlowState("default");
+      setGlowState("default");
     });
 
     if (onPress) {
@@ -116,36 +110,55 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
     }
   };
 
-  console.log('[ArchetypeOrb] Rendering with size:', size, 'colors:', colors, 'interactive:', interactive);
-
   return (
-    <Animated.View
-      style={[
-        { width: size, height: size, transform: [{ scale: scaleAnim }] },
-        style,
-      ]}
-    >
-      <Glow activeState={glowState as any} preset={glowConfig} style={{ borderRadius: size / 2 }}>
-        <GlassOrb
+    <View style={[styles.container, { width: size, height: size }, style]}>
+      {/* Glow behind the orb - overflows visually */}
+      {showGlow && (
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: glowOpacity }]}>
+          <OrbGlow
             size={size}
-            colorA={colors.colorA}
-            colorB={colors.colorB}
-            colorC={colors.colorC}
-            palette={colors.palette}
-            startupDuration={0}
-            transitionDuration={0}
+            activeState={glowState}
+            animationDuration={8}
+            colors={[colors.colorA, colors.colorB]}
+          />
+        </Animated.View>
+      )}
+
+      {/* Orb with scale animation */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <GlassOrb
+          size={size}
+          colorA={colors.colorA}
+          colorB={colors.colorB}
+          colorC={colors.colorC}
+          palette={colors.palette}
+          startupDuration={0}
+          transitionDuration={0}
+          onReady={() => setIsOrbReady(true)}
         />
-      </Glow>
-      {interactive ? (
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={handlePress}
-          android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: true }}
-        />
-      ) : null}
-    </Animated.View>
+
+        {interactive && (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={handlePress}
+            android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: true }}
+          />
+        )}
+      </Animated.View>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    overflow: "visible",
+  },
+});
 
 const areEqual = (
   prevProps: Readonly<ArchetypeOrbProps>,
@@ -158,6 +171,7 @@ const areEqual = (
   if (prevProps.xpProgress !== nextProps.xpProgress) return false;
   if (prevProps.lod !== nextProps.lod) return false;
   if (prevProps.archetypeData !== nextProps.archetypeData) return false;
+  if (prevProps.showGlow !== nextProps.showGlow) return false;
   return true;
 };
 

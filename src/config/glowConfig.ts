@@ -1,146 +1,111 @@
-export type GlowLayer = {
-    glowPlacement?: "behind" | "front";
-    colors: string[];
-    glowSize: number | number[];
-    opacity: number;
-    speedMultiplier?: number;
-    coverage?: number;
-    relativeOffset?: number;
-};
+/**
+ * Glow presets for react-native-animated-glow
+ */
+import type { PresetConfig } from "react-native-animated-glow";
 
-export type PresetState = {
-    name: string;
-    transition?: number;
-    preset: {
-        cornerRadius?: number;
-        outlineWidth?: number;
-        borderColor?: string[];
-        backgroundColor?: string;
-        animationSpeed: number;
-        borderSpeedMultiplier?: number;
-        glowLayers: Partial<GlowLayer>[];
-    };
-};
-
-export type PresetConfig = {
-    states: PresetState[];
-};
-
-export const defaultRainbow: PresetConfig = {
-    "states": [
+/**
+ * Warm golden glow for HomeTasteLine card
+ */
+export const showtime: PresetConfig = {
+    states: [
         {
-            "name": "default",
-            "preset": {
-                "cornerRadius": 30,
-                "outlineWidth": 4,
-                "borderColor": [
-                    "rgba(238, 255, 0, 1)",
-                    "rgba(79, 255, 0, 1)",
-                    "rgba(46, 90, 255, 1)",
-                    "rgba(254, 0, 255, 1)",
-                    "rgba(231, 23, 23, 1)",
-                ],
-                "backgroundColor": "rgba(10, 10, 10, 1)",
-                "animationSpeed": 1.2,
-                "borderSpeedMultiplier": 1,
-                "glowLayers": [
+            name: "default",
+            preset: {
+                cornerRadius: 10,
+                outlineWidth: 2,
+                borderColor: "rgba(209, 209, 209, 1)",
+                backgroundColor: "#222",
+                animationSpeed: 0.5,
+                borderSpeedMultiplier: 1,
+                glowLayers: [
                     {
-                        "glowPlacement": "behind",
-                        "colors": [
-                            "rgba(205, 201, 35, 1)",
-                            "rgba(0, 255, 79, 1)",
-                            "rgba(0, 119, 255, 1)",
-                            "rgba(239, 0, 255, 1)",
-                            "rgba(222, 28, 28, 1)",
-                        ],
-                        "glowSize": 34,
-                        "opacity": 0.2,
-                        "speedMultiplier": 1,
-                        "coverage": 1,
-                        "relativeOffset": 0,
+                        glowPlacement: "behind",
+                        colors: ["rgba(107, 107, 107, 0.8)"],
+                        glowSize: [15, 8],
+                        opacity: 0.5,
+                        speedMultiplier: 1,
+                        coverage: 1,
+                        relativeOffset: 0,
                     },
                     {
-                        "glowPlacement": "behind",
-                        "colors": [
-                            "rgba(185, 182, 32, 1)",
-                            "rgba(0, 255, 79, 1)",
-                            "rgba(0, 119, 255, 1)",
-                            "rgba(239, 0, 255, 1)",
-                            "rgba(222, 28, 28, 1)",
+                        glowPlacement: "behind",
+                        colors: [
+                            "rgba(50, 50, 50, 0.8)",
+                            "rgba(60, 60, 60, 0.6)",
                         ],
-                        "glowSize": 6,
-                        "opacity": 0.5,
-                        "speedMultiplier": 1,
-                        "coverage": 1,
-                        "relativeOffset": 0,
+                        glowSize: [3, 2, 2, 3],
+                        opacity: 0.6,
+                        speedMultiplier: 1,
+                        coverage: 1,
+                        relativeOffset: 0,
                     },
                     {
-                        "glowPlacement": "behind",
-                        "colors": [
-                            "#FFFFFF",
-                        ],
-                        "glowSize": [
-                            2,
-                            8,
-                            8,
-                            2,
-                        ],
-                        "opacity": 0.2,
-                        "speedMultiplier": 2,
-                        "coverage": 0.5,
-                        "relativeOffset": 0,
+                        glowPlacement: "behind",
+                        colors: ["rgba(45, 45, 45, 0.7)"],
+                        glowSize: [0, 10],
+                        opacity: 0.5,
+                        speedMultiplier: 1,
+                        coverage: 0.5,
+                        relativeOffset: 0,
+                    },
+                    {
+                        glowPlacement: "over",
+                        colors: ["rgba(60, 60, 60, 0.9)"],
+                        glowSize: [0, 1],
+                        opacity: 0.8,
+                        speedMultiplier: 1,
+                        coverage: 0.6,
+                        relativeOffset: 0,
                     },
                 ],
             },
         },
         {
-            "name": "hover",
-            "transition": 300,
-            "preset": {
-                "animationSpeed": 1.8,
-                "glowLayers": [
+            name: "hover",
+            transition: 300,
+            preset: {
+                animationSpeed: 3,
+                glowLayers: [
                     {
-                        "glowSize": 40,
-                        "opacity": 0.24,
+                        glowSize: [40, 24],
+                        opacity: 0.12,
                     },
                     {
-                        "glowSize": 7,
-                        "opacity": 0.6,
+                        glowSize: [6, 5, 5, 6],
+                        opacity: 0.24,
                     },
                     {
-                        "glowSize": [
-                            2,
-                            10,
-                            10,
-                            2,
-                        ],
-                        "opacity": 0.24,
+                        glowSize: [0, 24],
+                        opacity: 0.12,
+                    },
+                    {
+                        glowSize: [0, 2],
+                        opacity: 1,
                     },
                 ],
             },
         },
         {
-            "name": "press",
-            "transition": 100,
-            "preset": {
-                "animationSpeed": 2.4,
-                "glowLayers": [
+            name: "press",
+            transition: 100,
+            preset: {
+                animationSpeed: 4,
+                glowLayers: [
                     {
-                        "glowSize": 40,
-                        "opacity": 0.28,
+                        glowSize: [40, 28],
+                        opacity: 0.14,
                     },
                     {
-                        "glowSize": 8,
-                        "opacity": 0.7,
+                        glowSize: [7, 6, 6, 7],
+                        opacity: 0.28,
                     },
                     {
-                        "glowSize": [
-                            3,
-                            11,
-                            11,
-                            3,
-                        ],
-                        "opacity": 0.28,
+                        glowSize: [0, 28],
+                        opacity: 0.14,
+                    },
+                    {
+                        glowSize: [0, 3],
+                        opacity: 1,
                     },
                 ],
             },

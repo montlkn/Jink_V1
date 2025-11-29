@@ -16,6 +16,7 @@ type Props = {
   palette?: { color: string; weight: number }[];
   startupDuration?: number;
   transitionDuration?: number;
+  onReady?: () => void;
 };
 
 type OrbContentProps = {
@@ -57,15 +58,15 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
       {/* Rotating light rig - controlled by gyroscope */}
       <group ref={lightGroup}>
         <GyroLightRig target={lightGroup} />
-        <ambientLight intensity={0.4} />
+        <ambientLight intensity={0.6} />
         {/* Main key lights for sparkle highlights - very bright */}
-        <directionalLight position={[2, 2, 3]} intensity={6.5} />
-        <directionalLight position={[-3, 1, -2]} intensity={7.0} />
+        <directionalLight position={[2, 2, 3]} intensity={12.0} />
+        <directionalLight position={[-3, 1, -2]} intensity={11.0} />
         {/* Additional accent lights for more sparkle variation */}
         {/* @ts-ignore - pointLight exists in R3F but types may be incomplete */}
-        <pointLight position={[1.5, 1, 2]} intensity={3.0} distance={5} decay={2} />
+        <pointLight position={[1.5, 1, 2]} intensity={8.0} distance={5} decay={2} />
         {/* @ts-ignore */}
-        <pointLight position={[-1, -1.5, 2]} intensity={2.5} distance={5} decay={2} />
+        <pointLight position={[-1, -1.5, 2]} intensity={6.0} distance={5} decay={2} />
       </group>
 
       {/* Rotating orb group */}
@@ -76,7 +77,7 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
           colorA={colorA} 
           colorB={colorB} 
           colorC={colorC} 
-          scale={1.30} 
+          scale={1.33} 
           startupDuration={startupDuration}
           transitionDuration={transitionDuration}
         />
@@ -89,21 +90,21 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
             ref={materialRef}
             color="#ffffff"
             envMap={env || undefined}
-            envMapIntensity={12.0}
-            roughness={0.02}
-            metalness={0.35}
+            envMapIntensity={15.0}
+            roughness={0.01}
+            metalness={0.45}
             clearcoat={1}
-            clearcoatRoughness={0.04}
-            specularIntensity={6.0}
+            clearcoatRoughness={0.02}
+            specularIntensity={8.0}
             specularColor="#ffffff"
             reflectivity={1.0}
-            opacity={0.22}
+            opacity={0.25}
             transparent
             depthWrite={false}
             ior={1.5}
-            transmission={0.55}
-            thickness={0.5}
-            attenuationDistance={2.0}
+            transmission={0.6}
+            thickness={0.6}
+            attenuationDistance={2.5}
             attenuationColor="#ffffff"
           />
         </mesh>
@@ -119,6 +120,7 @@ export default function GlassOrb({
   colorC = "#fff",
   startupDuration = 0,
   transitionDuration = 0,
+  onReady,
 }: Props) {
   console.log('[GlassOrb] Mounting with size:', size, 'colorA:', colorA, 'startupDuration:', startupDuration);
   
@@ -161,6 +163,12 @@ export default function GlassOrb({
         renderer.autoClearColor = true;
         renderer.autoClearDepth = true;
         renderer.autoClearStencil = true;
+
+        // Signal ready
+        if (onReady) {
+            // Small delay to ensure first frame renders
+            setTimeout(onReady, 100);
+        }
       }}
     >
       <OrbContent
