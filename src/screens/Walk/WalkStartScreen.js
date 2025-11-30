@@ -1,3 +1,4 @@
+import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
 import { walksActions } from "@/features/walks";
 import { log } from "@/lib/log";
 import { screens } from "@/navigation/routes";
@@ -11,9 +12,10 @@ import TimerDisplay from "../../components/walk/TimerDisplay";
 import TimeSlider from "../../components/walk/TimeSlider";
 import TimeStepper from "../../components/walk/TimeStepper";
 import { useOrbTransition } from "../../state/orbTransitionContext";
+import { DESIGNER_REPUBLIC_THEME } from "../../theme/designer_republic";
 
 const WalkStartScreen = ({ navigation, route }) => {
-  const { pinToJink } = useOrbTransition();
+  const { pinToJink, orbData } = useOrbTransition();
   const entryProgress = useRef(new Animated.Value(0)).current;
 
   const sliderScale = useMemo(
@@ -167,11 +169,8 @@ const WalkStartScreen = ({ navigation, route }) => {
     }, [entryProgress])
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      pinToJink(true);
-    }, [pinToJink])
-  );
+  // Removed pinToJink effect to prevent global overlay from showing the pinned orb.
+  // We render it locally now to control z-index and glow style.
 
   useEffect(() => {
     (async () => {
@@ -253,6 +252,17 @@ const WalkStartScreen = ({ navigation, route }) => {
           ]}
           pointerEvents="box-none"
         >
+          {/* Render Orb + Glow first (behind) so TimeSlider is on top */}
+          <View style={styles.orbContainer} pointerEvents="none">
+            <ArchetypeOrb
+              archetypeData={orbData}
+              size={220}
+              interactive={false}
+              lod="standard"
+              showGlow={true} // Use optimized Skia glow
+            />
+          </View>
+
           <TimeSlider
             min={5}
             max={90}
@@ -262,7 +272,6 @@ const WalkStartScreen = ({ navigation, route }) => {
             showRangeLabels={false}
             centerLabel={null}
           />
-          {/* Orb is rendered by global overlay and pinned while on Jink */}
         </Animated.View>
         <Animated.View
           style={[
@@ -289,7 +298,7 @@ const WalkStartScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: DESIGNER_REPUBLIC_THEME.colors.background,
   },
   container: {
     flex: 1,
@@ -305,6 +314,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 100, // Ensure TimeSlider PNG is above orb
   },
   timerDisplay: {
     position: "absolute",
@@ -338,6 +348,12 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     color: "#111",
+  },
+  orbContainer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    // Rendered before TimeSlider in JSX, so it will be behind it naturally
   },
 });
 

@@ -5,15 +5,17 @@ import {
   BlurMask,
   Canvas,
   Circle,
-  Group,
   RadialGradient,
   vec
 } from "@shopify/react-native-skia";
 import { useEffect } from "react";
-import { StyleSheet, type ViewStyle } from "react-native";
-import Animated, {
+import { type ViewStyle } from "react-native";
+import {
+  Easing,
   useDerivedValue,
   useSharedValue,
+  withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
 import { subscribeToDeviceRotation } from "../three/orb/gyroController";
@@ -28,22 +30,22 @@ type OrbGlowProps = {
   colors?: [string, string];
 };
 
-// Reduced opacity values for subtle glow behind glass
+// Soft Diffuse Glow - Optimized for performance and readability
 const STATE_CONFIG = {
   default: {
-    layer1Opacity: 0.15,  // Outer atmospheric
-    layer2Opacity: 0.20,  // Mid glow
-    layer3Opacity: 0.25,  // Edge highlight
+    layer1Opacity: 0.4,  // Soft outer atmospheric
+    layer2Opacity: 0.3,  // Mid diffuse
+    layer3Opacity: 0.2,  // Inner highlight (soft)
   },
   hover: {
-    layer1Opacity: 0.20,
-    layer2Opacity: 0.25,
-    layer3Opacity: 0.30,
+    layer1Opacity: 0.5,
+    layer2Opacity: 0.4,
+    layer3Opacity: 0.3,
   },
   press: {
-    layer1Opacity: 0.30,
-    layer2Opacity: 0.40,
-    layer3Opacity: 0.50,
+    layer1Opacity: 0.6,
+    layer2Opacity: 0.5,
+    layer3Opacity: 0.4,
   },
 };
 
@@ -57,11 +59,22 @@ export function OrbGlow({
   const gyroX = useSharedValue(0);
   const gyroY = useSharedValue(0);
 
+  // Slow, breathing pulse
+  const pulseProgress = useSharedValue(0);
+
+  useEffect(() => {
+    pulseProgress.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.sin) })
+      ),
+      -1,
+      true
+    );
+  }, [pulseProgress]);
+
   useEffect(() => {
     const unsubscribe = subscribeToDeviceRotation(({ beta, gamma }) => {
-      // Beta is x-axis tilt (-180 to 180), Gamma is y-axis tilt (-90 to 90)
-      // We want subtle movement, so we clamp and scale
-      // Invert axes for natural "reflection" feel
       gyroX.value = withTiming(Math.max(-0.5, Math.min(0.5, gamma / 45)), { duration: 100 }); 
       gyroY.value = withTiming(Math.max(-0.5, Math.min(0.5, beta / 45)), { duration: 100 });
     });
@@ -70,83 +83,78 @@ export function OrbGlow({
   
   const orbRadius = size / 2;
   
-  // Glow extends slightly beyond the orb
-  const glowRadius = orbRadius * 0.85;
-  
-  // Canvas must be significantly larger than glow radius to accommodate the blur
-  // otherwise we get hard clipped edges (square box effect)
-  // 50px blur needs significant padding to avoid clipping
-  const blurPadding = 250; 
-  const canvasSize = (glowRadius + blurPadding) * 2;
-  const center = canvasSize / 2;
-  
-  // Offset to center the canvas on the orb
-  const offset = (canvasSize - size) / 2;
-
-  const config = STATE_CONFIG[activeState];
-
-  // Dynamic gradient based on passed colors
-  // Fade to transparent version of the secondary color to avoid grey edges
+  // Soft colors
   const glowColors = [
-    colors[0], // Core color (Color A)
-    colors[1], // Mid color (Color B)
-    `${colors[1]}00` // Transparent edge (Color B with 0 opacity)
+    colors[0],
+    colors[1],
+    `${colors[1]}00` // Transparent end
   ];
 
-  // Dynamic center based on gyro
-  // Max shift is 30% of radius
-  const shiftAmount = orbRadius * 0.3;
-  const dynamicCenter = useDerivedValue(() => {
-    return vec(center + gyroX.value * shiftAmount, center + gyroY.value * shiftAmount);
+  // Subtle pulse
+  const pulseOpacity = useDerivedValue(() => {
+    return 0.8 + (pulseProgress.value * 0.2);
+  });
+
+  const layer1Opacity = useDerivedValue(() => {
+    const baseOpacity = STATE_CONFIG[activeState].layer1Opacity;
+    return withTiming(baseOpacity * pulseOpacity.value, { duration: 500 });
+  });
+
+  const layer2Opacity = useDerivedValue(() => {
+    const baseOpacity = STATE_CONFIG[activeState].layer2Opacity;
+    return withTiming(baseOpacity * pulseOpacity.value, { duration: 500 });
+  });
+
+  const layer3Opacity = useDerivedValue(() => {
+    const baseOpacity = STATE_CONFIG[activeState].layer3Opacity;
+    return withTiming(baseOpacity * pulseOpacity.value, { duration: 500 });
+  });
+
+  // Large canvas for diffuse glow
+  const canvasSize = size * 2.2;
+  const center = canvasSize / 2;
+
+  const c = useDerivedValue(() => {
+    const offsetX = gyroY.value * 15;
+    const offsetY = gyroX.value * 15;
+    return vec(center + offsetX, center + offsetY);
   });
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          width: canvasSize,
-          height: canvasSize,
-          marginLeft: -offset,
-          marginTop: -offset,
-        },
-        style,
-      ]}
-      pointerEvents="none"
-    >
-      <Canvas style={StyleSheet.absoluteFill}>
-        {/* Layer 1: Large outer glow */}
-        <Group opacity={config.layer1Opacity}>
-          <Circle cx={center} cy={center} r={glowRadius}>
-            <RadialGradient c={dynamicCenter} r={glowRadius} colors={glowColors} />
-            <BlurMask blur={50} style="normal" />
-          </Circle>
-        </Group>
+    <Canvas style={{ width: canvasSize, height: canvasSize, position: 'absolute', top: -(canvasSize - size) / 2, left: -(canvasSize - size) / 2 }}>
+      {/* Layer 1: Wide Atmospheric Glow */}
+      <Circle cx={center} cy={center} r={orbRadius * 1.4} opacity={layer1Opacity}>
+        <RadialGradient
+          c={c}
+          r={orbRadius * 1.4}
+          colors={glowColors}
+        />
+        <BlurMask blur={60} style="normal" />
+      </Circle>
 
-        {/* Layer 2: Medium glow */}
-        <Group opacity={config.layer2Opacity}>
-          <Circle cx={center} cy={center} r={orbRadius * 1.25}>
-            <RadialGradient c={dynamicCenter} r={orbRadius * 1.25} colors={glowColors} />
-            <BlurMask blur={30} style="normal" />
-          </Circle>
-        </Group>
+      {/* Layer 2: Mid Diffuse Glow */}
+      <Circle cx={center} cy={center} r={orbRadius * 1.2} opacity={layer2Opacity}>
+        <RadialGradient
+          c={c}
+          r={orbRadius * 1.2}
+          colors={glowColors}
+        />
+        <BlurMask blur={30} style="normal" />
+      </Circle>
 
-        {/* Layer 3: Tight edge glow */}
-        <Group opacity={config.layer3Opacity}>
-          <Circle cx={center} cy={center} r={orbRadius * 1.08}>
-            <RadialGradient c={dynamicCenter} r={orbRadius * 1.08} colors={glowColors} />
-            <BlurMask blur={15} style="normal" />
-          </Circle>
-        </Group>
-      </Canvas>
-    </Animated.View>
+      {/* Layer 3: Soft Inner Highlight (No sharp edges) */}
+      <Circle cx={center} cy={center} r={orbRadius * 1.05} opacity={layer3Opacity}>
+        <RadialGradient
+          c={c}
+          r={orbRadius * 1.05}
+          colors={glowColors}
+        />
+        <BlurMask blur={15} style="normal" />
+      </Circle>
+    </Canvas>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-  },
-});
+
 
 export default OrbGlow;

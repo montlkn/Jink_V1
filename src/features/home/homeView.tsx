@@ -12,6 +12,7 @@ import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
 import { screens, type RootParams } from "@/navigation/routes";
 import HomeTasteLine from "@/screens/HomeView/HomeTasteLine";
 import { useOrbTransition } from "@/state/orbTransitionContext";
+import { DESIGNER_REPUBLIC_THEME } from "@/theme/designer_republic";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -375,7 +376,7 @@ export function HomeView(): JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F8F8" },
+  container: { flex: 1, backgroundColor: DESIGNER_REPUBLIC_THEME.colors.background },
   scrollContent: { paddingBottom: 100, paddingTop: 60 },
   xpBadgeContainer: {
     position: "absolute",

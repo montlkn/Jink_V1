@@ -112,3 +112,66 @@ export const showtime: PresetConfig = {
         },
     ],
 };
+
+/**
+ * Light blue-grey circular border glow for orb on WalkStart screen
+ */
+/**
+ * Soft diffuse glow for orb on WalkStart screen (matches showtime style)
+ */
+export const orbWalk: PresetConfig = {
+    states: [
+        {
+            name: "default",
+            preset: {
+                cornerRadius: 999,
+                outlineWidth: 0, // No sharp outline
+                borderColor: "transparent",
+                backgroundColor: "transparent",
+                animationSpeed: 0.5,
+                borderSpeedMultiplier: 1,
+                glowLayers: [
+                    {
+                        glowPlacement: "behind",
+                        colors: ["rgba(180, 200, 220, 0.6)"],
+                        glowSize: [40, 20], // Large diffuse backing
+                        opacity: 0.5,
+                        speedMultiplier: 1,
+                        coverage: 1,
+                        relativeOffset: 0,
+                    },
+                    {
+                        glowPlacement: "behind",
+                        colors: [
+                            "rgba(160, 180, 200, 0.5)",
+                            "rgba(140, 160, 185, 0.4)",
+                        ],
+                        glowSize: [15, 10, 10, 15], // Mid-range pulse
+                        opacity: 0.6,
+                        speedMultiplier: 1,
+                        coverage: 1,
+                        relativeOffset: 0,
+                    },
+                    {
+                        glowPlacement: "behind",
+                        colors: ["rgba(190, 210, 230, 0.4)"],
+                        glowSize: [0, 30], // Wide outer halo
+                        opacity: 0.4,
+                        speedMultiplier: 1,
+                        coverage: 0.8,
+                        relativeOffset: 0,
+                    },
+                    {
+                        glowPlacement: "over",
+                        colors: ["rgba(200, 220, 240, 0.3)"],
+                        glowSize: [0, 5], // Subtle top highlight
+                        opacity: 0.3,
+                        speedMultiplier: 1,
+                        coverage: 1,
+                        relativeOffset: 0,
+                    },
+                ],
+            },
+        },
+    ],
+};

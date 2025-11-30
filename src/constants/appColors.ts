@@ -40,7 +40,7 @@ export const APP_COLORS = {
     elements: {
         backPill: "#000000",
         surface: "#FFFFFF",
-        background: "#F2F2F2",
+        background: "#DEDEDE",
     },
 };
 

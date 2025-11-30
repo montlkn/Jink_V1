@@ -20,8 +20,8 @@ const DEFAULT_TRANSITION_DURATION = 520;
 const DEFAULT_EASING = Easing.out(Easing.cubic);
 const ORB_SIZE = 360;
 const JINK_TARGET_SIZE = 220; // Ring radius on WalkStart
-const JINK_OFFSET_X = 76;
-const JINK_OFFSET_Y = 112; // Positive pushes orb downward on Jink
+const JINK_OFFSET_X = 0;
+const JINK_OFFSET_Y = 36; // Positive pushes orb downward on Jink
 const ORB_DATA_STORAGE_KEY = "arch-app/orbData.v1";
 
 // Calculate glow extent to match ArchetypeOrb
@@ -255,15 +255,20 @@ const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) =>
                 { translateY },
                 { scale },
               ],
+              zIndex: pinned ? 1 : 10, // Lower z-index when pinned so TimeSlider is on top
             },
           ]}
         >
+          {/* Circular border glow for WalkStart screen */}
+          {pinned && (
+            <View style={styles.circularBorder} />
+          )}
           <ArchetypeOrb
             archetypeData={orbData}
             size={ORB_SIZE}
             interactive={false}
             lod="standard"
-            showGlow={true}
+            showGlow={!pinned}
           />
         </Animated.View>
       </Suspense>
@@ -290,5 +295,18 @@ const styles = StyleSheet.create({
     // Critical: allow glow to extend beyond bounds
     overflow: "visible",
     // No background - fully transparent
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circularBorder: {
+    position: "absolute",
+    width: ORB_SIZE + 16, // Slightly larger than orb
+    height: ORB_SIZE + 16,
+    borderRadius: (ORB_SIZE + 16) / 2,
+    borderWidth: 3,
+    borderColor: "rgba(170, 190, 210, 0.6)", // Light blue-grey
+    backgroundColor: "transparent",
+    alignSelf: "center",
+    top: GLOW_EXTENT - 8, // Center it properly
   },
 });

@@ -1,4 +1,3 @@
-import XPDetailModal from "@/components/modals/XPDetailModal";
 import PassportHeader from "@/components/passport/PassportHeader";
 import { SecurityPattern } from "@/components/passport/SecurityPattern";
 import { ELEMENT_COLORS } from "@/constants/elementColors";
@@ -10,6 +9,7 @@ import {
 } from "@/constants/passportContent";
 import { log } from "@/lib/log";
 import { screens, type RootParams } from "@/navigation/routes";
+import { getStreakMultiplier } from "@/theme/designConstants";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -32,6 +32,7 @@ import Animated, {
   withSequence,
   withTiming
 } from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
 import { passportActions } from "./mutations";
 import type { PassportUiData } from "./selectors";
 import { usePassportData } from "./usePassportData";
@@ -82,7 +83,6 @@ function PassportSkeleton() {
 export function PassportView(): JSX.Element {
   const navigation = useNavigation<PassportNavigation>();
   const passportState = usePassportData();
-  const [xpModalVisible, setXpModalVisible] = useState(false);
 
   const handleLogout = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
@@ -141,7 +141,7 @@ export function PassportView(): JSX.Element {
       );
     }
 
-    return <PassportContent data={passportState.value} onCardPress={handleCardPress} onShowXp={() => setXpModalVisible(true)} />;
+    return <PassportContent data={passportState.value} onCardPress={handleCardPress} />;
   }, [handleCardPress, passportState, handleRefresh]);
 
   const refreshControl =
@@ -152,8 +152,6 @@ export function PassportView(): JSX.Element {
         tintColor={theme.colors.primary}
       />
     ) : undefined;
-
-  const xpDetails = passportState.status === "ready" ? passportState.value : null;
 
   return (
     <View style={styles.container}>
@@ -172,16 +170,6 @@ export function PassportView(): JSX.Element {
         {content}
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      {xpDetails ? (
-        <XPDetailModal
-          visible={xpModalVisible}
-          onClose={() => setXpModalVisible(false)}
-          currentXP={xpDetails.xpTotal}
-          level={xpDetails.level}
-          xpForNextLevel={xpDetails.xpForNextLevel}
-        />
-      ) : null}
     </View>
   );
 }
@@ -189,11 +177,25 @@ export function PassportView(): JSX.Element {
 type PassportContentProps = {
   data: PassportUiData;
   onCardPress: (category: string) => void;
-  onShowXp: () => void;
 };
 
-function PassportContent({ data, onCardPress, onShowXp }: PassportContentProps) {
+
+// ... existing imports
+
+function PassportContent({ data, onCardPress }: PassportContentProps) {
+  const [expanded, setExpanded] = useState(false);
+  
   const progressPercent = Math.round(data.xpProgress * 100);
+  const remainingXP = data.xpForNextLevel - data.xpTotal;
+  const streakInfo = getStreakMultiplier(data.dailyStreak ?? 0); // Assuming data has streak, or pass it in
+
+  // Circle SVG properties for dropdown
+  const size = 80;
+  const strokeWidth = 5;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (data.xpProgress) * circumference;
+
   const stampSource = data.stamps.length > 0 ? data.stamps : stampCollection.map((stamp) => ({ id: stamp.id, name: stamp.title }));
   const stampsPreview = stampSource.slice(0, 3);
   const stampCount = stampSource.length;
@@ -213,30 +215,120 @@ function PassportContent({ data, onCardPress, onShowXp }: PassportContentProps) 
   return (
     <View style={styles.dashboardGrid}>
       {/* Bearer XP Status Section */}
+      {/* Bearer XP Status Section - Expandable Dropdown */}
       <TouchableOpacity
         style={[styles.dataBlock, { backgroundColor: ELEMENT_COLORS.passport.bearer, overflow: 'hidden' }]}
-        onPress={onShowXp}
-        activeOpacity={0.8}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
+          setExpanded(!expanded);
+        }}
+        activeOpacity={0.9}
       >
-        <SecurityPattern width={width - 40} height={120} color="#FFFFFF" opacity={0.15} />
+        <SecurityPattern width={width - 40} height={expanded ? 500 : 120} color="#FFFFFF" opacity={0.15} />
+        
+        {/* Header - Always Visible */}
         <View style={styles.blockHeader}>
           <Text style={[styles.blockLabel, { color: '#FFFFFF' }]}>BEARER XP STATUS</Text>
-          <Ionicons name="chevron-forward" size={12} color="#FFFFFF" />
+          <Ionicons 
+            name={expanded ? "chevron-up" : "chevron-forward"} 
+            size={12} 
+            color="#FFFFFF" 
+          />
         </View>
 
-        <View style={styles.statusRow}>
-          <View>
-            <Text style={[styles.statusValue, { color: '#FFFFFF' }]}>LEVEL {data.level}</Text>
-            <Text style={[styles.statusSub, { color: '#FFFFFF', opacity: 0.9 }]}>EXPLORER CLASS</Text>
-          </View>
-          <View style={[styles.xpContainer, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-            <Text style={[styles.xpText, { color: '#FFFFFF' }]}>{data.xpTotal.toLocaleString()} XP</Text>
-          </View>
-        </View>
+        {!expanded ? (
+          /* Collapsed View */
+          <>
+            <View style={styles.statusRow}>
+              <View>
+                <Text style={[styles.statusValue, { color: '#FFFFFF' }]}>LEVEL {data.level}</Text>
+                <Text style={[styles.statusSub, { color: '#FFFFFF', opacity: 0.9 }]}>EXPLORER CLASS</Text>
+              </View>
+              <View style={[styles.xpContainer, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
+                <Text style={[styles.xpText, { color: '#FFFFFF' }]}>{data.xpTotal.toLocaleString()} XP</Text>
+              </View>
+            </View>
 
-        <View style={[styles.progressBarContainer, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
-          <View style={[styles.progressBarFill, { backgroundColor: '#FFFFFF', width: `${Math.min(progressPercent, 100)}%` }]} />
-        </View>
+            <View style={[styles.progressBarContainer, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
+              <View style={[styles.progressBarFill, { backgroundColor: '#FFFFFF', width: `${Math.min(progressPercent, 100)}%` }]} />
+            </View>
+          </>
+        ) : (
+          /* Expanded View - Detailed Stats */
+          <View style={{ marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 24 }}>
+              {/* XP Circle */}
+              <View style={{ width: 80, height: 80, position: 'relative' }}>
+                <Svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0 }}>
+                  <Circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                  />
+                  <Circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    stroke="#FFFFFF"
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={strokeDashoffset}
+                    strokeLinecap="butt"
+                    rotation="-90"
+                    origin={`${size / 2}, ${size / 2}`}
+                  />
+                </Svg>
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 8, fontWeight: 'bold', color: 'rgba(255,255,255,0.7)', letterSpacing: 1, marginBottom: 2 }}>LEVEL</Text>
+                  <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#FFFFFF', fontFamily: theme.typography.fontFamily.bold }}>{data.level}</Text>
+                </View>
+              </View>
+
+              {/* Stats */}
+              <View style={{ flex: 1, gap: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)', paddingBottom: 4 }}>
+                  <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 'bold' }}>CURRENT XP</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#FFFFFF', fontFamily: 'Courier' }}>{data.xpTotal.toLocaleString()}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)', paddingBottom: 4 }}>
+                  <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 'bold' }}>NEXT LEVEL</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#FFFFFF', fontFamily: 'Courier' }}>{data.xpForNextLevel.toLocaleString()}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)', paddingBottom: 4 }}>
+                  <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 'bold' }}>REQUIRED</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#FFFFFF', fontFamily: 'Courier' }}>{remainingXP.toLocaleString()}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Streak Section */}
+            <View style={{ marginBottom: 20, padding: 12, backgroundColor: 'rgba(0,0,0,0.2)', borderLeftWidth: 3, borderLeftColor: '#FFFFFF' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 'bold' }}>DAILY STREAK</Text>
+                {(data.dailyStreak ?? 0) >= 3 && (
+                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#FFFFFF' }}>{streakInfo.multiplier} BONUS</Text>
+                )}
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#FFFFFF', fontFamily: 'Courier' }}>
+                {(data.dailyStreak ?? 0) > 0 ? `${data.dailyStreak} DAY${data.dailyStreak !== 1 ? 'S' : ''}` : 'NO STREAK'}
+              </Text>
+            </View>
+
+            {/* Progress Bar */}
+            <View style={{ marginBottom: 8 }}>
+              <View style={[styles.progressBarContainer, { backgroundColor: 'rgba(255, 255, 255, 0.2)', height: 6, marginBottom: 8 }]}>
+                <View style={[styles.progressBarFill, { backgroundColor: '#FFFFFF', width: `${Math.min(progressPercent, 100)}%` }]} />
+              </View>
+              <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', textAlign: 'center', fontWeight: 'bold', letterSpacing: 1 }}>
+                {progressPercent}% TO LEVEL {data.level + 1}
+              </Text>
+            </View>
+          </View>
+        )}
       </TouchableOpacity>
 
 

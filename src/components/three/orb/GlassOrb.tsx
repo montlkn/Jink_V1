@@ -58,15 +58,17 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
       {/* Rotating light rig - controlled by gyroscope */}
       <group ref={lightGroup}>
         <GyroLightRig target={lightGroup} />
-        <ambientLight intensity={0.6} />
-        {/* Main key lights for sparkle highlights - very bright */}
-        <directionalLight position={[2, 2, 3]} intensity={12.0} />
-        <directionalLight position={[-3, 1, -2]} intensity={11.0} />
-        {/* Additional accent lights for more sparkle variation */}
-        {/* @ts-ignore - pointLight exists in R3F but types may be incomplete */}
-        <pointLight position={[1.5, 1, 2]} intensity={8.0} distance={5} decay={2} />
+        <ambientLight intensity={1.0} />
+        {/* Main key light - soft directional */}
+        <directionalLight position={[-5, 0, -5]} intensity={3.0} />
+        {/* Lens Flare Highlight - Point light for sharp star reflection */}
         {/* @ts-ignore */}
-        <pointLight position={[-1, -1.5, 2]} intensity={6.0} distance={5} decay={2} />
+        <pointLight 
+          position={[3, 3, 3]} 
+          intensity={150.0} 
+          distance={20}
+          decay={2}
+        />
       </group>
 
       {/* Rotating orb group */}
@@ -90,21 +92,21 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
             ref={materialRef}
             color="#ffffff"
             envMap={env || undefined}
-            envMapIntensity={15.0}
-            roughness={0.01}
-            metalness={0.45}
-            clearcoat={1}
-            clearcoatRoughness={0.02}
-            specularIntensity={8.0}
+            envMapIntensity={5.0}
+            roughness={0.1}
+            metalness={0.2}
+            clearcoat={0.0}
+            clearcoatRoughness={0.0}
+            specularIntensity={1.0}
             specularColor="#ffffff"
             reflectivity={1.0}
-            opacity={0.25}
+            opacity={1.0}
             transparent
             depthWrite={false}
             ior={1.5}
-            transmission={0.6}
-            thickness={0.6}
-            attenuationDistance={2.5}
+            transmission={1.0}
+            thickness={1.5}
+            attenuationDistance={5.0}
             attenuationColor="#ffffff"
           />
         </mesh>

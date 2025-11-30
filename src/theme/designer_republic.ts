@@ -1,6 +1,6 @@
 export const DESIGNER_REPUBLIC_THEME = {
     colors: {
-        background: "#F2F2F2", // Light grey technical background
+        background: "#DEDEDE", // Light grey technical background
         text: "#111111", // Stark black text
         primary: "#FF4400", // Wipeout-style orange/red (slightly adjusted for light mode)
         secondary: "#00AEEF", // Cyan/Electric Blue (slightly darker for contrast)
