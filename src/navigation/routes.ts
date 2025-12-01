@@ -8,6 +8,7 @@ export const screens = {
   AuthLogin: "Login",
   AuthCallback: "AuthCallback",
   OnboardingQuiz: "OnboardingQuiz",
+  QuizResults: "QuizResults",
   Main: "Main",
   Profile: "ProfileDetail",
   Passport: "Passport",
@@ -18,12 +19,10 @@ export const screens = {
   PassportListDetail: "PassportListDetail",
   // Search: "Search", // ARCHIVED for v2 - Search removed for v1 beta
   Scan: "ScanScreen",
-  ScanCamera: "ScanCamera",
   ScanContribution: "ContributionScreen",
   WalkStart: "WalkStartScreen",
   WalkSetup: "WalkSetupScreen",
   WalkNav: "WalkNavScreen",
-  WalkCamera: "WalkCameraScreen",
   BuildingModule: "BuildingModule",
   BuildingInfo: "BuildingInfo",
   NotFound: "NotFound",
@@ -45,7 +44,7 @@ type WalkFilters = {
 
 export type MainTabParams = {
   Home: undefined;
-  WalkCameraScreen: undefined;
+  ScanScreen: undefined;
   WalkStartScreen: { filters?: WalkFilters } | undefined;
   Passport: undefined;
 };
@@ -64,6 +63,7 @@ export type RootParams = {
   Login: undefined;
   AuthCallback: { redirectUrl?: string } | undefined;
   OnboardingQuiz: undefined;
+  QuizResults: undefined;
   Main: NavigatorScreenParams<MainTabParams> | undefined;
   ProfileDetail: { userId?: string; initialArchetype?: string } | undefined;
   Passport: undefined;
@@ -74,12 +74,10 @@ export type RootParams = {
   PassportListDetail: { listId?: string } | undefined;
   // Search: undefined; // ARCHIVED for v2 - Search removed for v1 beta
   ScanScreen: undefined;
-  ScanCamera: undefined;
   ContributionScreen: undefined;
   WalkStartScreen: { filters?: WalkFilters } | undefined;
   WalkSetupScreen: undefined;
   WalkNavScreen: WalkNavParams;
-  WalkCameraScreen: { building?: Record<string, unknown> } | undefined;
   BuildingModule: { building: Record<string, unknown> };
   BuildingInfo: { buildingData: BuildingDetail } | undefined;
   NotFound: { message?: string } | undefined;

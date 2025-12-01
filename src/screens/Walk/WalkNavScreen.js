@@ -1,18 +1,23 @@
-import { useFocusEffect } from "@react-navigation/native";
 import { Compass, PausePillButton } from "@/features/walks";
-import React, { useMemo, useState, useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { deriveBuildingOrder } from "../../utils/deriveUtils";
-import { useOrbTransition } from "../../state/orbTransitionContext";
+import { useFocusEffect } from "@react-navigation/native";
+// eslint-disable-next-line no-restricted-imports
+import { useAuth } from "@/auth/authProvider";
+import { log } from "@/lib/log";
 import { goBack, navigate } from "@/navigation/nav";
 import { screens } from "@/navigation/routes";
+// eslint-disable-next-line no-restricted-imports
+import { createAestheticEvent } from "@/services/gateways/aestheticEventGateway";
+import { useCallback, useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Pressable,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
+import { useOrbTransition } from "../../state/orbTransitionContext";
+import { deriveBuildingOrder } from "../../utils/deriveUtils";
 
 const normalizeCoords = (v) => {
   if (!v) return null;
@@ -23,6 +28,7 @@ const normalizeCoords = (v) => {
 
 const WalkNavScreen = ({ route }) => {
   const { pinToJink } = useOrbTransition();
+  const { session } = useAuth();
   const [buildingIndex, setBuildingIndex] = useState(0);
 
   const tsp = useMemo(() => {
@@ -70,6 +76,29 @@ const WalkNavScreen = ({ route }) => {
       setBuildingIndex((prev) => (prev + 1) % routeStops.length);
     }
   }, [currentIndex, hasRoute, pinToJink, routeStops]);
+
+  const handleSkip = useCallback(() => {
+    if (!hasRoute) return;
+    const activeStop = routeStops[currentIndex];
+
+    // Track quick_dismiss event
+    if (session?.user?.id && activeStop) {
+      createAestheticEvent({
+        userId: session.user.id,
+        eventType: 'quick_dismiss',
+        buildingBbl: activeStop.bbl || activeStop.bin,
+        payload: {
+          building_name: activeStop.name || activeStop.title,
+          dismissed_at_index: currentIndex
+        },
+      }).catch((err) => log.warn('[WalkNav] Failed to track quick_dismiss', err));
+    }
+
+    // Move to next building
+    if (routeStops.length > 0) {
+      setBuildingIndex((prev) => (prev + 1) % routeStops.length);
+    }
+  }, [currentIndex, hasRoute, routeStops, session?.user?.id]);
 
   const progressLabel = hasRoute
     ? `${currentIndex + 1}/${routeStops.length}`
@@ -120,19 +149,32 @@ const WalkNavScreen = ({ route }) => {
           </View>
 
           <View style={styles.footer}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.primaryButton,
-                !hasRoute && styles.disabledButton,
-                pressed && hasRoute ? styles.primaryButtonPressed : null,
-              ]}
-              onPress={handleArrived}
-              disabled={!hasRoute}
-            >
-              <Text style={styles.primaryButtonLabel}>
-                {hasRoute ? "I'm Here" : "Loading"}
-              </Text>
-            </Pressable>
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.primaryButton,
+                  !hasRoute && styles.disabledButton,
+                  pressed && hasRoute ? styles.primaryButtonPressed : null,
+                ]}
+                onPress={handleArrived}
+                disabled={!hasRoute}
+              >
+                <Text style={styles.primaryButtonLabel}>
+                  {hasRoute ? "I'm Here" : "Loading"}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.skipButton,
+                  !hasRoute && styles.disabledButton,
+                  pressed && hasRoute ? styles.skipButtonPressed : null,
+                ]}
+                onPress={handleSkip}
+                disabled={!hasRoute}
+              >
+                <Text style={styles.skipButtonLabel}>Skip</Text>
+              </Pressable>
+            </View>
             {hasRoute && (summaryDistance || summaryDuration) ? (
               <Text style={styles.routeSummary}>
                 {summaryDistance ? summaryDistance : ""}
@@ -219,8 +261,13 @@ const styles = StyleSheet.create({
     marginTop: 28,
     alignItems: "center",
   },
-  primaryButton: {
+  buttonRow: {
+    flexDirection: "row",
     width: "100%",
+    gap: 12,
+  },
+  primaryButton: {
+    flex: 2,
     backgroundColor: "#141417",
     borderRadius: 28,
     paddingVertical: 16,
@@ -241,6 +288,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
+  },
+  skipButton: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 28,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  skipButtonLabel: {
+    color: "#141417",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  skipButtonPressed: {
+    opacity: 0.7,
   },
   disabledButton: {
     backgroundColor: "#D1D5DB",

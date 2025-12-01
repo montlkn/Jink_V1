@@ -1,21 +1,25 @@
+import { useAuth } from '@/auth/authProvider';
 import { ClosePillButton, fetchBuildingBySearch, TimePeriodSlider } from '@/features/scan';
+import { log } from '@/lib/log';
 import { screens, type RootParams } from '@/navigation/routes';
+// eslint-disable-next-line no-restricted-imports
+import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  Linking,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    Linking,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 type Route = RouteProp<RootParams, typeof screens.BuildingInfo>;
@@ -24,10 +28,17 @@ type Navigation = NativeStackNavigationProp<RootParams>;
 export default function BuildingInfoScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
   const route = useRoute<Route>();
+  const { session } = useAuth() as any;
   const buildingParam = route.params?.buildingData;
-  
+
   const [building, setBuilding] = useState<any>(buildingParam);
   const [loading, setLoading] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  // Dwell time tracking
+  const dwellStartTime = useRef(Date.now());
+  const dwellTracked = useRef({ '15s': false, '30s': false, '60s': false });
 
   // Fetch building data from Supabase if we have search params
   useEffect(() => {
@@ -66,20 +77,63 @@ export default function BuildingInfoScreen(): JSX.Element {
     loadBuilding();
   }, [buildingParam]);
 
-  // Debug logging
+  // Track detail view event on mount
   useEffect(() => {
-    if (building) {
-      console.log('Building data:', {
-        name: building.name,
-        architect: building.architect,
-        style: building.style,
-        materials: building.materials,
-        use: building.use,
-        type: building.type,
-        year: building.year,
-      });
+    if (building && session?.user?.id) {
+      createAestheticEvent({
+        userId: session.user.id,
+        eventType: 'detail_view',
+        buildingBbl: building.bbl || building.bin,
+        payload: { building_name: building.name },
+      }).catch((err) => log.warn('[BuildingInfo] Failed to track detail_view', err));
     }
-  }, [building]);
+  }, [building, building?.bbl, building?.bin, session?.user?.id]);
+
+  // Track dwell time (15s, 30s, 60s+)
+  useEffect(() => {
+    if (!building || !session?.user?.id) return;
+
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - dwellStartTime.current) / 1000;
+
+      if (elapsed >= 60 && !dwellTracked.current['60s']) {
+        dwellTracked.current['60s'] = true;
+        createAestheticEvent({
+          userId: session.user.id,
+          eventType: 'dwell_time_60s+',
+          buildingBbl: building.bbl || building.bin,
+          payload: {
+            building_name: building.name,
+            dwell_seconds: Math.floor(elapsed)
+          },
+        }).catch((err) => log.warn('[BuildingInfo] Failed to track dwell 60s+', err));
+      } else if (elapsed >= 30 && !dwellTracked.current['30s']) {
+        dwellTracked.current['30s'] = true;
+        createAestheticEvent({
+          userId: session.user.id,
+          eventType: 'dwell_time_30s',
+          buildingBbl: building.bbl || building.bin,
+          payload: {
+            building_name: building.name,
+            dwell_seconds: Math.floor(elapsed)
+          },
+        }).catch((err) => log.warn('[BuildingInfo] Failed to track dwell 30s', err));
+      } else if (elapsed >= 15 && !dwellTracked.current['15s']) {
+        dwellTracked.current['15s'] = true;
+        createAestheticEvent({
+          userId: session.user.id,
+          eventType: 'dwell_time_15s',
+          buildingBbl: building.bbl || building.bin,
+          payload: {
+            building_name: building.name,
+            dwell_seconds: Math.floor(elapsed)
+          },
+        }).catch((err) => log.warn('[BuildingInfo] Failed to track dwell 15s', err));
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [building, session?.user?.id]);
 
   const handleDirections = () => {
     if (!building) return;
@@ -91,6 +145,42 @@ export default function BuildingInfoScreen(): JSX.Element {
   const handleAddToList = () => {
     // Navigate to lists screen - user can select which list to add to
     navigation.navigate(screens.PassportLists);
+  };
+
+  const handleLike = async () => {
+    const newLiked = !isLiked;
+    setIsLiked(newLiked);
+
+    if (session?.user?.id && building?.bbl) {
+      try {
+        await createAestheticEvent({
+          userId: session.user.id,
+          eventType: newLiked ? 'building_like' : 'building_unlike',
+          buildingBbl: building.bbl,
+          payload: { building_name: building.name },
+        });
+      } catch (error) {
+        log.warn('[BuildingInfo] Failed to track like event', error);
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    const newSaved = !isSaved;
+    setIsSaved(newSaved);
+
+    if (session?.user?.id && building?.bbl) {
+      try {
+        await createAestheticEvent({
+          userId: session.user.id,
+          eventType: 'building_save',
+          buildingBbl: building.bbl,
+          payload: { building_name: building.name },
+        });
+      } catch (error) {
+        log.warn('[BuildingInfo] Failed to track save event', error);
+      }
+    }
   };
 
   if (!building) {
@@ -146,11 +236,19 @@ export default function BuildingInfoScreen(): JSX.Element {
             <View style={styles.header}>
               <ClosePillButton onPress={() => navigation.goBack()} />
               <View style={styles.headerActions}>
-                 <TouchableOpacity style={styles.actionIcon}>
-                   <Ionicons name="heart-outline" size={24} color={theme.colors.text} />
+                 <TouchableOpacity style={styles.actionIcon} onPress={handleLike}>
+                   <Ionicons
+                     name={isLiked ? 'heart' : 'heart-outline'}
+                     size={24}
+                     color={isLiked ? theme.colors.primary : theme.colors.text}
+                   />
                  </TouchableOpacity>
-                 <TouchableOpacity style={styles.actionIcon}>
-                   <Ionicons name="share-social-outline" size={24} color={theme.colors.text} />
+                 <TouchableOpacity style={styles.actionIcon} onPress={handleSave}>
+                   <Ionicons
+                     name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                     size={24}
+                     color={isSaved ? theme.colors.primary : theme.colors.text}
+                   />
                  </TouchableOpacity>
               </View>
             </View>

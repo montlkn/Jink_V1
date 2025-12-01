@@ -1,14 +1,13 @@
-import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { screens, type RootParams } from "./routes";
-import { navRef } from "./nav";
 import { linking } from "./linking";
+import { navRef } from "./nav";
+import { screens, type RootParams } from "./routes";
 
-import BottomTabNavigator from "@/navigation/BottomTabNavigator";
-import AuthLoginScreen from "@/screens/Auth/LoginScreen";
-import AuthCallbackScreen from "@/screens/Auth/AuthCallbackScreen";
 import { useAuth } from "@/auth/authProvider";
+import BottomTabNavigator from "@/navigation/BottomTabNavigator";
+import AuthCallbackScreen from "@/screens/Auth/AuthCallbackScreen";
+import AuthLoginScreen from "@/screens/Auth/LoginScreen";
 import { ScreenLoaders } from "./screenLoaders";
 
 type AuthContextValue = {
@@ -68,20 +67,12 @@ export function AppStack() {
             {/* <Stack.Screen name={screens.Search} getComponent={ScreenLoaders.Search} /> */}
             <Stack.Screen name={screens.Scan} getComponent={ScreenLoaders.Scan} />
             <Stack.Screen
-              name={screens.ScanCamera}
-              getComponent={ScreenLoaders.ScanCamera}
-            />
-            <Stack.Screen
               name={screens.ScanContribution}
               getComponent={ScreenLoaders.ScanContribution}
             />
             <Stack.Screen name={screens.WalkStart} getComponent={ScreenLoaders.WalkStart} />
             <Stack.Screen name={screens.WalkSetup} getComponent={ScreenLoaders.WalkSetup} />
             <Stack.Screen name={screens.WalkNav} getComponent={ScreenLoaders.WalkNav} />
-            <Stack.Screen
-              name={screens.WalkCamera}
-              getComponent={ScreenLoaders.WalkCamera}
-            />
             <Stack.Screen
               name={screens.BuildingModule}
               getComponent={ScreenLoaders.BuildingModule}
@@ -98,6 +89,10 @@ export function AppStack() {
             <Stack.Screen
               name={screens.OnboardingQuiz}
               getComponent={ScreenLoaders.OnboardingQuiz}
+            />
+            <Stack.Screen
+              name={screens.QuizResults}
+              getComponent={ScreenLoaders.QuizResults}
             />
           </>
         )}

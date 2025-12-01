@@ -1,4 +1,5 @@
 export * from "./walkGateway";
+export { startWalk, type StartWalkResult } from "./supabaseGateway";
 export {
   supabaseGateway,
   getSupabaseClient,

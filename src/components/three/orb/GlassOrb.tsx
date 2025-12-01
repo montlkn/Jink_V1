@@ -93,7 +93,7 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
             color="#ffffff"
             envMap={env || undefined}
             envMapIntensity={5.0}
-            roughness={0.1}
+            roughness={0.02}
             metalness={0.2}
             clearcoat={0.0}
             clearcoatRoughness={0.0}
@@ -103,9 +103,9 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
             opacity={1.0}
             transparent
             depthWrite={false}
-            ior={1.5}
+            ior={1.8}
             transmission={1.0}
-            thickness={1.5}
+            thickness={2.0}
             attenuationDistance={5.0}
             attenuationColor="#ffffff"
           />

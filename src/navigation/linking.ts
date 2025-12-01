@@ -1,5 +1,5 @@
 import type { LinkingOptions } from "@react-navigation/native";
-import { screens, type RootParams } from "./routes";
+import { type RootParams, screens } from "./routes";
 
 const prefixes = [
   process.env.EXPO_DEEP_LINKING_SCHEME ?? "myapp://",
@@ -17,7 +17,7 @@ export const linking: LinkingOptions<RootParams> = {
         path: "",
         screens: {
           [screens.Home]: "",
-          [screens.WalkCamera]: "walk/camera",
+          [screens.Scan]: "scan",
           [screens.WalkStart]: "walk/start",
           [screens.Passport]: "passport",
         },
@@ -31,8 +31,6 @@ export const linking: LinkingOptions<RootParams> = {
       [screens.PassportLists]: "passport/lists",
       [screens.PassportListDetail]: "passport/list/:listId?",
       // [screens.Search]: "search", // ARCHIVED for v2 - Search removed for v1 beta
-      [screens.Scan]: "scan",
-      [screens.ScanCamera]: "scan/camera",
       [screens.ScanContribution]: "scan/contribute",
       [screens.WalkSetup]: "walk/setup",
       [screens.WalkNav]: "walk/nav",

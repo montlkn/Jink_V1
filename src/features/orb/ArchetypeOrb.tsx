@@ -4,12 +4,12 @@ import { blendArchetypeColors } from "@/utils/archetypeColorBlend";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  Pressable,
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewStyle,
+    Animated,
+    Pressable,
+    StyleProp,
+    StyleSheet,
+    View,
+    ViewStyle,
 } from "react-native";
 
 export type ArchetypeEntry = {
@@ -28,6 +28,9 @@ type ArchetypeOrbProps = {
   xpProgress?: number;
   lod?: string;
   showGlow?: boolean;
+  glowOpacityMultiplier?: number;
+  startupDuration?: number;
+  transitionDuration?: number;
 };
 
 type BlendPaletteEntry = {
@@ -50,6 +53,9 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
   interactive = true,
   style,
   showGlow = true,
+  glowOpacityMultiplier = 1.0,
+  startupDuration = 0,
+  transitionDuration = 0,
 }) => {
   const sanitizedData = useMemo(
     () =>
@@ -63,20 +69,29 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
 
   const colors = useMemo<BlendResult>(() => {
     const result = blendArchetypeColors(sanitizedData) as BlendResult;
+    // Enhanced logging to debug glow color issues
+    console.log('[ArchetypeOrb] Archetype blend details:', { 
+      inputData: sanitizedData,
+      colorA: result.colorA, 
+      colorB: result.colorB,
+      colorC: result.colorC,
+      blendedColor: result.blendedColor,
+      palette: result.palette
+    });
     return result;
   }, [sanitizedData]);
 
   const [glowState, setGlowState] = useState<"default" | "hover" | "press">("default");
   const [isOrbReady, setIsOrbReady] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current; // Start hidden
 
   // Fade in glow when orb is ready
   React.useEffect(() => {
     if (isOrbReady) {
       Animated.timing(glowOpacity, {
         toValue: 1,
-        duration: 500,
+        duration: 800,
         useNativeDriver: true,
       }).start();
     }
@@ -112,19 +127,20 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
 
   return (
     <View style={[styles.container, { width: size, height: size }, style]}>
-      {/* Glow behind the orb - overflows visually */}
+      {/* Glow behind orb - render first so it's actually behind */}
       {showGlow && (
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: glowOpacity }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, { opacity: glowOpacity, pointerEvents: 'none' }]}>
           <OrbGlow
             size={size}
             activeState={glowState}
             animationDuration={8}
             colors={[colors.colorA, colors.colorB]}
+            opacityMultiplier={glowOpacityMultiplier}
           />
         </Animated.View>
       )}
 
-      {/* Orb with scale animation */}
+      {/* Orb with scale animation - render after glow so it's on top */}
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
@@ -137,8 +153,8 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
           colorB={colors.colorB}
           colorC={colors.colorC}
           palette={colors.palette}
-          startupDuration={0}
-          transitionDuration={0}
+          startupDuration={startupDuration}
+          transitionDuration={transitionDuration}
           onReady={() => setIsOrbReady(true)}
         />
 
@@ -157,6 +173,8 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
 const styles = StyleSheet.create({
   container: {
     overflow: "visible",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
@@ -170,8 +188,29 @@ const areEqual = (
   if (prevProps.xpLevel !== nextProps.xpLevel) return false;
   if (prevProps.xpProgress !== nextProps.xpProgress) return false;
   if (prevProps.lod !== nextProps.lod) return false;
-  if (prevProps.archetypeData !== nextProps.archetypeData) return false;
   if (prevProps.showGlow !== nextProps.showGlow) return false;
+  if (prevProps.startupDuration !== nextProps.startupDuration) return false;
+  if (prevProps.transitionDuration !== nextProps.transitionDuration) return false;
+
+  // Deep compare archetypeData
+  if (prevProps.archetypeData !== nextProps.archetypeData) {
+    const prev = prevProps.archetypeData || [];
+    const next = nextProps.archetypeData || [];
+    if (prev.length !== next.length) return false;
+
+    for (let i = 0; i < prev.length; i++) {
+      const p = prev[i];
+      const n = next[i];
+      if (
+        p.color !== n.color ||
+        p.percentage !== n.percentage ||
+        p.score !== n.score
+      ) {
+        return false;
+      }
+    }
+  }
+
   return true;
 };
 

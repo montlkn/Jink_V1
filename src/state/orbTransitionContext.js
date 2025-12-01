@@ -18,10 +18,10 @@ import { extractTopArchetypesFromScores } from "../utils/archetypeColorBlend";
 
 const DEFAULT_TRANSITION_DURATION = 520;
 const DEFAULT_EASING = Easing.out(Easing.cubic);
-const ORB_SIZE = 360;
-const JINK_TARGET_SIZE = 220; // Ring radius on WalkStart
+const ORB_SIZE = 256;
+const JINK_TARGET_SIZE = ORB_SIZE; // Ring radius on WalkStart
 const JINK_OFFSET_X = 0;
-const JINK_OFFSET_Y = 36; // Positive pushes orb downward on Jink
+const JINK_OFFSET_Y = 28; // Positive pushes orb downward on Jink
 const ORB_DATA_STORAGE_KEY = "arch-app/orbData.v1";
 
 // Calculate glow extent to match ArchetypeOrb
@@ -189,7 +189,7 @@ export const OrbTransitionProvider = ({ children }) => {
           layout={homeOrbLayout}
           orbData={orbData}
           pinned={pinnedToJink}
-          visible={renderOverlay || pinnedToJink}
+          visible={renderOverlay}
         />
       </View>
     </OrbTransitionContext.Provider>
@@ -259,16 +259,14 @@ const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) =>
             },
           ]}
         >
-          {/* Circular border glow for WalkStart screen */}
-          {pinned && (
-            <View style={styles.circularBorder} />
-          )}
+          {/* Circular border glow removed as per user request */}
           <ArchetypeOrb
             archetypeData={orbData}
             size={ORB_SIZE}
             interactive={false}
             lod="standard"
-            showGlow={!pinned}
+            showGlow={true}
+            glowOpacityMultiplier={pinned ? 0.05 : 1.0}
           />
         </Animated.View>
       </Suspense>
@@ -298,15 +296,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  circularBorder: {
-    position: "absolute",
-    width: ORB_SIZE + 16, // Slightly larger than orb
-    height: ORB_SIZE + 16,
-    borderRadius: (ORB_SIZE + 16) / 2,
-    borderWidth: 3,
-    borderColor: "rgba(170, 190, 210, 0.6)", // Light blue-grey
-    backgroundColor: "transparent",
-    alignSelf: "center",
-    top: GLOW_EXTENT - 8, // Center it properly
-  },
+
 });

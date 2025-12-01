@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Platform } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { getUserAestheticProfile } from "@/services/gateways/quizGateway";
 import {
   getSession,
@@ -82,47 +83,57 @@ export function useHomeData(): HomeDataState {
   const [error, setError] = useState<unknown>(null);
   const timersInitialized = useRef(false);
 
-  useEffect(() => {
+  const fetchProfile = async () => {
     let alive = true;
 
-    (async () => {
-      try {
-        setLoadingProfile(true);
-        const session = await getSession();
+    try {
+      setLoadingProfile(true);
+      const session = await getSession();
 
-        if (!session) {
-          throw new Error("No session");
-        }
-
-        const profile = await getUserAestheticProfile(session.user.id);
-        if (!alive) return;
-
-        setProfileRaw(profile);
-
-        if (profile?.archetype_scores) {
-          const sorted = extractTopArchetypesFromScores(profile.archetype_scores);
-          // Ensure it's a proper array
-          setArchetypeData(Array.isArray(sorted) ? Array.from(sorted) : []);
-        } else {
-          setArchetypeData([]);
-        }
-      } catch (err) {
-        log.error("[home] Error fetching archetypes", err);
-        if (alive) {
-          setError((prev: unknown) => (prev == null ? err : prev));
-          setArchetypeData([]);
-        }
-      } finally {
-        if (alive) {
-          setLoadingProfile(false);
-        }
+      if (!session) {
+        throw new Error("No session");
       }
-    })();
+
+      const profile = await getUserAestheticProfile(session.user.id);
+      if (!alive) return;
+
+      setProfileRaw(profile);
+
+      if (profile?.archetype_scores) {
+        const sorted = extractTopArchetypesFromScores(profile.archetype_scores);
+        // Ensure it's a proper array
+        setArchetypeData(Array.isArray(sorted) ? Array.from(sorted) : []);
+      } else {
+        setArchetypeData([]);
+      }
+    } catch (err) {
+      log.error("[home] Error fetching archetypes", err);
+      if (alive) {
+        setError((prev: unknown) => (prev == null ? err : prev));
+        setArchetypeData([]);
+      }
+    } finally {
+      if (alive) {
+        setLoadingProfile(false);
+      }
+    }
 
     return () => {
       alive = false;
     };
+  };
+
+  // Fetch profile on mount
+  useEffect(() => {
+    fetchProfile();
   }, []);
+
+  // Refetch profile when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
 
   useEffect(() => {
     let alive = true;

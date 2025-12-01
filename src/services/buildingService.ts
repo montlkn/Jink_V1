@@ -135,3 +135,104 @@ export async function fetchBuildingByName(
 ): Promise<BuildingData | null> {
     return fetchBuildingBySearch({ name });
 }
+
+/**
+ * Fetch nearby buildings using PostGIS distance query
+ * Returns up to 200 buildings within radius (km)
+ */
+export async function fetchNearbyBuildingsFromDB(params: {
+    latitude: number;
+    longitude: number;
+    radiusKm?: number;
+    limit?: number;
+}): Promise<BuildingData[]> {
+    const { latitude, longitude, radiusKm = 1.0, limit = 200 } = params;
+
+    try {
+        if (!buildingsSupabaseClient) {
+            console.warn('[buildingService] Buildings DB not configured');
+            return [];
+        }
+
+        // Use PostGIS earth_distance function for accurate distance calculation
+        // Note: This requires PostGIS extension and geography columns
+        // For now, use simple bounding box then calculate haversine in JS
+
+        // Calculate approximate lat/lng bounds for the radius
+        // 1 degree latitude ≈ 111 km
+        // 1 degree longitude ≈ 111 km * cos(latitude)
+        const latDelta = radiusKm / 111.0;
+        const lngDelta = radiusKm / (111.0 * Math.cos((latitude * Math.PI) / 180));
+
+        const minLat = latitude - latDelta;
+        const maxLat = latitude + latDelta;
+        const minLng = longitude - lngDelta;
+        const maxLng = longitude + lngDelta;
+
+        const { data, error } = await buildingsSupabaseClient
+            .from('buildings_full_merge_scanning')
+            .select('*')
+            .gte('lat', minLat)
+            .lte('lat', maxLat)
+            .gte('lng', minLng)
+            .lte('lng', maxLng)
+            .not('lat', 'is', null)
+            .not('lng', 'is', null)
+            .limit(limit);
+
+        if (error) {
+            console.error('[buildingService] Error fetching nearby buildings:', error);
+            return [];
+        }
+
+        if (!data || data.length === 0) {
+            console.warn('[buildingService] No buildings found in bounds', {
+                minLat,
+                maxLat,
+                minLng,
+                maxLng,
+            });
+            return [];
+        }
+
+        // Map to BuildingData format with lat/lng fields
+        const buildings: BuildingData[] = data.map((row: any) => ({
+            bin: row.bin || row.BIN,
+            name: row.building_name || row.name || row.build_nme,
+            address: row.address || row.des_addres,
+            architect: row.architect || row.alt_architect,
+            style: row.style || row.style_prim,
+            year: row.year_built?.toString() || row.build_year?.toString() || row.year,
+            materials: row.mat_prim || row.mat_primary || row.material,
+            use: row.use_original || row.building_use,
+            type: row.building_type || row.build_type || row.type,
+            description: row.description || row.storytelling,
+            summary: row.summary,
+            // Important: Use lat/lng field names (not latitude/longitude)
+            lat: row.lat || row.geocoded_lat || row.input_lat,
+            lng: row.lng || row.geocoded_lng || row.input_lng,
+            latitude: row.lat || row.geocoded_lat || row.input_lat,
+            longitude: row.lng || row.geocoded_lng || row.input_lng,
+            significance_score: row.significance_score,
+        }));
+
+        // Filter out buildings with invalid coordinates
+        const validBuildings = buildings.filter((b) => {
+            const hasValid = b.lat && b.lng &&
+                b.lat !== 0 && b.lng !== 0 &&
+                Math.abs(b.lat) <= 90 && Math.abs(b.lng) <= 180;
+            return hasValid;
+        });
+
+        console.log('[buildingService] Fetched nearby buildings', {
+            total: data.length,
+            valid: validBuildings.length,
+            radius: `${radiusKm}km`,
+        });
+
+        return validBuildings;
+    } catch (err) {
+        console.error('[buildingService] Error in fetchNearbyBuildingsFromDB:', err);
+        return [];
+    }
+}

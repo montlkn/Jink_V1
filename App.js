@@ -13,6 +13,9 @@ import { useFonts } from "expo-font";
 import * as ScreenOrientation from "expo-screen-orientation";
 import "expo-three";
 import { useEffect } from "react";
+import { AppState } from "react-native";
+import { flushEventQueue } from "@/services/gateways/aestheticEventGateway";
+import { log } from "@/lib/log";
 
 if (typeof global !== 'undefined') {
   const primitiveStoreSymbol = Symbol.for("__weakmapPrimitiveStore");
@@ -172,6 +175,18 @@ export default function App() {
     Asset.loadAsync(ORB_ASSETS).catch((error) => {
       console.warn("[App] Failed to preload orb assets", error);
     });
+
+    // Flush aesthetic event queue when app comes to foreground
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        log.debug("[App] App came to foreground, flushing event queue");
+        flushEventQueue().catch((err) => {
+          log.warn("[App] Failed to flush event queue", err);
+        });
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   if (!fontsLoaded && !fontError) {

@@ -1,11 +1,10 @@
-import React from "react";
 import { createBottomTabNavigator, type BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 import LiquidGlassBottomTab from "./LiquidGlassBottomTab";
 import { screens, type MainTabParams } from "./routes";
 
 import HomeScreen from "@/screens/Home/HomeScreen";
 import PassportScreen from "@/screens/Passport/PassportScreen";
-import WalkCameraScreen from "@/screens/Walk/WalkCameraScreen";
+import ScanScreen from "@/screens/Scan/ScanScreen";
 import WalkStartScreen from "@/screens/Walk/WalkStartScreen";
 
 const Tab = createBottomTabNavigator<MainTabParams>();
@@ -27,8 +26,8 @@ export default function BottomTabNavigator() {
         options={{ tabBarLabel: "Home", tabBarIcon: asIconOption("home-outline") }}
       />
       <Tab.Screen
-        name={screens.WalkCamera}
-        component={WalkCameraScreen}
+        name={screens.Scan}
+        component={ScanScreen}
         options={{ tabBarLabel: "Scan", tabBarIcon: asIconOption("scan-outline") }}
       />
       <Tab.Screen

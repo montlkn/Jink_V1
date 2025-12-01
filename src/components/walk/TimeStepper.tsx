@@ -1,11 +1,6 @@
 import * as Haptics from "expo-haptics";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
 
 type TimeStepperProps = {
   value: number;
@@ -13,156 +8,109 @@ type TimeStepperProps = {
   min?: number;
   max?: number;
   step?: number;
-  style?: any;
+  buttonSize?: number;
+  opacity?: any; // Animated.Value
 };
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+// TimeButton component - handles SVG button rendering
+const TimeButton = ({ iconPath, onPress, size = 64 }: { iconPath: any; onPress: () => void; size?: number }) => {
+  const iconSource = useMemo(() => {
+    try {
+      const resolved = Image.resolveAssetSource(iconPath);
+      return resolved?.uri ?? null;
+    } catch {
+      return null;
+    }
+  }, [iconPath]);
+
+  // Try loading SvgUri dynamically
+  const [SvgUri, setSvgUri] = useState<any>(null);
+  
+  useEffect(() => {
+    import('react-native-svg')
+      .then(module => {
+        setSvgUri(() => module.SvgUri);
+      })
+      .catch(() => {
+        setSvgUri(null);
+      });
+  }, []);
+
+  // SVG is 100x100 in the source file, so calculate scale
+  const scale = size / 60;
+
+  return (
+    <Pressable onPress={onPress} style={{ opacity: 0.5 }}>
+      <View style={{ width: size, height: size, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+        {iconSource && SvgUri ? (
+          <View style={{ transform: [{ scale }] }}>
+            <SvgUri uri={iconSource} width={100} height={100} />
+          </View>
+        ) : (
+          <View style={{ width: size, height: size, backgroundColor: '#E5E5E5', borderRadius: size / 2 }} />
+        )}
+      </View>
+    </Pressable>
+  );
+};
 
 export default function TimeStepper({
   value,
   onChange,
   min = 5,
-  max = 90,
+  max = 95,
   step = 1,
-  style,
+  buttonSize = 64,
+  opacity,
 }: TimeStepperProps) {
-  const leftScale = useSharedValue(1);
-  const rightScale = useSharedValue(1);
-
-  const handleDecrement = () => {
-    const newValue = Math.max(min, value - step);
-    if (newValue !== value) {
-      onChange(newValue);
+  const handleDecrement = useCallback(() => {
+    if (value > min) {
+      onChange(value - step);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      leftScale.value = withSpring(1, { damping: 8, stiffness: 400 });
     }
-  };
+  }, [value, min, step, onChange]);
 
-  const handleIncrement = () => {
-    const newValue = Math.min(max, value + step);
-    if (newValue !== value) {
-      onChange(newValue);
+  const handleIncrement = useCallback(() => {
+    if (value < max) {
+      onChange(value + step);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      rightScale.value = withSpring(1, { damping: 8, stiffness: 400 });
     }
-  };
-
-  const leftPressIn = () => {
-    leftScale.value = withTiming(0.85, { duration: 100 });
-  };
-
-  const leftPressOut = () => {
-    leftScale.value = withSpring(1, { damping: 8, stiffness: 400 });
-  };
-
-  const rightPressIn = () => {
-    rightScale.value = withTiming(0.85, { duration: 100 });
-  };
-
-  const rightPressOut = () => {
-    rightScale.value = withSpring(1, { damping: 8, stiffness: 400 });
-  };
-
-  const leftAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: leftScale.value }],
-  }));
-
-  const rightAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: rightScale.value }],
-  }));
-
-  const isAtMin = value <= min;
-  const isAtMax = value >= max;
+  }, [value, max, step, onChange]);
 
   return (
-    <View style={[styles.container, style]}>
-      <AnimatedPressable
-        onPress={handleDecrement}
-        onPressIn={leftPressIn}
-        onPressOut={leftPressOut}
-        disabled={isAtMin}
-        style={[
-          styles.button,
-          styles.leftButton,
-          leftAnimatedStyle,
-          isAtMin && styles.buttonDisabled,
-        ]}
-        hitSlop={8}
-      >
-        <Text style={[styles.buttonText, isAtMin && styles.buttonTextDisabled]}>
-          −
-        </Text>
-      </AnimatedPressable>
+    <>
+      {/* Minus Button */}
+      <Animated.View style={[styles.minusButton, opacity ? { opacity } : undefined]}>
+        <TimeButton
+          iconPath={require('../../../assets/icons/Minus_Button.svg')}
+          onPress={handleDecrement}
+          size={buttonSize}
+        />
+      </Animated.View>
 
-      <View style={styles.divider} />
-
-      <AnimatedPressable
-        onPress={handleIncrement}
-        onPressIn={rightPressIn}
-        onPressOut={rightPressOut}
-        disabled={isAtMax}
-        style={[
-          styles.button,
-          styles.rightButton,
-          rightAnimatedStyle,
-          isAtMax && styles.buttonDisabled,
-        ]}
-        hitSlop={8}
-      >
-        <Text style={[styles.buttonText, isAtMax && styles.buttonTextDisabled]}>
-          +
-        </Text>
-      </AnimatedPressable>
-    </View>
+      {/* Plus Button */}
+      <Animated.View style={[styles.plusButton, opacity ? { opacity } : undefined]}>
+        <TimeButton
+          iconPath={require('../../../assets/icons/Plus_Button.svg')}
+          onPress={handleIncrement}
+          size={buttonSize}
+        />
+      </Animated.View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    opacity: 0.3,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+  minusButton: {
+    position: "absolute",
+    left: 80,
+    top: 20,
+    alignSelf: "center",
   },
-  button: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 56,
-  },
-  leftButton: {
-    borderTopLeftRadius: 23,
-    borderBottomLeftRadius: 23,
-  },
-  rightButton: {
-    borderTopRightRadius: 23,
-    borderBottomRightRadius: 23,
-  },
-  buttonDisabled: {
-    opacity: 0.3,
-  },
-  buttonText: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#111",
-    lineHeight: 24,
-  },
-  buttonTextDisabled: {
-    color: "#999",
-  },
-  divider: {
-    width: 1,
-    height: 24,
-    backgroundColor: "#E0E0E0",
+  plusButton: {
+    position: "absolute",
+    right: 80,
+    top: 20,
+    alignSelf: "center",
   },
 });

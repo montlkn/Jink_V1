@@ -11,22 +11,35 @@ export const ScreenLoaders: Record<string, Loader> = {
   WalkSummary: createLoader(() => require("@/screens/Walk/WalkSummaryScreen")),
   Profile: createLoader(() => require("@/screens/Profile/ProfileScreen")),
   Passport: createLoader(() => require("@/screens/Passport/PassportScreen")),
-  PassportStamps: createLoader(() => require("@/screens/Passport/StampsScreen")),
-  PassportAchievements: createLoader(() => require("@/screens/Passport/AchievementsScreen")),
+  PassportStamps: createLoader(() =>
+    require("@/screens/Passport/StampsScreen")
+  ),
+  PassportAchievements: createLoader(() =>
+    require("@/screens/Passport/AchievementsScreen")
+  ),
   PassportVisas: createLoader(() => require("@/screens/Passport/VisasScreen")),
   PassportLists: createLoader(() => require("@/screens/Passport/ListsScreen")),
-  PassportListDetail: createLoader(() => require("@/screens/Passport/ListDetailScreen")),
+  PassportListDetail: createLoader(() =>
+    require("@/screens/Passport/ListDetailScreen")
+  ),
   // Search: createLoader(() => require("@/screens/Search/SearchScreen")), // ARCHIVED for v2 - Search removed for v1 beta
   Scan: createLoader(() => require("@/screens/Scan/ScanScreen")),
-  ScanCamera: createLoader(() => require("@/screens/Scan/CameraScreen")),
-  ScanContribution: createLoader(() => require("@/screens/Scan/ContributionScreen")),
+  ScanContribution: createLoader(() =>
+    require("@/screens/Scan/ContributionScreen")
+  ),
   WalkStart: createLoader(() => require("@/screens/Walk/WalkStartScreen")),
   WalkSetup: createLoader(() => require("@/screens/Walk/WalkSetupScreen")),
   WalkNav: createLoader(() => require("@/screens/Walk/WalkNavScreen")),
-  WalkCamera: createLoader(() => require("@/screens/Walk/WalkCameraScreen")),
   BuildingModule: createLoader(() => require("@/screens/Walk/BuildingModule")),
-  BuildingInfo: createLoader(() => require("@/screens/Scan/BuildingInfoScreen")),
+  BuildingInfo: createLoader(() =>
+    require("@/screens/Scan/BuildingInfoScreen")
+  ),
   NotFound: createLoader(() => require("@/screens/Scan/NotFoundScreen")),
-  PastWalksNolli: createLoader(() => require("@/screens/PastWalks/PastWalksNolliScreen")),
-  OnboardingQuiz: createLoader(() => require("@/screens/Quiz/OnboardingQuizScreen")),
+  PastWalksNolli: createLoader(() =>
+    require("@/screens/PastWalks/PastWalksNolliScreen")
+  ),
+  OnboardingQuiz: createLoader(() =>
+    require("@/screens/Quiz/OnboardingQuizScreen")
+  ),
+  QuizResults: createLoader(() => require("@/screens/Quiz/QuizResultsScreen")),
 };

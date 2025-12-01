@@ -1,6 +1,6 @@
 import StreakCard from "@/components/cards/StreakCard";
 import AuraBreakdownModal, {
-  type AuraSegment,
+    type AuraSegment,
 } from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
@@ -17,12 +17,12 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    Animated,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import type { HomeQuest } from "./homeSelectors";
@@ -101,7 +101,6 @@ export function HomeView(): JSX.Element {
   }, [isReady, readyArchetypes, setOrbData]);
 
   const {
-    summaryLoading,
     archetypeData,
     userData,
     timers,
@@ -316,9 +315,7 @@ export function HomeView(): JSX.Element {
         </Animated.View>
 
         <Animated.View style={[styles.summaryContainer, { opacity: contentFade }]}>
-          {summaryLoading && (
-            <Text style={styles.summaryLoadingText}>Personalizing your next walk…</Text>
-          )}
+
           <HomeTasteLine action={tasteAction} />
         </Animated.View>
 

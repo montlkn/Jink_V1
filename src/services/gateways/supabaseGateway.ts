@@ -899,6 +899,66 @@ export async function fetchWalkDetail(
   return data;
 }
 
+type StartWalkParams = {
+  userId: string;
+  latitude: number;
+  longitude: number;
+  routeTier?: 'aesthetic' | 'behavioral' | 'wildcard';
+  routeXpMultiplier?: number;
+  compatibilityScore?: number;
+  targetDurationMin?: number;
+  estimatedDurationMin?: number;
+  now?: number;
+};
+
+export type StartWalkResult = {
+  walkId: string;
+  userId: string;
+  startedAt: string;
+};
+
+export async function startWalk(
+  params: StartWalkParams
+): Promise<StartWalkResult> {
+  const { userId, latitude, longitude, routeTier, routeXpMultiplier, compatibilityScore, targetDurationMin, estimatedDurationMin, now } = params;
+
+  if (!userId) {
+    throw new Error("userId is required to start a walk.");
+  }
+
+  const startedAtIso = new Date(typeof now === "number" ? now : Date.now()).toISOString();
+
+  const { data, error } = await supabase
+    .from("walks")  // Changed from "walk_summaries" to "walks" (the underlying table)
+    .insert({
+      user_id: userId,
+      started_at: startedAtIso,
+      origin_lat: latitude,
+      origin_lng: longitude,
+      route_tier: routeTier,
+      route_xp_multiplier: routeXpMultiplier || 1.0,
+      compatibility_score: compatibilityScore,
+      target_duration_min: targetDurationMin,
+      estimated_duration_min: estimatedDurationMin,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error("Failed to create walk session");
+  }
+
+  return {
+    walkId: data.id,
+    userId,
+    startedAt: startedAtIso,
+  };
+}
+
 type CompleteWalkParams = {
   userId: string;
   walkId: string;
@@ -909,6 +969,14 @@ export type CompleteWalkResult = {
   walkId: string;
   userId: string;
   completedAt: string;
+  scanCount?: number;
+  durationMinutes?: number;
+  baseXp?: number;
+  durationMultiplier?: number;
+  routeTierMultiplier?: number;
+  streakMultiplier?: number;
+  totalXp?: number;
+  routeTier?: string;
 };
 
 export async function completeWalk(
@@ -921,7 +989,7 @@ export async function completeWalk(
 
   const completedAtIso = new Date(typeof now === "number" ? now : Date.now()).toISOString();
 
-  const { error } = await supabase.rpc("complete_walk_session", {
+  const { data, error } = await supabase.rpc("complete_walk_session", {
     p_user_id: userId,
     p_walk_id: walkId,
     p_completed_at: completedAtIso,
@@ -931,10 +999,21 @@ export async function completeWalk(
     throw error;
   }
 
+  // Parse the JSONB result from the RPC
+  const result = data as any;
+
   return {
     walkId,
     userId,
     completedAt: completedAtIso,
+    scanCount: result?.scan_count,
+    durationMinutes: result?.duration_minutes,
+    baseXp: result?.base_xp,
+    durationMultiplier: result?.duration_multiplier,
+    routeTierMultiplier: result?.route_tier_multiplier,
+    streakMultiplier: result?.streak_multiplier,
+    totalXp: result?.total_xp,
+    routeTier: result?.route_tier,
   };
 }
 

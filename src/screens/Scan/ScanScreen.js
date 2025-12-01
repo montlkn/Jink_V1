@@ -1,19 +1,25 @@
+import { useAuth } from '@/auth/authProvider';
+import { questsActions } from '@/features/quests';
+import { log } from '@/lib/log';
+import { screens } from "@/navigation/routes";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { Accelerometer, Magnetometer } from 'expo-sensors';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import BreathingGlow from '../../components/glow/BreathingGlow';
+import ArchetypeOrb from '../../features/orb/ArchetypeOrb';
 import {
   PositionFusion,
   calculatePositionConfidence,
   detectMovementType,
 } from '../../utils/sensorFusion';
-import ArchetypeOrb from '../../features/orb/ArchetypeOrb';
-import { questsActions } from '@/features/quests';
-import { log } from '@/lib/log';
-import { screens } from "@/navigation/routes";
+// eslint-disable-next-line no-restricted-imports
+import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ScanScreen({ navigation }) {
+  const { session } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [position, setPosition] = useState(null);
   const [heading, setHeading] = useState(0);
@@ -259,6 +265,38 @@ export default function ScanScreen({ navigation }) {
         // Award XP for successful scan (50 XP base)
         await questsActions.awardXp({ amount: 50, source: 'building_scan' });
 
+        // Track aesthetic event for building scan
+        try {
+          if (session?.user?.id && data.building?.bbl) {
+            // Check if this is first-time scan
+            const scannedBuildings = await AsyncStorage.getItem('@scanned_buildings');
+            const scannedList = scannedBuildings ? JSON.parse(scannedBuildings) : [];
+            const isFirstTime = !scannedList.includes(data.building.bbl);
+
+            await createAestheticEvent({
+              userId: session.user.id,
+              eventType: 'building_scan',
+              eventSubtype: isFirstTime ? 'first_time' : 'repeat',
+              buildingBbl: data.building.bbl,
+              payload: {
+                scan_method: 'camera',
+                gps_lat: position.latitude,
+                gps_lng: position.longitude,
+                confidence: Math.round(confidence),
+              },
+            });
+
+            // Track scanned buildings for future scans
+            if (isFirstTime) {
+              scannedList.push(data.building.bbl);
+              await AsyncStorage.setItem('@scanned_buildings', JSON.stringify(scannedList));
+            }
+          }
+        } catch (error) {
+          log.warn('[scan] Failed to create aesthetic event', error);
+          // Non-blocking error - don't prevent navigation
+        }
+
         // Successfully identified building
         navigation.navigate(screens.BuildingInfo, { buildingData: data.building });
       } else {
@@ -339,17 +377,31 @@ export default function ScanScreen({ navigation }) {
 
       {/* Capture Button */}
       <View style={styles.controls}>
-        <TouchableOpacity
-          style={[styles.captureButton, !position && styles.captureButtonDisabled]}
-          onPress={handleCapture}
-          disabled={isScanning || !position}
-        >
-          {isScanning ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <View style={styles.captureButtonInner} />
+        <View style={styles.captureButtonContainer}>
+          {/* Breathing glow behind camera button */}
+          {position && !isScanning && (
+            <BreathingGlow 
+              color="#FFFFFF" 
+              size={160} 
+              duration={2000}
+              minOpacity={0.2}
+              maxOpacity={0.5}
+              minScale={0.9}
+              maxScale={1.1}
+            />
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.captureButton, !position && styles.captureButtonDisabled]}
+            onPress={handleCapture}
+            disabled={isScanning || !position}
+          >
+            {isScanning ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Image source={require('../../../assets/icons/camera_icon.png')} style={styles.captureIcon} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Loading Overlay with Orb */}
@@ -437,30 +489,30 @@ const styles = StyleSheet.create({
   },
   controls: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 120,
     left: 0,
     right: 0,
     alignItems: 'center',
     zIndex: 10,
   },
+  captureButtonContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
   captureButton: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#fff',
   },
   captureButtonDisabled: {
     opacity: 0.5,
   },
-  captureButtonInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#fff',
+  captureIcon: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   text: {
     color: '#fff',

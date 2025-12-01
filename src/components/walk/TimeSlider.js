@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import * as Haptics from "expo-haptics";
-import { PanResponder, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, G, Line, Text as SvgText } from "react-native-svg";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { Image, PanResponder, StyleSheet, Text, View } from "react-native";
+import Svg, { Circle, G } from "react-native-svg";
 
-const SIZE = 240;
+const SIZE = 290;
 const SVG_PAD = 36; // padding around SVG to prevent label clipping
 const CONTAINER_SIZE = SIZE + SVG_PAD * 2;
 const CENTER = SIZE / 2;
-const STROKE_WIDTH = 10;
+const STROKE_WIDTH = 15;
 const RADIUS = CENTER - STROKE_WIDTH;
 const CONTAINER_CENTER = CONTAINER_SIZE / 2;
 const TRACK_INNER_RADIUS = RADIUS - STROKE_WIDTH * 0.5;
@@ -31,13 +31,12 @@ const TimeSlider = ({
   initialValue = 0,
   setValue,
   onPress,
-  centerLabel = "press to start",
-  showRangeLabels = true,
+  centerLabel = "",
 }) => {
   const range = Math.max(max - min, 1);
   const clampedValue = Math.min(max, Math.max(min, initialValue ?? min));
   const progress = (clampedValue - min) / range;
-  const dashOffset = CIRCUMFERENCE * (1 - progress);
+  // const dashOffset = CIRCUMFERENCE * (1 - progress); // No longer needed for SVG background
   const angleRadians = progress * 2 * Math.PI - Math.PI / 2;
   const thumbX = CENTER + Math.cos(angleRadians) * RADIUS;
   const thumbY = CENTER + Math.sin(angleRadians) * RADIUS;
@@ -159,137 +158,61 @@ const TimeSlider = ({
 
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
-      {showRangeLabels ? (
-        <View style={styles.labelRow}>
-          <Text style={styles.rangeLabel}>{min}</Text>
-          <Text style={styles.rangeLabel}>{max}</Text>
-        </View>
-      ) : null}
       <View style={styles.circleContainer} {...panResponder.panHandlers}>
-        <Svg width={CONTAINER_SIZE} height={CONTAINER_SIZE}>
+        {/* Background PNG Track */}
+        <View style={StyleSheet.absoluteFill}>
+          <Image
+            source={require("../../../assets/icons/walk/timeslider.png")}
+            style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE }}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Thumb Overlay */}
+        {/* Thumb Overlay */}
+        {/* Thumb Overlay */}
+        <Svg
+          width={CONTAINER_SIZE}
+          height={CONTAINER_SIZE}
+          style={StyleSheet.absoluteFill}
+        >
           <G transform={`translate(${SVG_PAD}, ${SVG_PAD})`}>
+            {/* Completion Stroke */}
             <Circle
               cx={CENTER}
               cy={CENTER}
               r={RADIUS}
-              stroke="rgba(0,0,0,0.08)"
+              stroke="#FFFFFF"
               strokeWidth={STROKE_WIDTH}
-              fill="none"
+              strokeDasharray={`${CIRCUMFERENCE * progress} ${CIRCUMFERENCE}`}
+              strokeDashoffset={0}
+              strokeLinecap="butt"
+              fill="transparent"
+              rotation="-90"
+              origin={`${CENTER}, ${CENTER}`}
+              opacity={0.6}
             />
-            {(() => {
-              // Minor ticks every 5 minutes excluding absolute multiples of 15
-              const minor = [];
-              for (let m = min + 5; m < max; m += 5) {
-                if (m % 15 !== 0) minor.push(m);
-              }
-              return minor.map((mark) => {
-                const markProgress = (mark - min) / range;
-                const markAngle = markProgress * 2 * Math.PI - Math.PI / 2;
-                const outerX = CENTER + Math.cos(markAngle) * (RADIUS + 10);
-                const outerY = CENTER + Math.sin(markAngle) * (RADIUS + 10);
-                const innerX = CENTER + Math.cos(markAngle) * RADIUS;
-                const innerY = CENTER + Math.sin(markAngle) * RADIUS;
-                return (
-                  <Line
-                    key={`tick-minor-${mark}`}
-                    x1={innerX}
-                    y1={innerY}
-                    x2={outerX}
-                    y2={outerY}
-                    stroke="rgba(0,0,0,0.18)"
-                    strokeWidth={1}
-                    strokeLinecap="round"
-                  />
-                );
-              });
-            })()}
-            {(() => {
-              // Major ticks every 15 minutes aligned to absolute 15s (15,30,45,...)
-              const major = [];
-              const first = Math.max(15, Math.ceil(min / 15) * 15);
-              for (let m = first; m <= max; m += 15) major.push(m);
-              return major.map((mark) => {
-                const markProgress = (mark - min) / range;
-                const markAngle = markProgress * 2 * Math.PI - Math.PI / 2;
-                const outerX = CENTER + Math.cos(markAngle) * (RADIUS + 18);
-                const outerY = CENTER + Math.sin(markAngle) * (RADIUS + 18);
-                const innerX = CENTER + Math.cos(markAngle) * RADIUS;
-                const innerY = CENTER + Math.sin(markAngle) * RADIUS;
 
-                // Special handling for the 90-minute mark (which is also the 5-minute position)
-                const isMaxPosition = mark === max && max === 90;
-                const labelRadius = RADIUS + 28; // place labels just outside the track
-                const labelX = CENTER + Math.cos(markAngle) * labelRadius;
-                const labelY = CENTER + Math.sin(markAngle) * labelRadius + 6;
-
-                return (
-                  <React.Fragment key={`tick-major-${mark}`}>
-                    <Line
-                      x1={innerX}
-                      y1={innerY}
-                      x2={outerX}
-                      y2={outerY}
-                      stroke="rgba(0,0,0,0.28)"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                    />
-                    {isMaxPosition ? (
-                      <>
-                        {/* 90 label positioned higher */}
-                        <SvgText
-                          x={labelX}
-                          y={labelY - 12}
-                          fill="#444"
-                          fontSize="12"
-                          fontWeight="600"
-                          textAnchor="middle"
-                        >
-                          90
-                        </SvgText>
-                        {/* 5 label positioned lower */}
-                        <SvgText
-                          x={labelX}
-                          y={labelY + 4}
-                          fill="#444"
-                          fontSize="12"
-                          fontWeight="600"
-                          textAnchor="middle"
-                        >
-                          5
-                        </SvgText>
-                      </>
-                    ) : (
-                      <SvgText
-                        x={labelX}
-                        y={labelY}
-                        fill="#444"
-                        fontSize="12"
-                        fontWeight="600"
-                        textAnchor="middle"
-                      >
-                        {`${mark}`}
-                      </SvgText>
-                    )}
-                  </React.Fragment>
-                );
-              });
-            })()}
-            <Circle
-              cx={CENTER}
-              cy={CENTER}
-              r={RADIUS}
-              stroke="#000"
-              strokeWidth={STROKE_WIDTH}
-              fill="none"
-              strokeDasharray={`${CIRCUMFERENCE} ${CIRCUMFERENCE}`}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="round"
-              transform={`rotate(-90 ${CENTER} ${CENTER})`}
+            {/* Invisible larger hit area for better touch accuracy */}
+            <Circle cx={thumbX} cy={thumbY} r={24} fill="transparent" />
+            
+            {/* Visual Thumb */}
+            <Circle 
+              cx={thumbX} 
+              cy={thumbY} 
+              r={14} 
+              fill="#000" 
+              stroke="#fff" 
+              strokeWidth={2}
+              shadowColor="#000"
+              shadowOffset={{ width: 0, height: 2 }}
+              shadowOpacity={0.3}
+              shadowRadius={3}
             />
-            <Circle cx={thumbX} cy={thumbY} r={12} fill="#000" />
             <Circle cx={thumbX} cy={thumbY} r={6} fill="#fff" />
           </G>
         </Svg>
+
         {centerLabel ? (
           <View pointerEvents="none" style={styles.valueContainer}>
             <Text style={styles.valueSubText}>{centerLabel}</Text>

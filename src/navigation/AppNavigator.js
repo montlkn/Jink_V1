@@ -1,22 +1,21 @@
+import { log } from "@/lib/log";
 import { NavigationContainer } from "@react-navigation/native";
-import * as Linking from "expo-linking";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as Linking from "expo-linking";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { preloadOrbAssets } from "../services/orbAssets";
-import { log } from "@/lib/log";
 
+import { userNeedsOnboarding } from "@/features/quiz";
 import { useAuth } from "../auth/authProvider";
-import WalkCameraScreen from "../screens/Walk/WalkCameraScreen";
-import OnboardingQuizScreen from "../screens/Quiz/OnboardingQuizScreen";
-import LoginScreen from "../screens/Auth/LoginScreen";
 import AuthCallbackScreen from "../screens/Auth/AuthCallbackScreen";
+import LoginScreen from "../screens/Auth/LoginScreen";
+import PastWalksNolliScreen from "../screens/PastWalks/PastWalksNolliScreen";
 import ProfileDetailScreen from "../screens/Profile/ProfileDetailScreen";
+import OnboardingQuizScreen from "../screens/Quiz/OnboardingQuizScreen";
 import BuildingInfoScreen from "../screens/Scan/BuildingInfoScreen";
 import NotFoundScreen from "../screens/Scan/NotFoundScreen";
-import { userNeedsOnboarding } from "@/features/quiz";
 import BottomTabNavigator from "./BottomTabNavigator";
-import PastWalksNolliScreen from "../screens/PastWalks/PastWalksNolliScreen";
 // Test screens removed
 
 const Stack = createNativeStackNavigator();
@@ -132,11 +131,6 @@ export default function AppNavigator() {
           // User has completed onboarding, show main app
           <>
             <Stack.Screen name="Main" component={BottomTabNavigator} />
-            <Stack.Screen
-              name="WalkCameraScreen"
-              component={WalkCameraScreen}
-              options={{ headerShown: false }}
-            />
             <Stack.Screen
               name="ProfileDetail"
               component={ProfileDetailScreen}

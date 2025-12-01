@@ -18,6 +18,7 @@ import {
 import { fetchSummary } from '@/features/profile';
 import { log } from '@/lib/log';
 import { useAuth } from '../../auth/authProvider';
+import { screens } from '@/navigation/routes';
 
 const { width } = Dimensions.get('window');
 
@@ -98,7 +99,7 @@ const OnboardingQuizScreen = ({ navigation }) => {
 
   const finishQuiz = async () => {
     if (!session?.user?.id) return;
-    
+
     setSubmitting(true);
     try {
       // Calculate the user's aesthetic profile
@@ -110,9 +111,10 @@ const OnboardingQuizScreen = ({ navigation }) => {
         // Non-blocking; profile is calculated even if summary gen is deferred
         log.warn('Post-quiz summary trigger skipped:', e?.message);
       }
-      
-      // Navigation will happen automatically via AppNavigator conditional rendering
-      log.debug('Quiz completed successfully - profile calculated');
+
+      // Navigate to results screen for animated profile display
+      log.debug('Quiz completed successfully - navigating to results');
+      navigation.replace(screens.QuizResults);
     } catch (error) {
       log.error('Error finishing quiz:', error);
       Alert.alert('Error', 'Failed to calculate your profile. Please try again.');

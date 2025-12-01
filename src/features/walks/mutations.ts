@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { completeWalk, fetchNearbyBuildings } from "@/services/gateways";
 import { updateDailyStreak } from "@/services/gateways/passportGateway";
 import { clearTasteSummaryCache } from "@/services/recentTasteSummary";
+import { createAestheticEvent } from "@/services/gateways/aestheticEventGateway";
 import { log } from "@/lib/log";
 
 type CompleteWalkParams = {
@@ -23,6 +24,20 @@ const complete = async (params: CompleteWalkParams) => {
     }
   } catch (error) {
     log.warn("[walks] Failed to update daily streak", error);
+  }
+
+  // Track walk completion as aesthetic event
+  try {
+    await createAestheticEvent({
+      userId: params.userId,
+      eventType: 'route_complete',
+      payload: {
+        walk_id: params.walkId,
+        completed_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    log.warn("[walks] Failed to track aesthetic event", error);
   }
 
   // Clear taste summary cache every 5 walks to keep taste fresh

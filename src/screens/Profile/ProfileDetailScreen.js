@@ -1,26 +1,30 @@
 import ArchetypeOrb from '@/features/orb/ArchetypeOrb';
 import { PassportBackButton } from '@/features/passport';
 import {
-  fetchSummary,
-  getUserAestheticProfile,
-  regenerateSummary,
+    fetchSummary,
+    getUserAestheticProfile,
+    regenerateSummary,
 } from '@/features/profile';
 import { log } from '@/lib/log';
+import { screens } from '@/navigation/routes';
+// eslint-disable-next-line no-restricted-imports
+import { supabaseGateway } from "@/services/gateways/supabaseGateway";
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { useAuth } from '../../auth/authProvider';
 import ArchetypePieChart from '../../components/charts/ArchetypePieChart';
@@ -337,7 +341,7 @@ const ProfileDetailScreen = ({ navigation }) => {
     fallbackToLocalSummary(profileData);
   }, [commitSummary, fallbackToLocalSummary, triggerManualRegeneration]);
 
-  const loadUserProfile = async () => {
+  const loadUserProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false);
       return;
@@ -425,12 +429,24 @@ const ProfileDetailScreen = ({ navigation }) => {
       setError(err.message);
       setLoading(false);
     }
-  };
+  }, [
+    session,
+    commitSummary,
+    refreshSummaryWithGuardrails,
+    fallbackToLocalSummary,
+    aiSummary,
+  ]);
 
   useEffect(() => {
     loadUserProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [loadUserProfile]);
+
+  // Refetch profile when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadUserProfile();
+    }, [loadUserProfile])
+  );
 
   const handleRefresh = async () => {
     if (refreshing) return;
@@ -444,6 +460,41 @@ const ProfileDetailScreen = ({ navigation }) => {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleRetakeQuiz = async () => {
+    Alert.alert(
+      'Retake Quiz',
+      'This will reset your quiz responses so you can retake the quiz and see the results animation. Your aesthetic profile will be recalculated. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Retake Quiz',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (!session?.user?.id) return;
+
+              // Delete quiz responses to allow retaking
+              const { error: deleteError } = await supabaseGateway
+                .from('quiz_responses')
+                .delete()
+                .eq('user_id', session.user.id);
+
+              if (deleteError) {
+                throw deleteError;
+              }
+
+              log.debug('[ProfileDetail] Quiz responses cleared, navigating to quiz');
+              navigation.navigate(screens.OnboardingQuiz);
+            } catch (error) {
+              log.error('[ProfileDetail] Failed to reset quiz', error);
+              Alert.alert('Error', 'Failed to reset quiz. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const [expandedArchetype, setExpandedArchetype] = useState(null);
@@ -777,6 +828,18 @@ const ProfileDetailScreen = ({ navigation }) => {
             </View>
           </View>
         )}
+
+        {/* Developer Tools */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.retakeQuizButton}
+            onPress={handleRetakeQuiz}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="refresh" size={16} color={theme.colors.background} style={{ marginRight: 8 }} />
+            <Text style={styles.retakeQuizText}>RETAKE QUIZ</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Aesthetic Affinities */}
         <View style={styles.section}>
@@ -1425,6 +1488,24 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     fontFamily: 'Courier',
     letterSpacing: 0.5,
+  },
+  retakeQuizButton: {
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: theme.colors.text,
+  },
+  retakeQuizText: {
+    color: theme.colors.background,
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 1.5,
+    fontFamily: 'Courier',
   },
 });
 
