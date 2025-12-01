@@ -84,7 +84,7 @@ export async function getMultiPointRoute(
   {
     distanceKm: number;
     durationMin: number;
-    legs: { distanceKm: number; durationMin: number }[];
+    legs: { distanceKm: number; durationMin: number; steps?: any[] }[];
   } | null
 > {
   try {
@@ -98,8 +98,9 @@ export async function getMultiPointRoute(
       .map((w) => `${w.longitude},${w.latitude}`)
       .join(";");
 
+    // Enable steps=true to get turn-by-turn instructions
     const url =
-      `${OSRM_SERVER}/route/v1/foot/${coords}?overview=false&alternatives=false&steps=false`;
+      `${OSRM_SERVER}/route/v1/foot/${coords}?overview=false&alternatives=false&steps=true`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -124,10 +125,11 @@ export async function getMultiPointRoute(
 
     const route = data.routes[0];
 
-    // Parse legs for segment-by-segment analysis
+    // Parse legs with steps for turn-by-turn directions
     const legs = (route as any).legs?.map((leg: any) => ({
       distanceKm: leg.distance / 1000,
       durationMin: leg.duration / 60,
+      steps: leg.steps || [], // Include step-by-step instructions
     })) || [];
 
     return {

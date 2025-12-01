@@ -137,8 +137,8 @@ export async function fetchBuildingByName(
 }
 
 /**
- * Fetch nearby buildings using PostGIS distance query
- * Returns up to 200 buildings within radius (km)
+ * Fetch nearby buildings using RPC function (much faster than direct query)
+ * Returns buildings within radius (km), sorted by distance
  */
 export async function fetchNearbyBuildingsFromDB(params: {
     latitude: number;
@@ -146,7 +146,7 @@ export async function fetchNearbyBuildingsFromDB(params: {
     radiusKm?: number;
     limit?: number;
 }): Promise<BuildingData[]> {
-    const { latitude, longitude, radiusKm = 1.0, limit = 200 } = params;
+    const { latitude, longitude, radiusKm = 1.0, limit = 150 } = params;
 
     try {
         if (!buildingsSupabaseClient) {
@@ -154,31 +154,67 @@ export async function fetchNearbyBuildingsFromDB(params: {
             return [];
         }
 
-        // Use PostGIS earth_distance function for accurate distance calculation
-        // Note: This requires PostGIS extension and geography columns
-        // For now, use simple bounding box then calculate haversine in JS
+        // Try to use RPC function first (requires database function to be created)
+        // This is much faster than filtering in JS
+        try {
+            const { data: rpcData, error: rpcError } = await buildingsSupabaseClient
+                .rpc('nearby_buildings', {
+                    lat: latitude,
+                    lng: longitude,
+                    radius_km: radiusKm,
+                    max_results: limit
+                });
 
-        // Calculate approximate lat/lng bounds for the radius
-        // 1 degree latitude ≈ 111 km
-        // 1 degree longitude ≈ 111 km * cos(latitude)
-        const latDelta = radiusKm / 111.0;
-        const lngDelta = radiusKm / (111.0 * Math.cos((latitude * Math.PI) / 180));
+            if (!rpcError && rpcData && rpcData.length > 0) {
+                console.log('[buildingService] Fetched via RPC function', {
+                    count: rpcData.length,
+                    radius: `${radiusKm}km`,
+                });
+
+                return rpcData.map((row: any) => ({
+                    bin: row.bin,
+                    name: row.building_name,
+                    address: row.address,
+                    architect: row.architect,
+                    style: row.style,
+                    year: row.year_built?.toString(),
+                    lat: row.geocoded_lat,
+                    lng: row.geocoded_lng,
+                    latitude: row.geocoded_lat,
+                    longitude: row.geocoded_lng,
+                }));
+            }
+        } catch {
+            console.log('[buildingService] RPC function not available, using direct query');
+        }
+
+        // Fallback: Use direct query with very tight bounds to avoid timeout
+        // Reduce radius by 50% for faster query
+        const reducedRadius = Math.min(radiusKm * 0.5, 1.0); // Max 1km for direct query
+        const latDelta = reducedRadius / 111.0;
+        const lngDelta = reducedRadius / (111.0 * Math.cos((latitude * Math.PI) / 180));
 
         const minLat = latitude - latDelta;
         const maxLat = latitude + latDelta;
         const minLng = longitude - lngDelta;
         const maxLng = longitude + lngDelta;
 
+        console.log('[buildingService] Using direct query with reduced radius', {
+            requestedRadius: `${radiusKm}km`,
+            queryRadius: `${reducedRadius}km`,
+        });
+
+        // Query with timeout protection - use smaller limit
         const { data, error } = await buildingsSupabaseClient
             .from('buildings_full_merge_scanning')
-            .select('*')
-            .gte('lat', minLat)
-            .lte('lat', maxLat)
-            .gte('lng', minLng)
-            .lte('lng', maxLng)
-            .not('lat', 'is', null)
-            .not('lng', 'is', null)
-            .limit(limit);
+            .select('bin, building_name, address, architect, style, year_built, geocoded_lat, geocoded_lng')
+            .gte('geocoded_lat', minLat)
+            .lte('geocoded_lat', maxLat)
+            .gte('geocoded_lng', minLng)
+            .lte('geocoded_lng', maxLng)
+            .not('geocoded_lat', 'is', null)
+            .not('geocoded_lng', 'is', null)
+            .limit(Math.min(limit, 50)); // Stricter limit for direct query
 
         if (error) {
             console.error('[buildingService] Error fetching nearby buildings:', error);
@@ -186,37 +222,23 @@ export async function fetchNearbyBuildingsFromDB(params: {
         }
 
         if (!data || data.length === 0) {
-            console.warn('[buildingService] No buildings found in bounds', {
-                minLat,
-                maxLat,
-                minLng,
-                maxLng,
-            });
+            console.warn('[buildingService] No buildings found in bounds');
             return [];
         }
 
-        // Map to BuildingData format with lat/lng fields
         const buildings: BuildingData[] = data.map((row: any) => ({
-            bin: row.bin || row.BIN,
-            name: row.building_name || row.name || row.build_nme,
-            address: row.address || row.des_addres,
-            architect: row.architect || row.alt_architect,
-            style: row.style || row.style_prim,
-            year: row.year_built?.toString() || row.build_year?.toString() || row.year,
-            materials: row.mat_prim || row.mat_primary || row.material,
-            use: row.use_original || row.building_use,
-            type: row.building_type || row.build_type || row.type,
-            description: row.description || row.storytelling,
-            summary: row.summary,
-            // Important: Use lat/lng field names (not latitude/longitude)
-            lat: row.lat || row.geocoded_lat || row.input_lat,
-            lng: row.lng || row.geocoded_lng || row.input_lng,
-            latitude: row.lat || row.geocoded_lat || row.input_lat,
-            longitude: row.lng || row.geocoded_lng || row.input_lng,
-            significance_score: row.significance_score,
+            bin: row.bin,
+            name: row.building_name,
+            address: row.address,
+            architect: row.architect,
+            style: row.style,
+            year: row.year_built?.toString(),
+            lat: row.geocoded_lat,
+            lng: row.geocoded_lng,
+            latitude: row.geocoded_lat,
+            longitude: row.geocoded_lng,
         }));
 
-        // Filter out buildings with invalid coordinates
         const validBuildings = buildings.filter((b) => {
             const hasValid = b.lat && b.lng &&
                 b.lat !== 0 && b.lng !== 0 &&
@@ -227,7 +249,7 @@ export async function fetchNearbyBuildingsFromDB(params: {
         console.log('[buildingService] Fetched nearby buildings', {
             total: data.length,
             valid: validBuildings.length,
-            radius: `${radiusKm}km`,
+            radius: `${reducedRadius}km`,
         });
 
         return validBuildings;

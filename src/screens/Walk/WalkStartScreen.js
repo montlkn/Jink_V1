@@ -257,17 +257,29 @@ const WalkStartScreen = ({ navigation, route }) => {
       setIsFetching(true);
       startLaunchHaptics();
 
-      // NEW: Query Buildings DB directly with higher limit (200 buildings)
+      // NEW: Query Buildings DB directly with dynamic radius based on walk duration
+      // Walking speed: ~4.5 km/h, so a 30-min walk covers ~2.25 km
+      // Use 80% of theoretical max distance for better building variety
+      const WALKING_SPEED_KMH = 4.5;
+      const walkRadiusKm = Math.max(
+        0.6, // Minimum 600m radius (ensures good variety even for short walks)
+        Math.min(
+          3.0, // Maximum 3km radius (allows long walks to have more options)
+          (time / 60) * WALKING_SPEED_KMH * 0.8 // 80% of theoretical distance
+        )
+      );
+
       log.info("[walkStart] Fetching nearby buildings from Buildings DB", {
         location,
         targetDuration: time,
+        searchRadius: `${walkRadiusKm.toFixed(2)}km`,
       });
 
       const nearbyPlaces = await fetchNearbyBuildingsFromDB({
         latitude: location.latitude,
         longitude: location.longitude,
-        radiusKm: 1.0, // 1 km radius
-        limit: 200, // Much higher than Edge Function's 10 limit
+        radiusKm: walkRadiusKm,
+        limit: 150, // Generous limit for route variety
       });
 
       if (!nearbyPlaces?.length) {
@@ -382,6 +394,7 @@ const WalkStartScreen = ({ navigation, route }) => {
         location,
         duration: time,
         xpMultiplier: routeResult.xpMultiplier,        // Pass XP multiplier for UI
+        routeData: routeResult.route,                  // Pass OSRM route data for directions
         routeTier: routeResult.routeTier,              // Pass tier for UI badges
         estimatedDuration: routeResult.estimatedDurationMin,
         compatibilityScore: routeResult.compatibilityScore,

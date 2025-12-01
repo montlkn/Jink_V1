@@ -11,7 +11,7 @@ import { screens } from '@/navigation/routes';
 import { supabaseGateway } from "@/services/gateways/supabaseGateway";
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -440,13 +440,6 @@ const ProfileDetailScreen = ({ navigation }) => {
   useEffect(() => {
     loadUserProfile();
   }, [loadUserProfile]);
-
-  // Refetch profile when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadUserProfile();
-    }, [loadUserProfile])
-  );
 
   const handleRefresh = async () => {
     if (refreshing) return;

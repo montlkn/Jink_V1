@@ -12,14 +12,14 @@ module.exports = () => {
 
   const iosGoogleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!iosGoogleMapsApiKey) {
-    throw new Error(
-      "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY must be set to build with Google Maps; Apple Maps fallback is disabled."
+    console.warn(
+      "[config] EXPO_PUBLIC_GOOGLE_MAPS_API_KEY not set - will be required for build"
     );
   }
 
   return {
     name: "jink",
-    slug: "jink",
+    slug: "architecture-app",
     scheme,
     version: "1.0.0",
     orientation: "portrait",

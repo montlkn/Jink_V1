@@ -9,12 +9,12 @@ import { screens } from "@/navigation/routes";
 import { createAestheticEvent } from "@/services/gateways/aestheticEventGateway";
 import { useCallback, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { deriveBuildingOrder } from "../../utils/deriveUtils";
@@ -114,6 +114,67 @@ const WalkNavScreen = ({ route }) => {
       ? `${Math.round(tsp.est_duration_min)} min`
       : null;
 
+  // Extract walking directions from OSRM route data
+  const routeData = route.params?.routeData;
+  const currentLeg = routeData?.legs?.[currentIndex];
+  const walkingInstruction = useMemo(() => {
+    if (!currentLeg) return null;
+
+    const steps = currentLeg.steps || [];
+
+    // Get the first significant step (skip very short steps like "depart")
+    const firstStep = steps.find(step => step.distance > 20); // Skip steps < 20m
+
+    if (firstStep && firstStep.maneuver) {
+      const maneuver = firstStep.maneuver;
+      const type = maneuver.type; // "turn", "new name", "depart", "arrive", etc.
+      const modifier = maneuver.modifier; // "left", "right", "straight", etc.
+      const streetName = firstStep.name || "";
+
+      // Build instruction text
+      let instruction = "";
+
+      if (type === "depart") {
+        instruction = streetName ? `Head ${modifier || "straight"} on ${streetName}` : `Head ${modifier || "straight"}`;
+      } else if (type === "turn") {
+        const direction = modifier === "left" ? "left" : modifier === "right" ? "right" : "straight";
+        instruction = streetName ? `Turn ${direction} onto ${streetName}` : `Turn ${direction}`;
+      } else if (type === "new name") {
+        instruction = streetName ? `Continue on ${streetName}` : "Continue straight";
+      } else if (type === "arrive") {
+        instruction = "Arrive at destination";
+      } else {
+        // Generic instruction
+        instruction = streetName ? `Continue on ${streetName}` : "Continue straight";
+      }
+
+      // Add distance
+      const distanceM = Math.round(firstStep.distance);
+      if (distanceM < 1000) {
+        instruction += ` (${distanceM}m)`;
+      } else {
+        instruction += ` (${(distanceM / 1000).toFixed(1)}km)`;
+      }
+
+      return instruction;
+    }
+
+    // Fallback: show total distance and time
+    const distanceKm = currentLeg.distanceKm;
+    const durationMin = currentLeg.durationMin;
+
+    let distanceText;
+    if (distanceKm < 0.1) {
+      distanceText = `${Math.round(distanceKm * 1000)}m`;
+    } else {
+      distanceText = `${distanceKm.toFixed(1)}km`;
+    }
+
+    const durationText = durationMin < 1 ? "< 1 min" : `${Math.round(durationMin)} min`;
+
+    return `Walk ${distanceText} · ${durationText}`;
+  }, [currentLeg]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.screen}>
@@ -126,6 +187,11 @@ const WalkNavScreen = ({ route }) => {
             <Text style={styles.nextAddress} numberOfLines={2}>
               {nextAddress}
             </Text>
+            {walkingInstruction ? (
+              <View style={styles.directionRow}>
+                <Text style={styles.directionText}>{walkingInstruction}</Text>
+              </View>
+            ) : null}
             {progressLabel ? (
               <Text style={styles.nextMeta}>{progressLabel}</Text>
             ) : null}
@@ -241,6 +307,27 @@ const styles = StyleSheet.create({
     color: "#3C3C43",
     opacity: 0.72,
   },
+  directionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#eaeaeaff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#c8c8c8ff",
+  },
+  directionIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  directionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#707070ff",
+    flex: 1,
+  },
   compassSection: {
     flex: 1,
     alignItems: "center",
@@ -271,6 +358,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#141417",
     borderRadius: 28,
     paddingVertical: 16,
+    top: 16,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#141417",
@@ -294,6 +382,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 28,
     paddingVertical: 16,
+    top: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -316,6 +405,7 @@ const styles = StyleSheet.create({
   },
   routeSummary: {
     marginTop: 16,
+    top: 16,
     fontSize: 14,
     color: "#3C3C43",
     opacity: 0.7,

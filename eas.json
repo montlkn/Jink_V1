@@ -6,7 +6,19 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "20.18.0",
+      "env": {
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyCn7WGMhVsSOioKIk22wPHZTtOspKVncjEy",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gzzvhmmywaaxljpmoacm.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6enZobW15d2FheGxqcG1vYWNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODA4NTYsImV4cCI6MjA2NjQ1Njg1Nn0.Euv81JmeXShGmyyXcD7Am3Gi0SjsLqMLSevC1PZVBaA",
+        "EXPO_PUBLIC_BUILDINGS_SUPABASE_URL": "https://cglsuoymdcchrxyzofjb.supabase.co",
+        "EXPO_PUBLIC_BUILDINGS_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbHN1b3ltZGNjaHJ4eXpvZmpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2NzYyNTIsImV4cCI6MjA3NTI1MjI1Mn0.4GqCKT3fe8HTDTx_O5BTYe7m4TXOWgKYkAdmZfl4jG0",
+        "EXPO_PUBLIC_APP_URL": "https://jink.city",
+        "EXPO_PUBLIC_API_URL": "https://lucienmount--nyc-scan-api-fastapi-app.modal.run",
+        "EXPO_PUBLIC_USE_DEMO_WALKS": "0",
+        "EXPO_PUBLIC_ENABLE_IOS_GOOGLE_MAPS": "1"
+      }
     },
     "preview": {
       "distribution": "internal"

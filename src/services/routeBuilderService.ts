@@ -11,7 +11,7 @@ import {
   scoreBuildings,
   type UserStyleExposure,
 } from "./recommendationService";
-import { getWalkingRouteWithFallback, haversineDistance } from "./osrmService";
+import { getMultiPointRoute, haversineDistance } from "./osrmService";
 
 // Constants
 const WALKING_SPEED_KMH = 4.5; // Average walking speed (fallback)
@@ -46,13 +46,17 @@ export type RouteResult = {
   routeTier: "aesthetic" | "behavioral" | "wildcard";
   xpMultiplier: number;
   compatibilityScore: number; // Average aesthetic alignment
-  route?: any[]; // TSP route from deriveBuildingOrder
+  route?: {
+    distanceKm: number;
+    durationMin: number;
+    legs: { distanceKm: number; durationMin: number; steps?: any[] }[];
+  } | null; // OSRM route data with turn-by-turn steps
 };
 
 /**
  * Greedy time-constrained selection algorithm
- * Adds buildings to route until time budget is exhausted
- * Uses OSRM for accurate walking time estimates with haversine fallback
+ * Phase 1: Use haversine for fast initial selection
+ * Phase 2: Verify route with OSRM and adjust if needed
  */
 async function greedyTimeSelection(
   sortedBuildings: Building[],
@@ -60,12 +64,7 @@ async function greedyTimeSelection(
   minTimeMin: number,
   maxTimeMin: number,
 ): Promise<Building[]> {
-  const selected: Building[] = [];
-  let currentTime = 0;
-  let currentLocation = userStart;
-  let osrmUsed = 0;
-  let haversineUsed = 0;
-  let skippedCount = 0;
+  const WALKING_SPEED_KMH = 4.5;
 
   log.info('[routeBuilder] Starting greedy selection', {
     totalBuildings: sortedBuildings.length,
@@ -73,48 +72,98 @@ async function greedyTimeSelection(
     maxTime: maxTimeMin.toFixed(1),
   });
 
+  // PHASE 1: Fast haversine-based selection
+  const selected: Building[] = [];
+  let currentTime = 0;
+  let currentLocation = userStart;
+  let skippedCount = 0;
+
   for (const building of sortedBuildings) {
-    // Try OSRM first, fall back to haversine
-    const route = await getWalkingRouteWithFallback(
-      { latitude: currentLocation.latitude, longitude: currentLocation.longitude },
-      { latitude: building.latitude!, longitude: building.longitude! }
+    // Quick haversine estimate
+    const distanceKm = haversineDistance(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      building.latitude!,
+      building.longitude!
     );
 
-    if (route.source === 'osrm') {
-      osrmUsed++;
-    } else {
-      haversineUsed++;
-    }
+    // Estimate walking time (haversine * 1.4 for city routing overhead)
+    const estimatedWalkTimeMin = (distanceKm * 1.4 / WALKING_SPEED_KMH) * 60;
 
-    const walkTimeMin = route.durationMin;
-
-    // Check if adding this building would exceed max time
-    if (currentTime + walkTimeMin > maxTimeMin) {
+    // Quick check: skip if would exceed time
+    if (currentTime + estimatedWalkTimeMin > maxTimeMin * 1.2) {
       skippedCount++;
-      // Try to continue - maybe next building is closer
       continue;
     }
 
-    // Add building to route
     selected.push(building);
-    currentTime += walkTimeMin;
+    currentTime += estimatedWalkTimeMin;
     currentLocation = {
       latitude: building.latitude!,
       longitude: building.longitude!,
     };
 
-    // Log progress every 5 buildings
-    if (selected.length % 5 === 0) {
-      log.info(`[routeBuilder] Selected ${selected.length} buildings, ${currentTime.toFixed(1)}/${maxTimeMin.toFixed(1)} min`);
+    // Early termination once time budget filled
+    if (currentTime >= minTimeMin && selected.length >= MIN_BUILDINGS_FOR_ROUTE) {
+      break;
+    }
+  }
+
+  log.info('[routeBuilder] Phase 1 complete (haversine)', {
+    selected: selected.length,
+    estimatedTime: currentTime.toFixed(1),
+  });
+
+  // PHASE 2: Get actual route from OSRM for accurate directions
+  if (selected.length > 0) {
+    log.info('[routeBuilder] Phase 2: Fetching actual route from OSRM...');
+
+    // Build waypoint list: start -> building1 -> building2 -> ... -> buildingN
+    const waypoints = [
+      userStart,
+      ...selected.map(b => ({ latitude: b.latitude!, longitude: b.longitude! }))
+    ];
+
+    // Get multi-point route from OSRM
+    const routeData = await getMultiPointRoute(waypoints);
+
+    if (routeData) {
+      const actualDuration = routeData.durationMin;
+      log.info('[routeBuilder] OSRM actual route', {
+        estimatedTime: currentTime.toFixed(1),
+        actualTime: actualDuration.toFixed(1),
+        difference: (actualDuration - currentTime).toFixed(1),
+      });
+
+      // If actual route exceeds maxTime, trim buildings from the end
+      if (actualDuration > maxTimeMin * 1.1) {
+        log.info('[routeBuilder] Actual route too long, trimming buildings...');
+
+        // Binary search to find how many buildings fit
+        let trimmedCount = selected.length;
+        while (trimmedCount > MIN_BUILDINGS_FOR_ROUTE && actualDuration > maxTimeMin) {
+          trimmedCount = Math.floor(trimmedCount * 0.8); // Remove 20% at a time
+          const trimmedWaypoints = [userStart, ...selected.slice(0, trimmedCount).map(b =>
+            ({ latitude: b.latitude!, longitude: b.longitude! }))];
+
+          const trimmedRoute = await getMultiPointRoute(trimmedWaypoints);
+          if (trimmedRoute && trimmedRoute.durationMin <= maxTimeMin) {
+            log.info('[routeBuilder] Trimmed to fit', {
+              buildings: trimmedCount,
+              duration: trimmedRoute.durationMin.toFixed(1),
+            });
+            return selected.slice(0, trimmedCount);
+          }
+        }
+      }
+    } else {
+      log.warn('[routeBuilder] OSRM route failed, using haversine estimates');
     }
   }
 
   log.info('[routeBuilder] Route calculations complete', {
     selected: selected.length,
     skipped: skippedCount,
-    osrmUsed,
-    haversineUsed,
-    totalTime: currentTime.toFixed(1),
   });
 
   return selected;
@@ -348,27 +397,52 @@ export async function buildTimeConstrainedRoute(
     }
   }
 
-  // Step 4: Calculate final route metrics
-  const totalDistance = calculateTotalDistance(
-    selectedBuildings,
-    userLocation,
-  );
-  const estimatedDuration = (totalDistance / WALKING_SPEED_KMH) * 60;
+  // Step 4: Get final accurate route from OSRM with directions
+  let routeGeometry = null;
+  let actualDuration = 0;
+  let actualDistance = 0;
+
+  if (selectedBuildings.length > 0) {
+    const waypoints = [
+      userLocation,
+      ...selectedBuildings.map(b => ({ latitude: b.latitude!, longitude: b.longitude! }))
+    ];
+
+    const osrmRoute = await getMultiPointRoute(waypoints);
+
+    if (osrmRoute) {
+      actualDuration = osrmRoute.durationMin;
+      actualDistance = osrmRoute.distanceKm;
+      routeGeometry = osrmRoute; // Contains legs, geometry, etc. for turn-by-turn
+
+      log.info("[routeBuilder] Final OSRM route fetched", {
+        buildings: selectedBuildings.length,
+        duration: `${actualDuration.toFixed(1)}min`,
+        distance: `${actualDistance.toFixed(2)}km`,
+      });
+    } else {
+      // Fallback to haversine estimates
+      actualDistance = calculateTotalDistance(selectedBuildings, userLocation);
+      actualDuration = (actualDistance / WALKING_SPEED_KMH) * 60;
+      log.warn("[routeBuilder] OSRM failed, using haversine estimates");
+    }
+  }
 
   log.info("[routeBuilder] Route complete", {
     tier: routeTier,
     buildingCount: selectedBuildings.length,
-    estimatedDuration: `${estimatedDuration.toFixed(1)}min`,
+    estimatedDuration: `${actualDuration.toFixed(1)}min`,
     compatibility: compatibilityScore.toFixed(1),
     xpMultiplier,
   });
 
   return {
     buildings: selectedBuildings,
-    estimatedDurationMin: estimatedDuration,
-    totalDistanceKm: totalDistance,
+    estimatedDurationMin: actualDuration,
+    totalDistanceKm: actualDistance,
     routeTier,
     xpMultiplier,
     compatibilityScore,
+    route: routeGeometry, // Full OSRM route data for turn-by-turn navigation
   };
 }
