@@ -1,19 +1,19 @@
 // Compass.jsx
 import * as Location from "expo-location";
 import { Magnetometer } from "expo-sensors";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import Svg, {
-  Circle,
-  Defs,
-  G,
-  Line,
-  LinearGradient,
-  Path,
-  Polygon,
-  RadialGradient,
-  Stop,
-  Text as SvgText,
+    Circle,
+    Defs,
+    G,
+    Line,
+    LinearGradient,
+    Path,
+    Polygon,
+    RadialGradient,
+    Stop,
+    Text as SvgText,
 } from "react-native-svg";
 
 /**
@@ -61,8 +61,8 @@ export default function Compass({ buildings = [], size = 280, buildingIndex }) {
         posSub = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Balanced,
-            timeInterval: 1500,
-            distanceInterval: 1,
+            timeInterval: 2000,  // Update every 2s (was 1.5s) - saves battery
+            distanceInterval: 2,  // Require 2m movement
           },
           (p) => setPos({ lat: p.coords.latitude, lng: p.coords.longitude })
         );

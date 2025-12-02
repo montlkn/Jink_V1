@@ -1,10 +1,10 @@
-export { ProfileView as ProfileFeature } from "./profileView";
-export { useProfileData } from "./useProfileData";
-export { profileMutations } from "./mutations";
-export type { ProfileViewModel, RawProfile } from "./selectors";
+export { useProfileData } from "@/hooks/useProfileData";
+export { getUserAestheticProfile } from "@/services/gateways/quizGateway";
 export {
   fetchSummary,
-  regenerateSummary,
   fetchSummaryMeta,
+  regenerateSummary,
 } from "@/services/gateways/summaryGateway";
-export { getUserAestheticProfile } from "@/services/gateways/quizGateway";
+export { profileMutations } from "./mutations";
+export { ProfileView as ProfileFeature } from "./profileView";
+export type { ProfileViewModel, RawProfile } from "./selectors";

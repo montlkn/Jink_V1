@@ -208,8 +208,9 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
     }
   }, [walkId, walks]);
 
-  const mapProvider =
-    Platform.OS === "ios" || Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
+  // Use Apple Maps on iOS to avoid Google Maps polygon bugs
+  // Google Maps has issues with polygon holes causing crashes
+  const mapProvider = Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
 
   const walkColorMap = useMemo(() => {
     const entries = new Map<string, (typeof WALK_COLORS)[number]>();
@@ -219,8 +220,8 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
     return entries;
   }, [walks]);
 
-  const getPaletteForWalk = (walkId?: string) =>
-    (walkId ? walkColorMap.get(walkId) : undefined) ?? WALK_COLORS[0];
+  const getPaletteForWalk = (wId?: string) =>
+    (wId ? walkColorMap.get(wId) : undefined) ?? WALK_COLORS[0];
 
   const isMasterView = selectedWalkId === MASTER_WALK_ID;
 
@@ -265,7 +266,19 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
     [activePath]
   );
 
-  const fogHoles = useMemo(() => preparedPolygons.map((poly) => poly.outer), [preparedPolygons]);
+  // For Google Maps: holes must be a proper array of arrays, never empty
+  // We create plain arrays with spread to ensure proper serialization
+  const fogHoles = useMemo((): Position[][] | null => {
+    if (preparedPolygons.length === 0) return null;
+    const holes: Position[][] = [];
+    for (const poly of preparedPolygons) {
+      if (poly.outer && poly.outer.length >= 3) {
+        // Create a fresh plain array copy
+        holes.push([...poly.outer]);
+      }
+    }
+    return holes.length > 0 ? holes : null;
+  }, [preparedPolygons]);
 
   const highlightCenters = useMemo(() => {
     if (isMasterView) return [];
@@ -299,6 +312,9 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
   );
 
   const activeSummary = !isMasterView ? activeWalks[0]?.summary : undefined;
+
+  // Create a fresh copy of FOG_BOUNDARY to ensure it's a plain array
+  const fogBoundary = useMemo(() => [...FOG_BOUNDARY], []);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -350,41 +366,40 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
           ref={mapRef}
           initialRegion={DEFAULT_REGION}
           style={StyleSheet.absoluteFill}
-          {...(mapProvider ? { provider: mapProvider } : {})}
+          provider={mapProvider}
         >
-          {preparedPolygons.length > 0 ? (
+          {/* Fog overlay - render WITHOUT holes prop if no valid holes */}
+          {fogHoles !== null ? (
             <Polygon
-              coordinates={FOG_BOUNDARY}
-              holes={fogHoles.length ? fogHoles : undefined}
+              coordinates={fogBoundary}
+              holes={fogHoles}
               fillColor="rgba(9, 13, 24, 0.62)"
               strokeWidth={0}
             />
-          ) : null}
+          ) : (
+            <Polygon
+              coordinates={fogBoundary}
+              fillColor="rgba(9, 13, 24, 0.62)"
+              strokeWidth={0}
+            />
+          )}
 
+          {/* Building polygons - no holes needed for these simple shapes */}
           {preparedPolygons.map((poly) => {
             const palette = getPaletteForWalk(poly.walkId);
             const fill = isMasterView ? palette.fill : setAlpha(palette.fill, 0.42);
 
-            // Stricter validation: ensure outer coordinates exist and are an array
-            if (!poly.outer || !Array.isArray(poly.outer) || poly.outer.length < 3) {
+            if (!poly.outer || poly.outer.length < 3) {
               return null;
             }
 
-            // Defensive check: only pass holes if it's a non-empty array of arrays of valid coordinates
-            const validHoles =
-              poly.holes &&
-              Array.isArray(poly.holes) &&
-              poly.holes.length > 0 &&
-              Array.isArray(poly.holes[0]) &&
-              poly.holes[0].length >= 3
-                ? poly.holes
-                : undefined;
+            // Create fresh array copy for coordinates
+            const coords = [...poly.outer];
 
             return (
               <Polygon
                 key={`poly-${poly.id}`}
-                coordinates={poly.outer}
-                holes={validHoles}
+                coordinates={coords}
                 strokeColor={palette.accent}
                 strokeWidth={isMasterView ? 1 : 2}
                 fillColor={fill}
@@ -394,7 +409,7 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
 
           {!isMasterView && safeActivePath.length > 1 ? (
             <Polyline
-              coordinates={safeActivePath}
+              coordinates={[...safeActivePath]}
               strokeColor={getPaletteForWalk(selectedWalkId).accent}
               strokeWidth={4}
               lineCap="round"

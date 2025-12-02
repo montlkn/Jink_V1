@@ -1,5 +1,5 @@
 import { achievementLedger, type AchievementDefinition } from "@/constants/passportContent";
-import { AchievementDetailModal, PassportBackButton, PassportInfoButton } from "@/features/passport";
+import { InlineFlipCard, PassportBackButton, PassportInfoButton } from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,27 +8,40 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useState } from "react";
 import {
     Alert,
-    FlatList,
+    Platform,
     SafeAreaView,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    UIManager,
+    View
 } from "react-native";
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportAchievements>;
 
 type AchievementCardProps = {
   item: AchievementDefinition;
-  onPress: (item: AchievementDefinition) => void;
+  expanded: boolean;
+  onPress: (id: string) => void;
 };
 
-function AchievementCard({ item, onPress }: AchievementCardProps) {
+function AchievementCard({ item, expanded, onPress }: AchievementCardProps) {
   const missable = item.missable;
   const statusColor = missable ? theme.colors.primary : theme.colors.secondary;
 
-  return (
-    <TouchableOpacity style={[styles.card, { borderColor: statusColor }]} activeOpacity={0.8} onPress={() => onPress(item)}>
+  const handlePress = () => {
+    onPress(item.id);
+  };
+
+  const FrontContent = (
+    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
       <View style={styles.cardHeader}>
         <View style={[styles.iconBadge, { backgroundColor: statusColor }]}>
           <Ionicons name="ribbon" size={14} color={theme.colors.background} />
@@ -37,7 +50,10 @@ function AchievementCard({ item, onPress }: AchievementCardProps) {
       </View>
       
       <View style={styles.cardBody}>
-        <Text numberOfLines={2} style={styles.cardTitle}>{item.title}</Text>
+        <Text numberOfLines={2} style={styles.cardTitle}>
+          {item.title}
+        </Text>
+        
         <View style={[styles.divider, { backgroundColor: statusColor }]} />
         <Text numberOfLines={3} style={styles.verification}>{item.verification}</Text>
       </View>
@@ -48,13 +64,72 @@ function AchievementCard({ item, onPress }: AchievementCardProps) {
         </Text>
         <Ionicons name={missable ? "flash" : "checkmark-circle"} size={12} color={statusColor} />
       </View>
+    </View>
+  );
+
+  const BackContent = (
+    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.iconBadge, { backgroundColor: statusColor }]}>
+          <Ionicons name="information-circle" size={14} color={theme.colors.background} />
+        </View>
+        <Text style={[styles.xpText, { color: statusColor }]}>DETAILS</Text>
+      </View>
+      
+      <View style={[styles.cardBody, { justifyContent: 'center' }]}>
+        <Text numberOfLines={1} style={[styles.cardTitle, { fontSize: 12, textAlign: 'center' }]}>
+          {item.title}
+        </Text>
+        
+        <View style={[styles.divider, { backgroundColor: statusColor, alignSelf: 'center', width: 20 }]} />
+        
+        <Text style={styles.miniLabel}>PURPOSE</Text>
+        <Text numberOfLines={3} style={styles.miniDescription}>{item.purpose}</Text>
+        
+        <View style={{ height: 8 }} />
+        
+        <Text style={styles.miniLabel}>UNLOCK</Text>
+        <Text numberOfLines={2} style={styles.miniDescription}>{item.verification}</Text>
+      </View>
+
+      <View style={styles.cardFooter}>
+        <Text style={[styles.statusText, { color: statusColor }]}>
+          {missable ? "MISSABLE" : "STABLE"}
+        </Text>
+      </View>
+    </View>
+  );
+
+  return (
+    <TouchableOpacity 
+      style={[
+        styles.card, 
+        { 
+          borderColor: statusColor,
+          width: '48%',
+          height: 180, // Fixed height
+        }
+      ]} 
+      activeOpacity={0.8} 
+      onPress={handlePress}
+    >
+      <InlineFlipCard 
+        isOpen={expanded}
+        front={FrontContent}
+        back={BackContent}
+        style={{ height: '100%' }}
+      />
     </TouchableOpacity>
   );
 }
 
 export default function AchievementsScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
-  const [selectedAchievement, setSelectedAchievement] = useState<AchievementDefinition | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handlePress = useCallback((id: string) => {
+    setExpandedId(prev => prev === id ? null : id);
+  }, []);
 
   const handleInfo = useCallback(() => {
     Alert.alert(
@@ -66,29 +141,32 @@ export default function AchievementsScreen(): JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <PassportBackButton onPress={() => navigation.goBack()} style={styles.backButton} />
-        <Text style={styles.headerTitle}>ACHIEVEMENT LOG</Text>
-        <PassportInfoButton
-          onPress={handleInfo}
-          accessibilityLabel="Learn about achievements"
-        />
+        <View style={styles.headerLeft}>
+          <PassportBackButton onPress={() => navigation.goBack()} />
+        </View>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>ACHIEVEMENT LOG</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <PassportInfoButton
+            onPress={handleInfo}
+            accessibilityLabel="Learn about achievements"
+          />
+        </View>
       </View>
 
-      <FlatList
-        data={achievementLedger}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.column}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => <AchievementCard item={item} onPress={setSelectedAchievement} />}
-        showsVerticalScrollIndicator={false}
-      />
-
-      <AchievementDetailModal
-        visible={selectedAchievement !== null}
-        achievement={selectedAchievement}
-        onClose={() => setSelectedAchievement(null)}
-      />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.gridContainer}>
+          {achievementLedger.map((item) => (
+            <AchievementCard 
+              key={item.id} 
+              item={item} 
+              expanded={expandedId === item.id}
+              onPress={handlePress} 
+            />
+          ))}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -108,11 +186,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  backButton: {
+  headerLeft: {
     width: 44,
+    alignItems: "flex-start",
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerRight: {
+    width: 44,
+    alignItems: "flex-end",
   },
   headerTitle: {
-    flex: 1,
     fontSize: 16,
     fontWeight: "bold",
     color: theme.colors.text,
@@ -123,34 +210,35 @@ const styles = StyleSheet.create({
   infoButton: {
     width: 44,
   },
-  listContent: {
+  scrollContent: {
     padding: 16,
+    paddingBottom: 32,
   },
-  column: {
-    justifyContent: "space-between",
-    gap: 16,
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   card: {
     backgroundColor: theme.colors.surface,
-    padding: 12,
     marginBottom: 16,
-    flex: 1,
     borderWidth: 2,
     minHeight: 180,
-    justifyContent: "space-between",
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   iconBadge: {
     width: 24,
     height: 24,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 0,
+    borderRadius: 12,
   },
   xpText: {
     fontSize: 10,
@@ -164,13 +252,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: theme.colors.text,
-    marginBottom: 8,
+    marginBottom: 4,
     letterSpacing: 0.5,
   },
   divider: {
     height: 2,
     width: 20,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   verification: {
     fontSize: 10,
@@ -181,7 +269,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
@@ -191,5 +279,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     letterSpacing: 1,
     textTransform: "uppercase",
+  },
+  miniLabel: {
+    fontSize: 9,
+    fontWeight: "bold",
+    color: theme.colors.muted,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  miniDescription: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: theme.colors.text,
+    textAlign: 'center',
+    marginBottom: 4,
   },
 });

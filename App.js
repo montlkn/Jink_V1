@@ -7,15 +7,15 @@
 // Minimal RAF polyfill for R3F on devices that throttle rAF in RN
 // MUST be before importing expo-three
 import "@/lib/log";
+import { log } from "@/lib/log";
 import RootNavigator from "@/navigation/RootNavigator";
+import { flushEventQueue } from "@/services/gateways/aestheticEventGateway";
 import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import * as ScreenOrientation from "expo-screen-orientation";
 import "expo-three";
 import { useEffect } from "react";
 import { AppState } from "react-native";
-import { flushEventQueue } from "@/services/gateways/aestheticEventGateway";
-import { log } from "@/lib/log";
 
 if (typeof global !== 'undefined') {
   const primitiveStoreSymbol = Symbol.for("__weakmapPrimitiveStore");
@@ -158,7 +158,7 @@ const AppTheme = {
 
 const ORB_ASSETS = [
   require("./assets/env/qwantani_moon_noon_puresky_1080.jpg"),
-  require("./assets/textures/smoke_atlas.png"),
+  require("./assets/textures/smoke_atlas_1080.png"),
 ];
 
 export default function App() {

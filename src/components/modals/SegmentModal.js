@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 0,
+    borderRadius: 12,
     padding: 24,
     alignItems: 'center',
     marginHorizontal: 30,
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 0,
+    borderRadius: 12,
     marginTop: 8,
     borderWidth: 1,
     borderColor: theme.colors.text,

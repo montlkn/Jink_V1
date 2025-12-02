@@ -1,6 +1,6 @@
+import { useAuthData } from "@/hooks/useAuthData";
 import { navigate } from "./nav";
 import { screens } from "./routes";
-import { useAuthData } from "@/features/auth/useAuthData";
 
 type ProtectedRouteProps = {
   children: JSX.Element;

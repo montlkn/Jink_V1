@@ -1,5 +1,5 @@
 import { useAuth } from "@/auth/authProvider";
-import { useAestheticProfile } from "@/features/aesthetic/useAestheticProfile";
+import { useAestheticProfile } from "@/hooks/useAestheticProfile";
 import { log } from "@/lib/log";
 import { screens } from "@/navigation/routes";
 // eslint-disable-next-line no-restricted-imports
@@ -34,10 +34,29 @@ if (Platform.OS === 'android') {
 
 
 const WalkStartScreen = ({ navigation, route }) => {
-  const { pinToJink, orbData } = useOrbTransition();
+  const { pinToJink, orbData, startHomeToJinkTransition } = useOrbTransition();
   const { profile } = useAestheticProfile();
   const { session } = useAuth();
-  const entryProgress = useRef(new Animated.Value(0)).current;
+  const [time, setTime] = useState(45);
+  const [location, setLocation] = useState(null); // Start null to indicate loading
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [shouldRenderOrb, setShouldRenderOrb] = useState(false); // Defer 3D rendering for performance
+  const hapticsCancelRef = useRef(null);
+
+
+  // Start at 0.5 so content is visible immediately on mount (no flash of invisible content)
+  const entryProgress = useRef(new Animated.Value(0.5)).current;
+  
+  // Performance tracking
+  const screenMountTime = useRef(performance.now());
+  
+  useEffect(() => {
+    const mountEnd = performance.now();
+    log.info('[WalkStart] Screen mounted', {
+      mountTime: `${(mountEnd - screenMountTime.current).toFixed(1)}ms`
+    });
+  }, []);
 
   const sliderScale = useMemo(
     () =>
@@ -51,8 +70,8 @@ const WalkStartScreen = ({ navigation, route }) => {
   const timerOpacity = useMemo(
     () =>
       entryProgress.interpolate({
-        inputRange: [0, 0.12, 1],
-        outputRange: [0, 1, 1],
+        inputRange: [0, 0.6, 1],
+        outputRange: [0.7, 0.9, 1],  // Start at 70% opacity - visible immediately
         extrapolate: "clamp",
       }),
     [entryProgress]
@@ -60,8 +79,8 @@ const WalkStartScreen = ({ navigation, route }) => {
   const sliderOpacity = useMemo(
     () =>
       entryProgress.interpolate({
-        inputRange: [0, 0.1, 1],
-        outputRange: [0, 1, 1],
+        inputRange: [0, 0.5, 1],
+        outputRange: [0.6, 0.85, 1],  // Start at 60% opacity - visible immediately
         extrapolate: "clamp",
       }),
     [entryProgress]
@@ -69,8 +88,8 @@ const WalkStartScreen = ({ navigation, route }) => {
   const instructionOpacity = useMemo(
     () =>
       entryProgress.interpolate({
-        inputRange: [0, 0.18, 1],
-        outputRange: [0, 0.95, 1],
+        inputRange: [0, 0.7, 1],
+        outputRange: [0.5, 0.75, 1],  // Start at 50% opacity - visible immediately
         extrapolate: "clamp",
       }),
     [entryProgress]
@@ -111,13 +130,7 @@ const WalkStartScreen = ({ navigation, route }) => {
       }),
     [entryProgress]
   );
-  const [time, setTime] = useState(45);
-  const [location, setLocation] = useState({
-    latitude: 40.7128,
-    longitude: -74.006,
-  });
-  const [isFetching, setIsFetching] = useState(false);
-  const hapticsCancelRef = useRef(null);
+
 
   // Calculate XP bonus based on current time selection
   const xpBonus = useMemo(() => getWalkDurationBonus(time), [time]);
@@ -169,29 +182,53 @@ const WalkStartScreen = ({ navigation, route }) => {
 
   useFocusEffect(
     useCallback(() => {
+      const focusStart = performance.now();
+      log.info('[WalkStart] Screen focused, starting animation');
+      
       entryProgress.stopAnimation();
-      entryProgress.setValue(0);
+      entryProgress.setValue(0.5);  // Start at 50% - content visible immediately!
 
-      const animation = Animated.spring(entryProgress, {
+      const animation = Animated.timing(entryProgress, {
         toValue: 1,
-        speed: 20,
-        bounciness: 5,
+        duration: 150,  // Reduced to 150ms for sub-250ms total time
         useNativeDriver: true,
       });
 
-      animation.start();
+      animation.start(() => {
+        const animEnd = performance.now();
+        log.info('[WalkStart] Animation complete', {
+          totalTime: `${(animEnd - focusStart).toFixed(1)}ms`
+        });
+        // Defer orb rendering until after animation for performance
+        setShouldRenderOrb(true);
+      });
 
       return () => {
         animation.stop();
         entryProgress.stopAnimation();
+        setShouldRenderOrb(false); // Clean up on unmount
       };
     }, [entryProgress])
   );
 
   useFocusEffect(
     useCallback(() => {
-      pinToJink(true);
-    }, [pinToJink])
+      // Trigger the Home → WalkStart transition animation
+      startHomeToJinkTransition().then((success) => {
+        if (success) {
+          // Pin the orb after transition completes
+          pinToJink(true);
+        } else {
+          // If no transition (e.g., no home layout registered), just pin directly
+          pinToJink(true);
+        }
+      });
+
+      return () => {
+        // Unpin when leaving WalkStart
+        pinToJink(false);
+      };
+    }, [pinToJink, startHomeToJinkTransition])
   );
 
   useEffect(() => {
@@ -222,6 +259,7 @@ const WalkStartScreen = ({ navigation, route }) => {
 
         const { latitude, longitude } = locationData.coords;
         setLocation({ latitude, longitude });
+        setLocationLoading(false);
         log.info("[walkStart] Location acquired successfully", { latitude, longitude });
       } catch (error) {
         log.error("[walkStart] Location error (attempt ${retryCount + 1}):", {
@@ -252,6 +290,15 @@ const WalkStartScreen = ({ navigation, route }) => {
 
   const handleStartWalk = useCallback(async () => {
     if (isFetching) return;
+    
+    // Block start if location not yet acquired
+    if (!location) {
+      Alert.alert(
+        "Acquiring Location",
+        "Please wait while we get your location. This should only take a few seconds."
+      );
+      return;
+    }
 
     try {
       setIsFetching(true);
@@ -447,16 +494,19 @@ const WalkStartScreen = ({ navigation, route }) => {
           ]}
           pointerEvents="box-none"
         >
-          {/* Orb rendered locally to ensure it is behind the slider */}
+
+          {/* Local orb under slider - only render after screen animation */}
           <View style={styles.orbWrapper} pointerEvents="none">
-            <ArchetypeOrb
-              archetypeData={orbData}
-              size={256}
-              interactive={false}
-              lod="standard"
-              showGlow={true}
-              glowOpacityMultiplier={0.05}
-            />
+            {shouldRenderOrb && (
+              <ArchetypeOrb
+                archetypeData={orbData}
+                size={256}
+                interactive={false}
+                lod="standard"
+                showGlow={true}
+                glowOpacityMultiplier={0.05}
+              />
+            )}
           </View>
 
           {/* Reactor Glow behind slider */}
@@ -481,7 +531,7 @@ const WalkStartScreen = ({ navigation, route }) => {
           ]}
         >
           <StreamingInstructionText
-            text={isFetching ? "Generating your jink..." : "Press orb to start jink"}
+            text={isFetching ? "Generating your jink..." : locationLoading ? "Acquiring location..." : "Press orb to start jink"}
             duration={2600}
             baseColor="#111"
             baseOpacity={isFetching ? 0.18 : 0.22}
@@ -499,7 +549,7 @@ const WalkStartScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DESIGNER_REPUBLIC_THEME.colors.background,
+    backgroundColor: DESIGNER_REPUBLIC_THEME.colors.background,  // Match theme, not white
   },
   container: {
     flex: 1,

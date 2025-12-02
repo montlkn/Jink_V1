@@ -10,12 +10,8 @@ module.exports = () => {
     }
   }
 
-  const iosGoogleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (!iosGoogleMapsApiKey) {
-    console.warn(
-      "[config] EXPO_PUBLIC_GOOGLE_MAPS_API_KEY not set - will be required for build"
-    );
-  }
+  // Google Maps API key only needed for Android
+  const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   return {
     name: "jink",
@@ -41,8 +37,9 @@ module.exports = () => {
       [
         "react-native-maps",
         {
-          iosGoogleMapsApiKey,
-          useGoogleMaps: true,
+          // Use Apple Maps on iOS (Google Maps has polygon hole bugs)
+          // Keep Google Maps for Android only
+          androidGoogleMapsApiKey: googleMapsApiKey,
         },
       ],
     ],
@@ -56,7 +53,7 @@ module.exports = () => {
       },
     },
     ios: {
-      newArchEnabled: true,
+      newArchEnabled: false,
       bundleIdentifier: "com.lucienmount.architectureapp",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -64,9 +61,7 @@ module.exports = () => {
         UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait"],
       },
       appleTeamId: "5JRD794HZ9",
-      config: {
-        googleMapsApiKey: iosGoogleMapsApiKey,
-      },
+      // Removed googleMapsApiKey - using Apple Maps on iOS
       ...(appHost
         ? {
             associatedDomains: [`applinks:${appHost}`],

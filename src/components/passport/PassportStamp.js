@@ -47,13 +47,36 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "transparent",
     transform: [{ rotate: "-5deg" }],
+    borderRadius: 12,
   },
   innerBorder: {
     width: "90%",
     height: "90%",
     borderWidth: 1,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 4,
+  },
+  content: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  stampText: {
+    textAlign: "center",
+    fontFamily: "Courier",
+    paddingHorizontal: 2,
+    maxWidth: '95%',
+  },
+  divider: {
+    width: "40%",
+    height: 1,
+    marginVertical: 4,
+  },
+  dateText: {
+    textAlign: "center",
+    fontFamily: "Courier",
   },
   stampDivider: {
     width: 30,

@@ -2,12 +2,12 @@ import { getStreakMultiplier } from '@/theme/designConstants';
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Dimensions,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View
+    Dimensions,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ModalCloseButton from './ModalCloseButton';
@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     width: MODAL_WIDTH,
     borderWidth: 2,
+    borderRadius: 12,
     borderColor: theme.colors.border,
     shadowColor: theme.colors.text,
     shadowOffset: { width: 4, height: 4 },

@@ -1,6 +1,6 @@
 import StreakCard from "@/components/cards/StreakCard";
 import AuraBreakdownModal, {
-    type AuraSegment,
+  type AuraSegment,
 } from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
@@ -9,28 +9,27 @@ import QuestDetailModal from "@/components/quests/QuestDetailModal";
 import { getArchetypeColorSafe } from "@/constants/archetypeColors";
 import { DEFAULT_TASTE_ACTION } from "@/features/home/tasteActions";
 import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
+import { useHomeData } from "@/hooks/useHomeData";
 import { screens, type RootParams } from "@/navigation/routes";
 import HomeTasteLine from "@/screens/HomeView/HomeTasteLine";
 import { useOrbTransition } from "@/state/orbTransitionContext";
 import { DESIGNER_REPUBLIC_THEME } from "@/theme/designer_republic";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View
+  Animated,
+  InteractionManager,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 import { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import type { HomeQuest } from "./homeSelectors";
-import { useHomeData } from "./useHomeData";
 
 const ORB_SIZE = 360;
-
-
 
 type HomeNavigation = NativeStackNavigationProp<RootParams, typeof screens.Home>;
 
@@ -80,6 +79,23 @@ export function HomeView(): JSX.Element {
   const [selectedQuest, setSelectedQuest] = useState<HomeQuest | null>(null);
   const [questModalVisible, setQuestModalVisible] = useState(false);
   const [auraModalVisible, setAuraModalVisible] = useState(false);
+  const [shouldRenderOrb, setShouldRenderOrb] = useState(false); // Defer 3D rendering
+
+  // Defer heavy 3D rendering until after navigation transition
+  useFocusEffect(
+    useCallback(() => {
+      const task = InteractionManager.runAfterInteractions(() => {
+        setShouldRenderOrb(true);
+      });
+      return () => {
+        task.cancel();
+        setShouldRenderOrb(false);
+      };
+    }, [])
+  );
+
+
+
 
   const {
     registerHomeOrbLayout,
@@ -247,10 +263,6 @@ export function HomeView(): JSX.Element {
     });
   }, [registerHomeOrbLayout]);
 
-  const handleHandleOrbPress = useCallback(() => {
-    setAuraModalVisible(true);
-  }, []);
-
   const contentFade = useMemo(
     () =>
       transitionProgress.interpolate({
@@ -292,25 +304,31 @@ export function HomeView(): JSX.Element {
           />
         </Animated.View>
 
+
+
+
         <Animated.View
           ref={orbContainerRef}
           onLayout={handleOrbLayout}
           style={[styles.orbSection, { opacity: orbOpacity }]}
         >
           <View style={styles.orbWrapper}>
-            <ArchetypeOrb
-              archetypeData={archetypeData}
-              xpLevel={userData.level}
-              xpProgress={
-                userData.xpForNextLevel > 0
-                  ? userData.xp / userData.xpForNextLevel
-                  : 0
-              }
-              size={ORB_SIZE}
-              onPress={handleHandleOrbPress}
-              interactive
-              lod="standard"
-            />
+            {shouldRenderOrb && (
+              <ArchetypeOrb
+                archetypeData={archetypeData}
+                xpLevel={userData.level}
+                xpProgress={
+                  userData.xpForNextLevel > 0
+                    ? userData.xp / userData.xpForNextLevel
+                    : 0
+                }
+                size={300}
+                interactive={true}
+                onPress={() => setAuraModalVisible(true)}
+                showGlow={true}
+                glowOpacityMultiplier={0.3}
+              />
+            )}
           </View>
         </Animated.View>
 

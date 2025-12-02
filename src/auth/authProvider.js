@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useMemo } from "react";
-import { useAuthData, authActions } from "@/features/auth";
+import { authActions } from "@/features/auth";
+import { useAuthData } from "@/hooks/useAuthData";
+import { createContext, useContext, useMemo } from "react";
 
 const Ctx = createContext({});
 

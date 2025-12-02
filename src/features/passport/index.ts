@@ -1,8 +1,9 @@
+export { usePassportData } from "@/hooks/usePassportData";
 export { passportActions } from "./mutations";
 export { PassportView as PassportFeature } from "./passportView";
-export { usePassportData } from "./usePassportData";
 
 // Re-export passport components for use by screens
+export { default as InlineFlipCard } from "@/components/InlineFlipCard";
 export { default as PassportBackButton } from "@/components/passport/PassportBackButton";
 export { default as PassportBackdrop } from "@/components/passport/PassportBackdrop";
 export { PassportEditButton } from "@/components/passport/PassportEditButton";

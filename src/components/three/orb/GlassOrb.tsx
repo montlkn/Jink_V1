@@ -1,5 +1,5 @@
 import { Canvas, useThree } from "@react-three/fiber/native";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { ACESFilmicToneMapping, Group, SRGBColorSpace } from "three";
 import { useEnvMap } from "./env/envLoader";
 import { GyroLightRig } from "./GyroLightRig";
@@ -17,8 +17,11 @@ type Props = {
   startupDuration?: number;
   transitionDuration?: number;
   onReady?: () => void;
+  segments?: number; // Sphere resolution - lower for better performance on smaller orbs
+  useHighResTextures?: boolean; // Whether to use high-res smoke textures - set false for smaller orbs
 };
 
+// Define OrbContentProps based on the Props type, adding envAsset and renaming onReady to onLoad
 type OrbContentProps = {
   envAsset: any;
   colorA: string;
@@ -26,9 +29,12 @@ type OrbContentProps = {
   colorC: string;
   startupDuration: number;
   transitionDuration: number;
+  segments: number;
+  useHighResTextures: boolean;
+  onLoad?: () => void;
 };
 
-function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transitionDuration }: OrbContentProps) {
+function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transitionDuration, segments, useHighResTextures, onLoad }: OrbContentProps) {
   const envHolder = useRef<Group | null>(null);
   const lightGroup = useRef<Group | null>(null);
   const materialRef = useRef<any>(null);
@@ -78,16 +84,18 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
         <SmokeOrb 
           colorA={colorA} 
           colorB={colorB} 
-          colorC={colorC} 
+          colorC={colorC}
           scale={1.33} 
           startupDuration={startupDuration}
           transitionDuration={transitionDuration}
+          useHighResTextures={useHighResTextures}
+          onLoad={onLoad}
         />
         {/* Rainbow refraction layer - creates chromatic sparkles */}
         <RainbowLayer />
-        {/* Outer glass shell */}
+        {/* Outer glass shell - use dynamic segment count for performance */}
         <mesh renderOrder={10}>
-          <sphereGeometry args={[1, 128, 128]} />
+          <sphereGeometry args={[1, segments, segments]} />
           <meshPhysicalMaterial
             ref={materialRef}
             color="#ffffff"
@@ -115,17 +123,23 @@ function OrbContent({ envAsset, colorA, colorB, colorC, startupDuration, transit
   );
 }
 
-export default function GlassOrb({
+function GlassOrbComponent({
   size = 350,
   colorA = "#8cf",
   colorB = "#fff",
   colorC = "#fff",
   startupDuration = 0,
   transitionDuration = 0,
+  segments, // Allow manual override
+  useHighResTextures, // Allow manual override
   onReady,
 }: Props) {
-  console.log('[GlassOrb] Mounting with size:', size, 'colorA:', colorA, 'startupDuration:', startupDuration);
+  // Smart default: use lower resolution for smaller orbs (50% segments = 75% fewer polygons)
+  const segmentCount = segments ?? (size < 300 ? 64 : 128);
   
+  // Smart default: skip high-res textures for smaller orbs to save ~2MB memory
+  const useHiRes = useHighResTextures ?? (size >= 300);
+
   return (
     <Canvas
       camera={{ position: [0, 0, 2.5], fov: 50 }}
@@ -133,13 +147,16 @@ export default function GlassOrb({
         alpha: true,
         antialias: false,
         powerPreference: "high-performance",
-        preserveDrawingBuffer: true,
       }}
       // @ts-ignore - Pass multisample prop to underlying GLView
-      multisample={false}
+      // multisample={false} // Removed as per instruction
       frameloop="always"
-      style={{ width: size, height: size, backgroundColor: "transparent" }}
-      dpr={1} // Fixed DPR to avoid multisampling
+      style={{
+        width: size,
+        height: size,
+        // backgroundColor: "transparent" // Removed as per instruction
+      }}
+      // dpr={1} // Fixed DPR to avoid multisampling // Removed as per instruction
       onCreated={({ gl }: { gl: any }) => {
         // Patch renderbufferStorageMultisample BEFORE any other operations
         const ctx = gl.getContext() as any;
@@ -180,7 +197,28 @@ export default function GlassOrb({
         colorC={colorC}
         startupDuration={startupDuration}
         transitionDuration={transitionDuration}
+        segments={segmentCount}
+        useHighResTextures={useHiRes}
+        onLoad={onReady}
       />
     </Canvas>
   );
 }
+
+// Memoize to prevent unnecessary remounts when parent re-renders
+const GlassOrb = React.memo(GlassOrbComponent, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render)
+  return (
+    prevProps.size === nextProps.size &&
+    prevProps.colorA === nextProps.colorA &&
+    prevProps.colorB === nextProps.colorB &&
+    prevProps.colorC === nextProps.colorC &&
+    prevProps.segments === nextProps.segments &&
+    prevProps.useHighResTextures === nextProps.useHighResTextures &&
+    prevProps.startupDuration === nextProps.startupDuration &&
+    prevProps.transitionDuration === nextProps.transitionDuration
+    // Note: onReady intentionally excluded - function identity changes shouldn't cause remount
+  );
+});
+
+export default GlassOrb;

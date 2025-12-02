@@ -2,7 +2,8 @@ import type { AchievementDefinition } from "@/constants/passportContent";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 // BlurView removed - using solid overlay instead
-import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import FlipModal from "./FlipModal";
 import ModalCloseButton from "./ModalCloseButton";
 
 type AchievementDetailModalProps = {
@@ -17,11 +18,7 @@ export function AchievementDetailModal({ visible, achievement, onClose }: Achiev
   const statusColor = achievement.missable ? theme.colors.accent : theme.colors.primary;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-
-        <SafeAreaView style={styles.modalContainer}>
+    <FlipModal visible={visible} onClose={onClose}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ width: 36 }} />
@@ -67,27 +64,14 @@ export function AchievementDetailModal({ visible, achievement, onClose }: Achiev
               </View>
             </ScrollView>
           </View>
-        </SafeAreaView>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+    </FlipModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(245, 245, 245, 0.92)",
-  },
-  modalContainer: {
-    width: '85%',
-    maxWidth: 380,
-  },
   modalContent: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 0,
+    borderRadius: 12,
     overflow: "hidden",
     borderWidth: 2,
     borderColor: theme.colors.border,

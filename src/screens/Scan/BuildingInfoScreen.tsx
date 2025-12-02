@@ -337,7 +337,7 @@ export default function BuildingInfoScreen(): JSX.Element {
              <View style={styles.verticalLine} />
              <Text style={styles.bodyText}>
               {building.description || building.summary ||
-                `${building.name}, steel-framed skyscraper rising 102 stories that was completed in New York City in 1931 and was the tallest building in the world until 1971. The Empire State Building is located in Midtown Manhattan, on Fifth Avenue at 34th Street. It remains one of the most distinctive and famous buildings in the United States and is one of the best examples of Modernist Art Deco design.`
+                `No detailed information available for ${building.name || 'this building'} yet. Help us build our database by contributing photos and information!`
               }
              </Text>
           </View>

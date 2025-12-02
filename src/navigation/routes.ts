@@ -59,7 +59,20 @@ type WalkNavParams = {
 export type RootParams = {
   Home: undefined;
   Quests: { focus?: string } | undefined;
-  WalkSummary: { walkId: string };
+  WalkSummary: {
+    walkId: string;
+    stats?: {
+      totalBuildings: number;
+      visitedBuildings: number;
+      skippedBuildings: number;
+      totalXp: number;
+      xpMultiplier: number;
+      routeTier: string;
+      distance: number;
+      duration: number;
+    };
+    buildings?: (Record<string, unknown> & { visited: boolean })[];
+  };
   Login: undefined;
   AuthCallback: { redirectUrl?: string } | undefined;
   OnboardingQuiz: undefined;
@@ -73,7 +86,18 @@ export type RootParams = {
   PassportLists: undefined;
   PassportListDetail: { listId?: string } | undefined;
   // Search: undefined; // ARCHIVED for v2 - Search removed for v1 beta
-  ScanScreen: undefined;
+  ScanScreen: {
+    verificationMode?: boolean;
+    expectedBuilding?: {
+      bin?: string;
+      name?: string;
+      address?: string;
+      lat?: number;
+      lng?: number;
+    };
+    walkId?: string;
+    returnScreen?: string;
+  } | undefined;
   ContributionScreen: undefined;
   WalkStartScreen: { filters?: WalkFilters } | undefined;
   WalkSetupScreen: undefined;

@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     width: 44,
-    zIndex: 1,
+    alignItems: "flex-start",
   },
   headerTitleContainer: {
     flex: 1,
@@ -193,8 +193,8 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bold,
   },
   headerRight: {
-    width: 44,
-    zIndex: 1,
+    width: 52,
+    alignItems: "flex-end",
   },
   editButtonActive: {
     opacity: 0.5,
@@ -238,6 +238,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: theme.colors.accent,
     minHeight: 200,
+    borderRadius: 12,
   },
   cardEditing: {
     borderColor: theme.colors.primary,
@@ -255,6 +256,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
     borderWidth: 1,
     borderColor: theme.colors.background,
+    borderRadius: 12,
   },
   cardHeader: {
     flexDirection: "row",
@@ -281,6 +283,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     padding: 2,
+    borderRadius: 8,
   },
   previewTile: {
     width: "50%",
@@ -291,6 +294,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 4,
   },
   previewInitial: {
     fontSize: 16,

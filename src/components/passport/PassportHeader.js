@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     backgroundColor: theme.colors.accent,
-    borderRadius: 0,
+    borderRadius: 12,
   },
   systemText: {
     color: theme.colors.accent,

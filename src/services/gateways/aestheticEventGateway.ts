@@ -156,10 +156,45 @@ export async function flushEventQueue(): Promise<void> {
       count: queue.length,
     });
 
-    // Submit all queued events
+    // Filter out invalid events to prevent database constraint violations
+    const validEvents = queue.filter((event) => {
+      // Check if event type is valid based on ACTION_WEIGHTS keys
+      // Keys can be "type" or "type:subtype"
+      const simpleKey = event.event_type;
+      const compoundKey = event.event_subtype
+        ? `${event.event_type}:${event.event_subtype}`
+        : null;
+
+      const isValid =
+        Object.prototype.hasOwnProperty.call(ACTION_WEIGHTS, simpleKey) ||
+        (compoundKey &&
+          Object.prototype.hasOwnProperty.call(ACTION_WEIGHTS, compoundKey));
+
+      if (!isValid) {
+        log.warn(
+          "[aestheticEventGateway] Discarding invalid event from queue",
+          {
+            type: event.event_type,
+            subtype: event.event_subtype,
+          },
+        );
+      }
+      return isValid;
+    });
+
+    if (validEvents.length === 0) {
+      // If all events were invalid, just clear the queue
+      await AsyncStorage.removeItem(EVENT_QUEUE_KEY);
+      log.info(
+        "[aestheticEventGateway] Queue cleared (all events were invalid)",
+      );
+      return;
+    }
+
+    // Submit all valid queued events
     const { error } = await supabaseGateway
       .from("user_aesthetic_events")
-      .insert(queue);
+      .insert(validEvents);
 
     if (error) {
       log.error("[aestheticEventGateway] Failed to flush queue", error);
@@ -169,7 +204,8 @@ export async function flushEventQueue(): Promise<void> {
     // Clear queue on successful submission
     await AsyncStorage.removeItem(EVENT_QUEUE_KEY);
     log.debug("[aestheticEventGateway] Queue flushed successfully", {
-      count: queue.length,
+      count: validEvents.length,
+      discarded: queue.length - validEvents.length,
     });
   } catch (error) {
     log.error("[aestheticEventGateway] Error flushing queue", error);

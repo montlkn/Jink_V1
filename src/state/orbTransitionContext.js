@@ -16,12 +16,12 @@ import { useAuth } from "../auth/authProvider";
 import ArchetypeOrb from "../features/orb/ArchetypeOrb";
 import { extractTopArchetypesFromScores } from "../utils/archetypeColorBlend";
 
-const DEFAULT_TRANSITION_DURATION = 520;
+const DEFAULT_TRANSITION_DURATION = 250;
 const DEFAULT_EASING = Easing.out(Easing.cubic);
 const ORB_SIZE = 256;
 const JINK_TARGET_SIZE = ORB_SIZE; // Ring radius on WalkStart
 const JINK_OFFSET_X = 0;
-const JINK_OFFSET_Y = 28; // Positive pushes orb downward on Jink
+const JINK_OFFSET_Y = 12; // Positive pushes orb downward on Jink
 const ORB_DATA_STORAGE_KEY = "arch-app/orbData.v1";
 
 // Calculate glow extent to match ArchetypeOrb
@@ -189,7 +189,7 @@ export const OrbTransitionProvider = ({ children }) => {
           layout={homeOrbLayout}
           orbData={orbData}
           pinned={pinnedToJink}
-          visible={renderOverlay}
+          visible={renderOverlay && !pinnedToJink}
         />
       </View>
     </OrbTransitionContext.Provider>
@@ -256,6 +256,11 @@ const OrbTransitionOverlay = ({ progress, layout, orbData, pinned, visible }) =>
                 { scale },
               ],
               zIndex: pinned ? 1 : 10, // Lower z-index when pinned so TimeSlider is on top
+              opacity: pinned ? progress.interpolate({
+                inputRange: [0, 0.3, 1],
+                outputRange: [0, 0.5, 1],
+                extrapolate: 'clamp',
+              }) : 1, // Fade in smoothly when pinning
             },
           ]}
         >

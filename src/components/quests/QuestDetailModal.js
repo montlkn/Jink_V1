@@ -205,8 +205,8 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     maxHeight: SCREEN_HEIGHT * 0.85,
     overflow: 'hidden',
     borderTopWidth: 2,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 0,
+    borderRadius: 12,
   },
   questTypeText: {
     color: theme.colors.surface,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: 0,
+    borderRadius: 12,
   },
   startButtonText: {
     color: theme.colors.surface,

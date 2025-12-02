@@ -1,4 +1,4 @@
-import OrbGlow from "@/components/orb/OrbGlow";
+import OrbGlow from "@/components/glow/OrbGlow";
 import GlassOrb from "@/components/three/orb/GlassOrb";
 import { blendArchetypeColors } from "@/utils/archetypeColorBlend";
 import * as Haptics from "expo-haptics";
@@ -31,6 +31,7 @@ type ArchetypeOrbProps = {
   glowOpacityMultiplier?: number;
   startupDuration?: number;
   transitionDuration?: number;
+  onLoad?: () => void;
 };
 
 type BlendPaletteEntry = {
@@ -53,9 +54,11 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
   interactive = true,
   style,
   showGlow = true,
+
   glowOpacityMultiplier = 1.0,
   startupDuration = 0,
   transitionDuration = 0,
+  onLoad,
 }) => {
   const sanitizedData = useMemo(
     () =>
@@ -69,15 +72,6 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
 
   const colors = useMemo<BlendResult>(() => {
     const result = blendArchetypeColors(sanitizedData) as BlendResult;
-    // Enhanced logging to debug glow color issues
-    console.log('[ArchetypeOrb] Archetype blend details:', { 
-      inputData: sanitizedData,
-      colorA: result.colorA, 
-      colorB: result.colorB,
-      colorC: result.colorC,
-      blendedColor: result.blendedColor,
-      palette: result.palette
-    });
     return result;
   }, [sanitizedData]);
 
@@ -155,7 +149,10 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
           palette={colors.palette}
           startupDuration={startupDuration}
           transitionDuration={transitionDuration}
-          onReady={() => setIsOrbReady(true)}
+          onReady={() => {
+            setIsOrbReady(true);
+            if (onLoad) onLoad();
+          }}
         />
 
         {interactive && (

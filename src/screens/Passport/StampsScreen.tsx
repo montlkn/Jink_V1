@@ -1,5 +1,5 @@
 import { stampCollection, type StampDefinition } from "@/constants/passportContent";
-import { PassportBackButton, PassportInfoButton, PassportStamp, StampDetailModal } from "@/features/passport";
+import { InlineFlipCard, PassportBackButton, PassportInfoButton, PassportStamp } from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,14 +8,22 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View
 } from "react-native";
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 
 type Navigation = NativeStackNavigationProp<RootParams, typeof screens.PassportStamps>;
 
@@ -48,11 +56,12 @@ function formatDate(isoDate: string): string {
 type StampCardProps = {
   item: StampDefinition;
   pinned: boolean;
+  expanded: boolean;
   onLongPress: (id: string) => void;
-  onPress: (item: StampDefinition) => void;
+  onPress: (id: string) => void;
 };
 
-function StampCard({ item, pinned, onLongPress, onPress }: StampCardProps) {
+function StampCard({ item, pinned, expanded, onLongPress, onPress }: StampCardProps) {
   const strokeColor = rarityPalette[item.rarity];
   const [isLongPressing, setIsLongPressing] = React.useState(false);
 
@@ -70,20 +79,12 @@ function StampCard({ item, pinned, onLongPress, onPress }: StampCardProps) {
     onLongPress(item.id);
   };
 
-  return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => onPress(item)}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      onLongPress={handleLongPressActivate}
-      delayLongPress={500}
-      style={[
-        styles.cardTouchable,
-        { borderColor: pinned ? theme.colors.accent : theme.colors.border },
-        isLongPressing && styles.cardTouchablePressing,
-      ]}
-    >
+  const handlePress = () => {
+    onPress(item.id);
+  };
+
+  const FrontContent = (
+    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between', backgroundColor: theme.colors.surface }}>
       <View style={styles.cardHeader}>
         <View style={[styles.rarityIndicator, { backgroundColor: strokeColor }]} />
         {pinned && <Ionicons name="star" size={10} color={theme.colors.accent} />}
@@ -94,10 +95,69 @@ function StampCard({ item, pinned, onLongPress, onPress }: StampCardProps) {
       </View>
 
       <View style={styles.cardBody}>
-        <Text numberOfLines={1} style={styles.cardTitle}>{item.title}</Text>
+        <Text numberOfLines={1} style={styles.cardTitle}>
+          {item.title}
+        </Text>
+        
         <Text style={[styles.rarityText, { color: strokeColor }]}>{rarityLabel[item.rarity]}</Text>
         <Text style={styles.dateText}>{formatDate(item.issuedAt)}</Text>
       </View>
+    </View>
+  );
+
+  const BackContent = (
+    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between', backgroundColor: strokeColor }}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.rarityIndicator, { backgroundColor: '#FFFFFF' }]} />
+        <Ionicons name="information-circle" size={12} color="#FFFFFF" />
+      </View>
+
+      <View style={[styles.cardBody, { justifyContent: 'center', flex: 1 }]}>
+        <Text style={[styles.cardTitle, { fontSize: 12, textAlign: 'center', marginBottom: 8, color: '#FFFFFF' }]}>
+          {item.title}
+        </Text>
+        
+        <View style={styles.miniInfo}>
+            <Text style={[styles.rarityText, { color: '#FFFFFF', marginBottom: 4 }]}>
+              {rarityLabel[item.rarity]}
+            </Text>
+            
+            <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+            
+            <Text numberOfLines={3} style={[styles.miniDescription, { color: '#FFFFFF' }]}>{item.description}</Text>
+            
+            <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+            
+            <Text style={[styles.dateText, { color: 'rgba(255,255,255,0.8)' }]}>{formatDate(item.issuedAt)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onLongPress={handleLongPressActivate}
+      delayLongPress={500}
+      style={[
+        styles.cardTouchable,
+        { 
+          borderColor: pinned ? theme.colors.accent : theme.colors.border,
+          width: '48%',
+          height: 180, // Fixed height for consistent flip
+        },
+        isLongPressing && styles.cardTouchablePressing,
+      ]}
+    >
+      <InlineFlipCard 
+        isOpen={expanded}
+        front={FrontContent}
+        back={BackContent}
+        style={{ height: '100%' }}
+      />
     </TouchableOpacity>
   );
 }
@@ -105,7 +165,7 @@ function StampCard({ item, pinned, onLongPress, onPress }: StampCardProps) {
 export default function StampsScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
   const [pinned, setPinned] = useState<Record<string, boolean>>({});
-  const [selectedStamp, setSelectedStamp] = useState<StampDefinition | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sortedStamps = useMemo(
     () =>
@@ -135,6 +195,10 @@ export default function StampsScreen(): JSX.Element {
     });
   }, []);
 
+  const handlePress = useCallback((id: string) => {
+    setExpandedId(prev => prev === id ? null : id);
+  }, []);
+
   const handleInfo = useCallback(() => {
     Alert.alert(
       "PASSPORT STAMPS",
@@ -145,41 +209,38 @@ export default function StampsScreen(): JSX.Element {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <PassportBackButton onPress={() => navigation.goBack()} style={styles.backButton} />
-        <Text style={styles.headerTitle}>PASSPORT STAMPS</Text>
-        <PassportInfoButton
-          style={styles.infoButton}
-          onPress={handleInfo}
-          accessibilityLabel="Learn about passport stamps"
-        />
+        <View style={styles.headerLeft}>
+          <PassportBackButton onPress={() => navigation.goBack()} />
+        </View>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>PASSPORT STAMPS</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <PassportInfoButton
+            onPress={handleInfo}
+            accessibilityLabel="Learn about passport stamps"
+          />
+        </View>
       </View>
 
       <Text style={styles.subheader}>
         {sortedStamps.length} RECORDED // LONG-PRESS TO PIN
       </Text>
 
-      <FlatList
-        data={sortedStamps}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.column}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <StampCard
-            item={item}
-            pinned={Boolean(pinned[item.id])}
-            onLongPress={handleLongPress}
-            onPress={setSelectedStamp}
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-      />
-
-      <StampDetailModal
-        visible={selectedStamp !== null}
-        stamp={selectedStamp}
-        onClose={() => setSelectedStamp(null)}
-      />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.gridContainer}>
+          {sortedStamps.map((item) => (
+            <StampCard
+              key={item.id}
+              item={item}
+              pinned={Boolean(pinned[item.id])}
+              expanded={expandedId === item.id}
+              onLongPress={handleLongPress}
+              onPress={handlePress}
+            />
+          ))}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -199,19 +260,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  backButton: {
+  headerLeft: {
     width: 44,
+    alignItems: "flex-start",
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    flex: 1,
     fontSize: 16,
     fontWeight: "700",
     color: theme.colors.text,
     letterSpacing: 1,
     textAlign: "center",
   },
-  infoButton: {
+  headerRight: {
     width: 44,
+    alignItems: "flex-end",
   },
   subheader: {
     fontSize: 10,
@@ -220,24 +287,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     letterSpacing: 1,
     textTransform: "uppercase",
-    // Removed Courier
   },
-  listContent: {
+  scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 32,
   },
-  column: {
-    justifyContent: "space-between",
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   cardTouchable: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
     marginBottom: 16,
-    flex: 1,
-    marginHorizontal: 4,
-    minHeight: 180,
-    padding: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   cardTouchablePressing: {
     opacity: 0.8,
@@ -247,21 +313,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   rarityIndicator: {
     width: 8,
     height: 8,
-    borderRadius: 0,
+    borderRadius: 12,
   },
   stampWrapper: {
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 8,
     flex: 1,
-    marginBottom: 12,
   },
   cardBody: {
-    gap: 4,
+    gap: 2,
   },
   cardTitle: {
     fontSize: 12,
@@ -280,5 +346,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: theme.colors.muted,
     fontFamily: "Courier",
+  },
+  miniInfo: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  miniDescription: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: theme.colors.text,
+    fontFamily: "Courier",
+    textAlign: 'center',
+    marginVertical: 4,
+  },
+  divider: {
+    width: '40%',
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: 6,
   },
 });

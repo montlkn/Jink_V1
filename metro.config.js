@@ -15,7 +15,7 @@ const { resolver } = config;
 
 resolver.sourceExts = [...resolver.sourceExts, "cjs"];
 resolver.resolverMainFields = ["react-native", "browser", "main"];
-resolver.assetExts = [...resolver.assetExts, "hdr", "exr", "ktx2", "wasm", "dat"];
+resolver.assetExts = [...resolver.assetExts, "hdr", "exr"];
 resolver.extraNodeModules = {
   ...resolver.extraNodeModules,
   three: path.resolve(__dirname, "node_modules/three"),

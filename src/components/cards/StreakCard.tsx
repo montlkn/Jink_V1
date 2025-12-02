@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderLeftWidth: 2,
     borderLeftColor: ELEMENT_COLORS.streak.card,
+    borderRadius: 12,
   },
   blockHeader: {
     flexDirection: "row",

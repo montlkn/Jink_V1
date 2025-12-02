@@ -1,3 +1,7 @@
+import { log } from "@/lib/log";
+import { useThree } from "@react-three/fiber/native";
+import { Asset } from "expo-asset";
+import { TextureLoader as ExpoTextureLoader } from "expo-three";
 import { useEffect, useState } from "react";
 import {
   EquirectangularReflectionMapping,
@@ -8,10 +12,6 @@ import {
   UnsignedByteType,
   WebGLRenderer,
 } from "three";
-import { useThree } from "@react-three/fiber/native";
-import { Asset } from "expo-asset";
-import { TextureLoader as ExpoTextureLoader } from "expo-three";
-import { log } from "@/lib/log";
 
 type MaybeTexture = Texture | null;
 type RGBELoaderCtor = typeof import("three-stdlib")["RGBELoader"];
@@ -55,8 +55,7 @@ function supportsPmrem(renderer: WebGLRenderer): boolean {
       return false;
     }
 
-    const hasFloatRT =
-      ctx.getExtension?.("EXT_color_buffer_float") ||
+    const hasFloatRT = ctx.getExtension?.("EXT_color_buffer_float") ||
       ctx.getExtension?.("WEBGL_color_buffer_float") ||
       ctx.getExtension?.("EXT_color_buffer_half_float");
 
@@ -128,7 +127,7 @@ async function loadStandardTexture(localModule: any): Promise<Texture | null> {
           resolve(texture);
         },
         undefined,
-        reject
+        reject,
       );
     });
   } catch (error) {
@@ -173,8 +172,19 @@ export function useEnvMap(localModule: any) {
     };
 
     (async () => {
-      const renderer = three.gl as WebGLRenderer;
+      const envLoadStart = performance.now();
+      log.info("[EnvLoader] Starting environment map load");
+
+      const assetResolveStart = performance.now();
       const asset = await resolveAsset(localModule);
+      const assetResolveEnd = performance.now();
+      log.info("[EnvLoader] Asset resolved", {
+        assetResolveTime: `${
+          (assetResolveEnd - assetResolveStart).toFixed(1)
+        }ms`,
+      });
+
+      const renderer = three.gl as WebGLRenderer;
 
       if (!asset || !renderer) {
         log.warn("[envLoader] Env asset missing or renderer unavailable.");
@@ -197,6 +207,10 @@ export function useEnvMap(localModule: any) {
         cached.refCount += 1;
         didAcquire = true;
         if (!cancelled) {
+          log.info("[EnvLoader] Using cached environment map", {
+            totalTime: `${(performance.now() - envLoadStart).toFixed(1)}ms`,
+            cacheKey,
+          });
           setEnvMap(cached.texture);
         } else {
           releaseCache();
@@ -215,6 +229,7 @@ export function useEnvMap(localModule: any) {
         }
 
         const isHdr = uri.toLowerCase().endsWith(".hdr");
+        const textureLoadStart = performance.now();
 
         if (isHdr) {
           equi = await loadHdrTexture(uri);
@@ -223,13 +238,19 @@ export function useEnvMap(localModule: any) {
           equi = await loadStandardTexture(asset);
         }
 
-        if (!equi || !(equi as any).isTexture) {
-          throw new Error("Loaded asset is not a THREE.Texture");
-        }
+        const textureLoadEnd = performance.now();
+        log.info("[EnvLoader] Environment texture loaded", {
+          textureLoadTime: `${
+            (textureLoadEnd - textureLoadStart).toFixed(1)
+          }ms`,
+          totalTime: `${(textureLoadEnd - envLoadStart).toFixed(1)}ms`,
+        });
 
-        equi.mapping = EquirectangularReflectionMapping;
-        equi.colorSpace = SRGBColorSpace;
-        equi.needsUpdate = true;
+        if (equi) {
+          equi.mapping = EquirectangularReflectionMapping;
+          equi.colorSpace = SRGBColorSpace;
+          equi.needsUpdate = true;
+        }
       } catch (error) {
         log.warn("[envLoader] Environment texture load failed:", error);
         if (!cancelled) {
@@ -242,9 +263,9 @@ export function useEnvMap(localModule: any) {
         try {
           pmrem = new PMREMGenerator(renderer);
           pmrem.compileEquirectangularShader();
-          const { texture } = pmrem.fromEquirectangular(equi);
+          const { texture } = pmrem.fromEquirectangular(equi!);
           pmrem.dispose();
-          equi.dispose();
+          equi!.dispose();
 
           envCache.set(cacheKey, { texture, refCount: 1 });
           didAcquire = true;
@@ -261,11 +282,11 @@ export function useEnvMap(localModule: any) {
         }
       }
 
-      envCache.set(cacheKey, { texture: equi, refCount: 1 });
+      envCache.set(cacheKey, { texture: equi!, refCount: 1 });
       didAcquire = true;
 
       if (!cancelled) {
-        setEnvMap(equi);
+        setEnvMap(equi!);
       } else {
         releaseCache();
         didAcquire = false;

@@ -10,15 +10,15 @@ import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } fr
 import BreathingGlow from '../../components/glow/BreathingGlow';
 import ArchetypeOrb from '../../features/orb/ArchetypeOrb';
 import {
-  PositionFusion,
-  calculatePositionConfidence,
-  detectMovementType,
+    PositionFusion,
+    calculatePositionConfidence,
+    detectMovementType,
 } from '../../utils/sensorFusion';
 // eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function ScanScreen({ navigation }) {
+export default function ScanScreen({ navigation, route }) {
   const { session } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const [position, setPosition] = useState(null);
@@ -27,6 +27,13 @@ export default function ScanScreen({ navigation }) {
   const [confidence, setConfidence] = useState(0);
   const [movementType, setMovementType] = useState('stationary');
   const [isScanning, setIsScanning] = useState(false);
+
+  // Verification mode params from WalkNav
+  const verificationMode = route.params?.verificationMode || false;
+  const expectedBuilding = route.params?.expectedBuilding;
+  // walkId and returnScreen are for future use
+  // const _walkId = route.params?.walkId;
+  // const _returnScreen = route.params?.returnScreen;
 
   const fusionRef = useRef(null);
   const lastGPSTime = useRef(Date.now());
@@ -244,6 +251,14 @@ export default function ScanScreen({ navigation }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
 
+      log.info('[scan] Sending request to:', `${BACKEND_URL}/api/scan`);
+      log.info('[scan] Request payload:', {
+        gps_lat: position.latitude,
+        gps_lng: position.longitude,
+        compass_bearing: heading,
+        confidence: Math.round(confidence),
+      });
+
       const response = await fetch(`${BACKEND_URL}/api/scan`, {
         method: 'POST',
         body: formData,
@@ -252,15 +267,59 @@ export default function ScanScreen({ navigation }) {
 
       clearTimeout(timeoutId);
 
+      const responseText = await response.text();
+      log.info('[scan] Raw API response:', responseText);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        log.error('[scan] Scan API error', response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        log.error('[scan] Scan API error', response.status, responseText);
+        throw new Error(`HTTP ${response.status}: ${responseText}`);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (_e) {
+        log.error('[scan] Failed to parse response as JSON:', responseText);
+        throw new Error('Invalid response from scan API');
+      }
+      
+      log.info('[scan] Parsed API response:', JSON.stringify(data, null, 2));
 
-      // Navigate based on result
+      // Handle verification mode (from walk)
+      if (verificationMode) {
+        // In verification mode, check if the scanned building matches expected
+        const scannedBin = data.building?.bin || data.building?.bbl;
+        // expectedBin could be used for strict matching in the future
+        // const _expectedBin = expectedBuilding?.bin;
+        
+        // For now, accept any successful scan as verification
+        // In production, you could check if scannedBin matches expectedBin
+        if (data.building && data.building.name) {
+          log.info('[scan] Verification successful', {
+            scannedBuilding: data.building.name,
+            expectedBuilding: expectedBuilding?.name,
+          });
+          
+          // Return to WalkNav with verification result
+          navigation.navigate(screens.WalkNav, {
+            scanResult: {
+              verified: true,
+              buildingBin: scannedBin,
+              buildingData: data.building,
+            },
+          });
+        } else {
+          // Scan didn't identify a building - let user try again
+          log.info('[scan] Verification failed - no building identified');
+          navigation.navigate(screens.NotFound, {
+            message: `We couldn't verify you're at ${expectedBuilding?.name || 'the building'}. Try getting a clearer view of the building.`,
+            returnScreen: screens.WalkNav,
+          });
+        }
+        return;
+      }
+
+      // Normal scan mode - navigate to building info
       if (data.building && data.building.name) {
         // Award XP for successful scan (50 XP base)
         await questsActions.awardXp({ amount: 50, source: 'building_scan' });
@@ -349,6 +408,14 @@ export default function ScanScreen({ navigation }) {
         style={styles.camera}
         facing="back"
       />
+
+      {/* Verification Mode Banner */}
+      {verificationMode && expectedBuilding && (
+        <View style={styles.verificationBanner}>
+          <Text style={styles.verificationText}>📍 Verify: {expectedBuilding.name}</Text>
+          <Text style={styles.verificationSubtext}>Scan the building to confirm you're here</Text>
+        </View>
+      )}
 
       {/* Sensor Panel */}
       <View style={styles.sensorPanel}>
@@ -530,5 +597,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginTop: 30,
+  },
+  verificationBanner: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(16, 185, 129, 0.9)',
+    padding: 16,
+    borderRadius: 12,
+    zIndex: 15,
+    alignItems: 'center',
+  },
+  verificationText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  verificationSubtext: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    marginTop: 4,
   },
 });

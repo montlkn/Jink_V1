@@ -3,9 +3,9 @@ import type { StampDefinition } from "@/constants/passportContent";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 // BlurView removed - using solid overlay instead
 import {
-    Modal, SafeAreaView,
-    ScrollView, StyleSheet, Text, TouchableOpacity, View
+    ScrollView, StyleSheet, Text, View
 } from "react-native";
+import FlipModal from "./FlipModal";
 import ModalCloseButton from "./ModalCloseButton";
 
 type StampDetailModalProps = {
@@ -34,11 +34,7 @@ export function StampDetailModal({ visible, stamp, onClose }: StampDetailModalPr
   const rarityColor = rarityColors[stamp.rarity];
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-
-        <SafeAreaView style={styles.modalContainer}>
+    <FlipModal visible={visible} onClose={onClose}>
           <View style={[styles.modalContent, { borderColor: rarityColor }]}>
             {/* Header */}
             <View style={[styles.modalHeader, { backgroundColor: rarityColor }]}>
@@ -87,28 +83,15 @@ export function StampDetailModal({ visible, stamp, onClose }: StampDetailModalPr
               </View>
             </ScrollView>
           </View>
-        </SafeAreaView>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </Modal>
+    </FlipModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(245, 245, 245, 0.92)",
-  },
-  modalContainer: {
-    width: '85%',
-    maxWidth: 380,
-  },
   modalContent: {
     backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderRadius: 0,
+    borderRadius: 12,
     overflow: "hidden",
   },
   modalHeader: {

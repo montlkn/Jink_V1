@@ -1,15 +1,15 @@
-import { Compass, PausePillButton } from "@/features/walks";
-import { useFocusEffect } from "@react-navigation/native";
-// eslint-disable-next-line no-restricted-imports
 import { useAuth } from "@/auth/authProvider";
+import { Compass, PausePillButton } from "@/features/walks";
 import { log } from "@/lib/log";
 import { goBack, navigate } from "@/navigation/nav";
 import { screens } from "@/navigation/routes";
 // eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from "@/services/gateways/aestheticEventGateway";
-import { useCallback, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -26,10 +26,17 @@ const normalizeCoords = (v) => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 };
 
-const WalkNavScreen = ({ route }) => {
+const WalkNavScreen = ({ route, navigation }) => {
   const { pinToJink } = useOrbTransition();
   const { session } = useAuth();
   const [buildingIndex, setBuildingIndex] = useState(0);
+  const [visitedBuildings, setVisitedBuildings] = useState(new Set()); // Track which buildings user has verified
+  const [walkXp, setWalkXp] = useState(0); // Track XP earned during walk
+
+  // Get walk params
+  const walkId = route.params?.walkId;
+  const xpMultiplier = route.params?.xpMultiplier || 1;
+  const routeTier = route.params?.routeTier || 'aesthetic';
 
   const tsp = useMemo(() => {
     const userStart = { lat: 40.712744754012, lng: -74.0059917068915 };
@@ -42,7 +49,6 @@ const WalkNavScreen = ({ route }) => {
     };
     if (!places.length)
       return { route: [], total_distance_km: 0, est_duration_min: 0 };
-    // deriveBuildingOrder should return { route, legs, total_distance_km, est_duration_min, ... }
     return deriveBuildingOrder(places, formattedLocation);
   }, [route.params?.location, route.params?.places]);
 
@@ -52,31 +58,98 @@ const WalkNavScreen = ({ route }) => {
     ? Math.min(buildingIndex, routeStops.length - 1)
     : 0;
   const currentStop = hasRoute ? routeStops[currentIndex] : null;
+  const isLastBuilding = currentIndex === routeStops.length - 1;
 
   useFocusEffect(
     useCallback(() => {
       pinToJink(false);
       return () => {};
-    }, [pinToJink])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [walkId, session])
   );
 
+  // Auto-complete when last building is visited
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Check if we're returning from a successful scan
+      const scanResult = route.params?.scanResult;
+      if (scanResult && scanResult.verified) {
+        log.info('[WalkNav] Building verified via scan', { 
+          buildingBin: scanResult.buildingBin,
+          index: currentIndex 
+        });
+        
+        // Mark building as visited
+        setVisitedBuildings(prev => new Set([...prev, currentIndex]));
+        
+        // Award XP for this building (base 50 XP * multiplier)
+        const buildingXp = Math.round(50 * xpMultiplier);
+        setWalkXp(prev => prev + buildingXp);
+        
+        // Track the visit event
+        if (session?.user?.id && currentStop) {
+          createAestheticEvent({
+            userId: session.user.id,
+            eventType: 'building_scan',
+            eventSubtype: 'repeat', // Default to repeat for verified visits
+            buildingBbl: currentStop.bbl || currentStop.bin,
+            payload: {
+              building_name: currentStop.name || currentStop.title,
+              walk_id: walkId,
+              xp_earned: buildingXp,
+              visit_index: currentIndex,
+              verification_method: 'scan',
+            },
+          }).catch((err) => log.warn('[WalkNav] Failed to track verified visit', err));
+        }
+
+        // Move to next building or complete walk
+        if (isLastBuilding) {
+          // Walk complete! Navigate to summary
+          handleWalkComplete();
+        } else {
+          setBuildingIndex(prev => prev + 1);
+        }
+        
+        // Clear the scan result param
+        navigation.setParams({ scanResult: undefined });
+      }
+    });
+
+    return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation, route.params?.scanResult, currentIndex, isLastBuilding, currentStop, session?.user?.id, walkId, xpMultiplier]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handlePause = useCallback(() => {
     pinToJink(true);
     goBack();
-  }, [pinToJink]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, walkId]);
 
+  // "I'm Here" now opens camera for verification scan
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleArrived = useCallback(() => {
-    if (!hasRoute) return;
-    const activeStop = routeStops[currentIndex];
-    pinToJink(false);
-    navigate(screens.WalkCamera, {
-      building: activeStop,
+    if (!hasRoute || !currentStop) return;
+    
+    // Navigate to scan screen with building context for verification
+    navigate(screens.Scan, {
+      verificationMode: true,
+      expectedBuilding: {
+        bin: currentStop.bin,
+        name: currentStop.name || currentStop.title || currentStop.des_addres,
+        address: currentStop.des_addres || currentStop.address,
+        lat: currentStop.lat || currentStop.latitude,
+        lng: currentStop.lng || currentStop.longitude,
+      },
+      walkId: walkId,
+      returnScreen: screens.WalkNav,
     });
-    if (routeStops.length > 0) {
-      setBuildingIndex((prev) => (prev + 1) % routeStops.length);
-    }
-  }, [currentIndex, hasRoute, pinToJink, routeStops]);
+  }, [hasRoute, currentStop, walkId]);
 
+  // Handle skip button - mark as visited and advance
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleSkip = useCallback(() => {
     if (!hasRoute) return;
     const activeStop = routeStops[currentIndex];
@@ -89,16 +162,63 @@ const WalkNavScreen = ({ route }) => {
         buildingBbl: activeStop.bbl || activeStop.bin,
         payload: {
           building_name: activeStop.name || activeStop.title,
-          dismissed_at_index: currentIndex
+          dismissed_at_index: currentIndex,
+          walk_id: walkId,
         },
       }).catch((err) => log.warn('[WalkNav] Failed to track quick_dismiss', err));
     }
 
-    // Move to next building
-    if (routeStops.length > 0) {
-      setBuildingIndex((prev) => (prev + 1) % routeStops.length);
+    // Check if this is the last building
+    if (isLastBuilding) {
+      // Walk complete (even if skipped)
+      handleWalkComplete();
+    } else {
+      // Move to next building
+      setBuildingIndex((prev) => prev + 1);
     }
-  }, [currentIndex, hasRoute, routeStops, session?.user?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, hasRoute, isLastBuilding, routeStops, session?.user?.id, walkId]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleWalkComplete = useCallback(() => {
+    log.info('[WalkNav] Walk complete', {
+      walkId,
+      totalBuildings: routeStops.length,
+      visitedCount: visitedBuildings.size,
+      totalXp: walkXp,
+    });
+
+    // Navigate to walk summary with stats
+    navigate(screens.WalkSummary, {
+      walkId,
+      stats: {
+        totalBuildings: routeStops.length,
+        visitedBuildings: visitedBuildings.size,
+        skippedBuildings: routeStops.length - visitedBuildings.size,
+        totalXp: walkXp,
+        xpMultiplier,
+        routeTier,
+        distance: tsp.total_distance_km,
+        duration: tsp.est_duration_min,
+      },
+      buildings: routeStops.map((stop, idx) => ({
+        ...stop,
+        visited: visitedBuildings.has(idx),
+      })),
+    });
+  }, [walkId, routeStops, visitedBuildings, walkXp, xpMultiplier, routeTier, tsp]);
+
+  // Manual walk complete button (for testing or if user wants to end early)
+  const handleEndWalk = useCallback(() => {
+    Alert.alert(
+      "End Walk?",
+      `You've visited ${visitedBuildings.size} of ${routeStops.length} buildings. End the walk now?`,
+      [
+        { text: "Continue", style: "cancel" },
+        { text: "End Walk", onPress: handleWalkComplete },
+      ]
+    );
+  }, [visitedBuildings.size, routeStops.length, handleWalkComplete]);
 
   const progressLabel = hasRoute
     ? `${currentIndex + 1}/${routeStops.length}`
@@ -121,17 +241,14 @@ const WalkNavScreen = ({ route }) => {
     if (!currentLeg) return null;
 
     const steps = currentLeg.steps || [];
-
-    // Get the first significant step (skip very short steps like "depart")
-    const firstStep = steps.find(step => step.distance > 20); // Skip steps < 20m
+    const firstStep = steps.find(step => step.distance > 20);
 
     if (firstStep && firstStep.maneuver) {
       const maneuver = firstStep.maneuver;
-      const type = maneuver.type; // "turn", "new name", "depart", "arrive", etc.
-      const modifier = maneuver.modifier; // "left", "right", "straight", etc.
+      const type = maneuver.type;
+      const modifier = maneuver.modifier;
       const streetName = firstStep.name || "";
 
-      // Build instruction text
       let instruction = "";
 
       if (type === "depart") {
@@ -144,11 +261,9 @@ const WalkNavScreen = ({ route }) => {
       } else if (type === "arrive") {
         instruction = "Arrive at destination";
       } else {
-        // Generic instruction
         instruction = streetName ? `Continue on ${streetName}` : "Continue straight";
       }
 
-      // Add distance
       const distanceM = Math.round(firstStep.distance);
       if (distanceM < 1000) {
         instruction += ` (${distanceM}m)`;
@@ -159,7 +274,6 @@ const WalkNavScreen = ({ route }) => {
       return instruction;
     }
 
-    // Fallback: show total distance and time
     const distanceKm = currentLeg.distanceKm;
     const durationMin = currentLeg.durationMin;
 
@@ -180,6 +294,12 @@ const WalkNavScreen = ({ route }) => {
       <View style={styles.screen}>
         <View style={styles.headerRow}>
           <PausePillButton onPress={handlePause} />
+          {/* XP Counter */}
+          {walkXp > 0 && (
+            <View style={styles.xpBadge}>
+              <Text style={styles.xpText}>+{walkXp} XP</Text>
+            </View>
+          )}
         </View>
         <View style={styles.body}>
           <View style={styles.nextCard}>
@@ -193,7 +313,7 @@ const WalkNavScreen = ({ route }) => {
               </View>
             ) : null}
             {progressLabel ? (
-              <Text style={styles.nextMeta}>{progressLabel}</Text>
+              <Text style={styles.nextMeta}>{progressLabel} · {visitedBuildings.size} verified</Text>
             ) : null}
           </View>
 
@@ -226,7 +346,7 @@ const WalkNavScreen = ({ route }) => {
                 disabled={!hasRoute}
               >
                 <Text style={styles.primaryButtonLabel}>
-                  {hasRoute ? "I'm Here" : "Loading"}
+                  {hasRoute ? "Verify I'm Here" : "Loading"}
                 </Text>
               </Pressable>
               <Pressable
@@ -248,6 +368,12 @@ const WalkNavScreen = ({ route }) => {
                 {summaryDuration ? `~${summaryDuration}` : ""}
               </Text>
             ) : null}
+            {/* End Walk Early Button */}
+            {visitedBuildings.size > 0 && (
+              <Pressable style={styles.endWalkButton} onPress={handleEndWalk}>
+                <Text style={styles.endWalkText}>End Walk Early</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -269,7 +395,20 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   headerRow: {
-    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  xpBadge: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  xpText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
   },
   body: {
     flex: 1,
@@ -277,7 +416,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   nextCard: {
-    backgroundColor: "rgba(255,255,255,0.88)",
+    backgroundColor: "#FFFFFF",  // Explicit color for shadow optimization
     borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 20,
@@ -318,10 +457,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#c8c8c8ff",
   },
-  directionIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
   directionText: {
     fontSize: 14,
     fontWeight: "600",
@@ -355,7 +490,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 2,
-    backgroundColor: "#141417",
+    backgroundColor: "#141417",  // Solid color for shadow optimization
     borderRadius: 28,
     paddingVertical: 16,
     top: 16,
@@ -410,6 +545,16 @@ const styles = StyleSheet.create({
     color: "#3C3C43",
     opacity: 0.7,
     textAlign: "center",
+  },
+  endWalkButton: {
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  endWalkText: {
+    color: "#EF4444",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 

@@ -162,9 +162,11 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     width: 44,
+    alignItems: "flex-start",
   },
   headerRight: {
     width: 44,
+    alignItems: "flex-end",
   },
   headerTitleContainer: {
     flex: 1,
@@ -198,7 +200,7 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     backgroundColor: theme.colors.surface,
-    borderRadius: 0,
+    borderRadius: 12,
     padding: 24,
     borderWidth: 4,
     minHeight: 440,

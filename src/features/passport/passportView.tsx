@@ -2,11 +2,12 @@ import PassportHeader from "@/components/passport/PassportHeader";
 import { SecurityPattern } from "@/components/passport/SecurityPattern";
 import { ELEMENT_COLORS } from "@/constants/elementColors";
 import {
-  achievementLedger,
-  passportLists as passportListContent,
-  stampCollection,
-  visaCarousel,
+    achievementLedger,
+    passportLists as passportListContent,
+    stampCollection,
+    visaCarousel,
 } from "@/constants/passportContent";
+import { usePassportData } from "@/hooks/usePassportData";
 import { log } from "@/lib/log";
 import { screens, type RootParams } from "@/navigation/routes";
 import { getStreakMultiplier } from "@/theme/designConstants";
@@ -17,25 +18,24 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Dimensions,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Dimensions,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { passportActions } from "./mutations";
 import type { PassportUiData } from "./selectors";
-import { usePassportData } from "./usePassportData";
 
 const { width } = Dimensions.get("window");
 
@@ -115,6 +115,7 @@ export function PassportView(): JSX.Element {
           navigation.navigate(screens.PassportVisas);
           return;
         case "Past Walks":
+        case "Past Jinks":
           navigation.navigate(screens.PastWalksNolli);
           return;
         default:
@@ -475,6 +476,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: 16,
     borderLeftWidth: 2,
+    borderRadius: 12,
   },
   blockHeader: {
     flexDirection: "row",
@@ -511,7 +513,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 2,
+    borderRadius: 12,
   },
   xpText: {
     fontSize: 12,
@@ -543,6 +545,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: 16,
     borderTopWidth: 2,
+    borderRadius: 12,
     minHeight: 100,
     justifyContent: "space-between",
   },
@@ -572,7 +575,7 @@ const styles = StyleSheet.create({
   miniDot: {
     width: 6,
     height: 6,
-    borderRadius: 0,
+    borderRadius: 12,
   },
   logCount: {
     fontSize: 10,

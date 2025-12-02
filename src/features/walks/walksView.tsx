@@ -1,15 +1,15 @@
-import React, { useCallback } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
 import { log } from "@/lib/log";
+import { useCallback } from "react";
+import {
+    ActivityIndicator,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 
-import { useWalksData } from "./useWalksData";
+import { useWalksData } from "@/hooks/useWalksData";
 
 const formatDateTime = (iso: string | undefined) => {
   if (!iso) {

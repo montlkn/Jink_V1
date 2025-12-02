@@ -1,15 +1,14 @@
-import React from "react";
+import { useProfileData } from "@/hooks/useProfileData";
 import {
-  ActivityIndicator,
-  Image,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Image,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
-import { useProfileData } from "./useProfileData";
 
 export function ProfileView(): JSX.Element {
   const { status, profile, error, refresh } = useProfileData();

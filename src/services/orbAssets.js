@@ -1,9 +1,9 @@
-import { Asset } from "expo-asset";
 import { log } from "@/lib/log";
+import { Asset } from "expo-asset";
 
 const ENV = require("../../assets/env/qwantani_moon_noon_puresky_1080.jpg");
-const SMOKE_ATLAS = require("../../assets/textures/smoke_atlas.png");
-const SMOKE_ATLAS_STARTUP = require("../../assets/textures/smoke_atlas_startup.png");
+const SMOKE_ATLAS = require("../../assets/textures/smoke_atlas_1080.png");
+const SMOKE_ATLAS_STARTUP = require("../../assets/textures/smoke_atlas_startup_1080.png");
 
 let started = false;
 let promise = null;

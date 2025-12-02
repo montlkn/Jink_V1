@@ -26,13 +26,13 @@ export function ModalCloseButton({ onPress, style }: ModalCloseButtonProps) {
     <TouchableOpacity
       style={[styles.container, style]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={1.0}
       accessibilityRole="button"
       accessibilityLabel="Close"
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
     >
       {iconSource ? (
-        <SvgUri uri={iconSource} width={44} height={44} />
+        <SvgUri uri={iconSource} width={64} height={64} />
       ) : (
         <View style={styles.fallback} />
       )}
@@ -42,14 +42,14 @@ export function ModalCloseButton({ onPress, style }: ModalCloseButtonProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: 44,
-    height: 44,
+    width: 64,
+    height: 64,
     alignItems: "center",
     justifyContent: "center",
   },
   fallback: {
-    width: 44,
-    height: 44,
+    width: 64,
+    height: 64,
     backgroundColor: "#E5E5E5",
     borderRadius: 22,
   },

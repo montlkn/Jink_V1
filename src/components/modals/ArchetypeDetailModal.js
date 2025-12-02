@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderRadius: 0,
+    borderRadius: 12,
     backgroundColor: theme.colors.background,
   },
   vibeText: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   bullet: {
     width: 6,
     height: 6,
-    borderRadius: 0,
+    borderRadius: 12,
     marginTop: 6,
     marginRight: 12,
   },
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: 0,
+    borderRadius: 12,
   },
   movementText: {
     fontSize: 10,

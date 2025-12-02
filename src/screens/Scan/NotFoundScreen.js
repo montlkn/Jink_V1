@@ -30,7 +30,7 @@ export default function NotFoundScreen({ route, navigation }) {
 
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => navigation.navigate(screens.Main, { screen: screens.WalkCamera })}
+          onPress={() => navigation.navigate(screens.Main, { screen: screens.Scan })}
         >
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>

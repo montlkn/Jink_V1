@@ -5,11 +5,12 @@ import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import ModalCloseButton from './ModalCloseButton';
 
@@ -47,7 +48,7 @@ const AuraBreakdownModal = ({
 
           <Text style={styles.title}>AESTHETIC AURA</Text>
           <Text style={styles.subtitle}>
-            TOP AESTHETIC ENERGIES SHAPING YOUR AURA
+            TOP ENERGIES SHAPING YOUR AURA
           </Text>
 
           <View style={styles.segmentList}>
@@ -115,13 +116,11 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 0,
-    paddingHorizontal: 28,
-    paddingTop: 48,
-    paddingBottom: 26,
-    width: '85%',
-    maxWidth: 380,
+    padding: 24,
+    paddingTop: 20,
+    width: Math.min(Dimensions.get('window').width * 0.92, 420),
     borderWidth: 2,
+    borderRadius: 12,
     borderColor: theme.colors.border,
     shadowColor: theme.colors.text,
     shadowOffset: { width: 4, height: 4 },
@@ -135,15 +134,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: theme.colors.text,
     textAlign: 'center',
     letterSpacing: 2,
+    marginTop: 12,
     fontFamily: theme.typography.fontFamily.bold,
   },
   subtitle: {
-    marginTop: 8,
+    marginTop: 12,
     fontSize: 10,
     lineHeight: 14,
     color: theme.colors.muted,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   segmentList: {
-    marginTop: 28,
+    marginTop: 12,
     marginBottom: 24,
     gap: 12,
   },
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 0,
+    borderRadius: 12,
     backgroundColor: theme.colors.background,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   colorDot: {
     width: 12,
     height: 12,
-    borderRadius: 0,
+    borderRadius: 12,
   },
   segmentName: {
     fontSize: 12,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   viewProfileButton: {
     backgroundColor: theme.colors.text,
-    borderRadius: 0,
+    borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
   },

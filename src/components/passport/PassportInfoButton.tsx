@@ -9,24 +9,11 @@ type PassportInfoButtonProps = {
   accessibilityLabel?: string;
 };
 
-type SecurityPatternProps = {
-  width: number;
-  height: number;
-  color?: string;
-  opacity?: number;
-};
-
 /**
- * Shared "More Info" pill button used across passport sub-screens.
+ * Info (?) button for passport screens.
+ * SVG is 96x96 with visual pill at (26,26) size 44x44.
+ * Container is 44x44 positioned at top-right, with SVG offset to show the pill correctly.
  */
-export function SecurityPattern({ width, height, color = "#000", opacity = 0.6 }: SecurityPatternProps) {
-  // This is a placeholder for the actual SecurityPattern implementation
-  // For now, it just renders a simple colored rectangle
-  return (
-    <View style={{ width, height, backgroundColor: color, opacity }} />
-  );
-}
-
 export function PassportInfoButton({ onPress, style, accessibilityLabel }: PassportInfoButtonProps) {
   const iconSource = useMemo(() => {
     try {
@@ -46,13 +33,15 @@ export function PassportInfoButton({ onPress, style, accessibilityLabel }: Passp
       accessibilityLabel={accessibilityLabel ?? "More information"}
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
     >
-      {iconSource ? (
-        <SvgUri uri={iconSource} width={44} height={44} />
-      ) : (
-        <View style={styles.fallback}>
-          <View style={styles.fallbackDot} />
-        </View>
-      )}
+      <View style={styles.svgWrapper}>
+        {iconSource ? (
+          <SvgUri uri={iconSource} width={96} height={96} style={styles.svg} />
+        ) : (
+          <View style={styles.fallback}>
+            <View style={styles.fallbackDot} />
+          </View>
+        )}
+      </View>
     </TouchableOpacity>
   );
 }
@@ -63,6 +52,17 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  svgWrapper: {
+    width: 96,
+    height: 96,
+    position: "absolute",
+    left: -26,
+    top: -26,
+  },
+  svg: {
+    // SVG renders at its native size
   },
   fallback: {
     width: 44,

@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     minHeight: 110,
     justifyContent: 'space-between',
-    borderRadius: 0, // Ensure square corners if desired, or match theme
+    borderRadius: 12,
   },
   completedCard: {
     opacity: 0.8,

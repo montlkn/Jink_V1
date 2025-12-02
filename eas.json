@@ -8,6 +8,9 @@
       "developmentClient": true,
       "distribution": "internal",
       "node": "20.18.0",
+      "ios": {
+        "image": "macos-sonoma-14.5-xcode-15.4"
+      },
       "env": {
         "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyCn7WGMhVsSOioKIk22wPHZTtOspKVncjEy",
         "EXPO_PUBLIC_SUPABASE_URL": "https://gzzvhmmywaaxljpmoacm.supabase.co",
