@@ -41,5 +41,6 @@ export const ScreenLoaders: Record<string, Loader> = {
   OnboardingQuiz: createLoader(() =>
     require("@/screens/Quiz/OnboardingQuizScreen")
   ),
+  NolliSkia: createLoader(() => require("@/screens/PastWalks/NolliMapScreen")),
   QuizResults: createLoader(() => require("@/screens/Quiz/QuizResultsScreen")),
 };

@@ -20,7 +20,8 @@
         "EXPO_PUBLIC_APP_URL": "https://jink.city",
         "EXPO_PUBLIC_API_URL": "https://lucienmount--nyc-scan-api-fastapi-app.modal.run",
         "EXPO_PUBLIC_USE_DEMO_WALKS": "0",
-        "EXPO_PUBLIC_ENABLE_IOS_GOOGLE_MAPS": "1"
+        "EXPO_PUBLIC_ENABLE_IOS_GOOGLE_MAPS": "1",
+        "EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN": "pk.eyJ1IjoibG1vdW50MjUiLCJhIjoiY21pcDQ1bGptMDFtZjNlcHc0dnJyaG9zdSJ9.Jmmy6hk4aFeRjsYngvr4RA"
       }
     },
     "preview": {

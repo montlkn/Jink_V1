@@ -3,22 +3,21 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { Feature as GeoFeature, Polygon as GeoPolygon } from "geojson";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
-import MapView, { Circle, Polygon, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Circle, Polygon, Polyline } from "react-native-maps";
 import {
-    demoWalks,
-    FOG_BOUNDARY,
-    MASTER_WALK_ID,
-    type DemoWalk,
-    type NolliFeatureCollection,
+  demoWalks,
+  FOG_BOUNDARY,
+  MASTER_WALK_ID,
+  type DemoWalk,
+  type NolliFeatureCollection,
 } from "./nolliDemoData";
 
 // -------------------- Types --------------------
@@ -210,7 +209,8 @@ export default function PastWalksNolliScreen({ route, navigation }: Props) {
 
   // Use Apple Maps on iOS to avoid Google Maps polygon bugs
   // Google Maps has issues with polygon holes causing crashes
-  const mapProvider = Platform.OS === "android" ? PROVIDER_GOOGLE : undefined;
+  // undefined defaults to Apple Maps on iOS and Google Maps on Android
+  const mapProvider = undefined;
 
   const walkColorMap = useMemo(() => {
     const entries = new Map<string, (typeof WALK_COLORS)[number]>();

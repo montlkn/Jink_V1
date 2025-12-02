@@ -7,15 +7,15 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useState } from "react";
 import {
-    Alert,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    UIManager,
-    View
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  UIManager,
+  View
 } from "react-native";
 
 if (Platform.OS === 'android') {
@@ -41,15 +41,24 @@ function AchievementCard({ item, expanded, onPress }: AchievementCardProps) {
   };
 
   const FrontContent = (
-    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
+    <View style={{ 
+      flex: 1, 
+      padding: 12, 
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: statusColor,
+      overflow: 'hidden',
+    }}>
       <View style={styles.cardHeader}>
         <View style={[styles.iconBadge, { backgroundColor: statusColor }]}>
-          <Ionicons name="ribbon" size={14} color={theme.colors.background} />
+          <Ionicons name="ribbon" size={16} color={theme.colors.background} />
         </View>
         <Text style={[styles.xpText, { color: statusColor }]}>{item.xp.toLocaleString()} XP</Text>
       </View>
       
-      <View style={styles.cardBody}>
+      <View style={[styles.cardBody, { flex: 1, justifyContent: 'center' }]}>
         <Text numberOfLines={2} style={styles.cardTitle}>
           {item.title}
         </Text>
@@ -68,28 +77,37 @@ function AchievementCard({ item, expanded, onPress }: AchievementCardProps) {
   );
 
   const BackContent = (
-    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between' }}>
+    <View style={{ 
+      flex: 1, 
+      padding: 10, 
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: statusColor,
+      overflow: 'hidden',
+    }}>
       <View style={styles.cardHeader}>
         <View style={[styles.iconBadge, { backgroundColor: statusColor }]}>
           <Ionicons name="information-circle" size={14} color={theme.colors.background} />
         </View>
-        <Text style={[styles.xpText, { color: statusColor }]}>DETAILS</Text>
+        <Text style={[styles.xpText, { color: statusColor, fontSize: 9 }]}>DETAILS</Text>
       </View>
       
       <View style={[styles.cardBody, { justifyContent: 'center' }]}>
-        <Text numberOfLines={1} style={[styles.cardTitle, { fontSize: 12, textAlign: 'center' }]}>
+        <Text numberOfLines={2} style={[styles.cardTitle, { fontSize: 12, textAlign: 'center', marginBottom: 4 }]}>
           {item.title}
         </Text>
         
-        <View style={[styles.divider, { backgroundColor: statusColor, alignSelf: 'center', width: 20 }]} />
+        <View style={[styles.divider, { backgroundColor: statusColor, alignSelf: 'center', width: 20, marginBottom: 6 }]} />
         
-        <Text style={styles.miniLabel}>PURPOSE</Text>
-        <Text numberOfLines={3} style={styles.miniDescription}>{item.purpose}</Text>
+        <Text style={[styles.miniLabel, { fontSize: 9 }]}>PURPOSE</Text>
+        <Text numberOfLines={4} style={[styles.miniDescription, { fontSize: 11, lineHeight: 14, marginBottom: 6 }]}>{item.purpose}</Text>
         
-        <View style={{ height: 8 }} />
+        <View style={{ height: 4 }} />
         
-        <Text style={styles.miniLabel}>UNLOCK</Text>
-        <Text numberOfLines={2} style={styles.miniDescription}>{item.verification}</Text>
+        <Text style={[styles.miniLabel, { fontSize: 9 }]}>UNLOCK</Text>
+        <Text numberOfLines={3} style={[styles.miniDescription, { fontSize: 11, lineHeight: 14 }]}>{item.verification}</Text>
       </View>
 
       <View style={styles.cardFooter}>
@@ -105,9 +123,8 @@ function AchievementCard({ item, expanded, onPress }: AchievementCardProps) {
       style={[
         styles.card, 
         { 
-          borderColor: statusColor,
           width: '48%',
-          height: 180, // Fixed height
+          height: 220,
         }
       ]} 
       activeOpacity={0.8} 
@@ -220,12 +237,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   card: {
-    backgroundColor: theme.colors.surface,
     marginBottom: 16,
-    borderWidth: 2,
-    minHeight: 180,
-    borderRadius: 12,
-    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: "row",
@@ -241,7 +253,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   xpText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "bold",
     fontFamily: "Courier",
   },
@@ -249,7 +261,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: 4,
@@ -261,9 +273,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   verification: {
-    fontSize: 10,
+    fontSize: 12,
     color: theme.colors.muted,
-    lineHeight: 14,
+    lineHeight: 15,
   },
   cardFooter: {
     flexDirection: "row",
@@ -275,7 +287,7 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
   },
   statusText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: "bold",
     letterSpacing: 1,
     textTransform: "uppercase",
@@ -288,7 +300,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   miniDescription: {
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 14,
     color: theme.colors.text,
     textAlign: 'center',

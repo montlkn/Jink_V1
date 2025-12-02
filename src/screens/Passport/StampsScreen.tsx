@@ -8,15 +8,15 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  UIManager,
-  View
+    Alert,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View
 } from "react-native";
 
 if (Platform.OS === 'android') {
@@ -84,13 +84,22 @@ function StampCard({ item, pinned, expanded, onLongPress, onPress }: StampCardPr
   };
 
   const FrontContent = (
-    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between', backgroundColor: theme.colors.surface }}>
+    <View style={{ 
+      flex: 1, 
+      padding: 12, 
+      justifyContent: 'space-between', 
+      backgroundColor: theme.colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: pinned ? theme.colors.accent : theme.colors.border,
+      overflow: 'hidden',
+    }}>
       <View style={styles.cardHeader}>
         <View style={[styles.rarityIndicator, { backgroundColor: strokeColor }]} />
-        {pinned && <Ionicons name="star" size={10} color={theme.colors.accent} />}
+        {pinned && <Ionicons name="star" size={12} color={theme.colors.accent} />}
       </View>
       
-      <View style={styles.stampWrapper}>
+      <View style={[styles.stampWrapper, { flex: 1 }]}>
         <PassportStamp stamp={item.title} date={item.issuedAt} size={80} />
       </View>
 
@@ -106,29 +115,38 @@ function StampCard({ item, pinned, expanded, onLongPress, onPress }: StampCardPr
   );
 
   const BackContent = (
-    <View style={{ flex: 1, padding: 12, justifyContent: 'space-between', backgroundColor: strokeColor }}>
+    <View style={{ 
+      flex: 1, 
+      padding: 10, 
+      justifyContent: 'space-between', 
+      backgroundColor: strokeColor,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: strokeColor,
+      overflow: 'hidden',
+    }}>
       <View style={styles.cardHeader}>
         <View style={[styles.rarityIndicator, { backgroundColor: '#FFFFFF' }]} />
         <Ionicons name="information-circle" size={12} color="#FFFFFF" />
       </View>
 
       <View style={[styles.cardBody, { justifyContent: 'center', flex: 1 }]}>
-        <Text style={[styles.cardTitle, { fontSize: 12, textAlign: 'center', marginBottom: 8, color: '#FFFFFF' }]}>
+        <Text numberOfLines={2} style={[styles.cardTitle, { fontSize: 12, textAlign: 'center', marginBottom: 6, color: '#FFFFFF' }]}>
           {item.title}
         </Text>
         
         <View style={styles.miniInfo}>
-            <Text style={[styles.rarityText, { color: '#FFFFFF', marginBottom: 4 }]}>
+            <Text style={[styles.rarityText, { color: '#FFFFFF', marginBottom: 3, fontSize: 10 }]}>
               {rarityLabel[item.rarity]}
             </Text>
             
-            <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+            <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.3)', marginVertical: 4 }]} />
             
-            <Text numberOfLines={3} style={[styles.miniDescription, { color: '#FFFFFF' }]}>{item.description}</Text>
+            <Text numberOfLines={4} style={[styles.miniDescription, { color: '#FFFFFF', fontSize: 11, lineHeight: 14 }]}>{item.description}</Text>
             
-            <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+            <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.3)', marginVertical: 4 }]} />
             
-            <Text style={[styles.dateText, { color: 'rgba(255,255,255,0.8)' }]}>{formatDate(item.issuedAt)}</Text>
+            <Text style={[styles.dateText, { color: 'rgba(255,255,255,0.8)', fontSize: 10 }]}>{formatDate(item.issuedAt)}</Text>
         </View>
       </View>
     </View>
@@ -145,9 +163,8 @@ function StampCard({ item, pinned, expanded, onLongPress, onPress }: StampCardPr
       style={[
         styles.cardTouchable,
         { 
-          borderColor: pinned ? theme.colors.accent : theme.colors.border,
           width: '48%',
-          height: 180, // Fixed height for consistent flip
+          height: 220,
         },
         isLongPressing && styles.cardTouchablePressing,
       ]}
@@ -298,12 +315,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTouchable: {
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     marginBottom: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
   },
   cardTouchablePressing: {
     opacity: 0.8,
@@ -324,26 +336,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
-    flex: 1,
   },
   cardBody: {
     gap: 2,
   },
   cardTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
     color: theme.colors.text,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   rarityText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     letterSpacing: 1,
     fontFamily: "Courier",
   },
   dateText: {
-    fontSize: 10,
+    fontSize: 11,
     color: theme.colors.muted,
     fontFamily: "Courier",
   },

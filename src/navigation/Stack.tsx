@@ -3,7 +3,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { linking } from "./linking";
 import { navRef } from "./nav";
 import { screens, type RootParams } from "./routes";
-
 import { useAuth } from "@/auth/authProvider";
 import BottomTabNavigator from "@/navigation/BottomTabNavigator";
 import AuthCallbackScreen from "@/screens/Auth/AuthCallbackScreen";
@@ -85,6 +84,10 @@ export function AppStack() {
             <Stack.Screen
               name={screens.PastWalksNolli}
               getComponent={ScreenLoaders.PastWalksNolli}
+            />
+            <Stack.Screen
+              name={screens.NolliSkia}
+              getComponent={ScreenLoaders.NolliSkia}
             />
             <Stack.Screen
               name={screens.OnboardingQuiz}

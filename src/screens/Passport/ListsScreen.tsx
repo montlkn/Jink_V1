@@ -129,7 +129,7 @@ export default function ListsScreen(): JSX.Element {
         <View style={styles.headerRight}>
           <PassportEditButton
             onPress={toggleEdit}
-            style={editMode ? styles.editButtonActive : undefined}
+            disabled={editMode}
           />
         </View>
       </View>
@@ -196,11 +196,6 @@ const styles = StyleSheet.create({
     width: 52,
     alignItems: "flex-end",
   },
-  editButtonActive: {
-    opacity: 0.5,
-  },
-
-
   editButtonText: {
     fontSize: 10,
     fontWeight: "bold",

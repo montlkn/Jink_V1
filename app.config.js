@@ -12,6 +12,9 @@ module.exports = () => {
 
   // Google Maps API key only needed for Android
   const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  
+  // Mapbox access token
+  const mapboxAccessToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
   return {
     name: "jink",
@@ -42,12 +45,20 @@ module.exports = () => {
           androidGoogleMapsApiKey: googleMapsApiKey,
         },
       ],
+      [
+        "@rnmapbox/maps",
+        {
+          RNMapboxMapsImpl: "mapbox",
+          RNMapboxMapsDownloadToken: mapboxAccessToken,
+        },
+      ],
     ],
     extra: {
       deepLinkingScheme: scheme,
       appUrl,
       buildingsSupabaseUrl: process.env.EXPO_PUBLIC_BUILDINGS_SUPABASE_URL,
       buildingsSupabaseAnonKey: process.env.EXPO_PUBLIC_BUILDINGS_SUPABASE_ANON_KEY,
+      mapboxAccessToken,
       eas: {
         projectId: "b12162bd-7319-470b-b952-a352382cfd2c",
       },
@@ -61,7 +72,6 @@ module.exports = () => {
         UISupportedInterfaceOrientations: ["UIInterfaceOrientationPortrait"],
       },
       appleTeamId: "5JRD794HZ9",
-      // Removed googleMapsApiKey - using Apple Maps on iOS
       ...(appHost
         ? {
             associatedDomains: [`applinks:${appHost}`],

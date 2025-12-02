@@ -10,9 +10,9 @@ import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } fr
 import BreathingGlow from '../../components/glow/BreathingGlow';
 import ArchetypeOrb from '../../features/orb/ArchetypeOrb';
 import {
-    PositionFusion,
-    calculatePositionConfidence,
-    detectMovementType,
+  PositionFusion,
+  calculatePositionConfidence,
+  detectMovementType,
 } from '../../utils/sensorFusion';
 // eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';

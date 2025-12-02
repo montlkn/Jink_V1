@@ -4,6 +4,7 @@ import { SvgUri } from "react-native-svg";
 
 type PassportEditButtonProps = {
   onPress: () => void;
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   tintColor?: string;
   accessibilityLabel?: string;
@@ -13,16 +14,20 @@ type PassportEditButtonProps = {
  * Edit button for passport screens.
  * SVG is 104x96 (wider pill shape) with visual pill at (26,26) size 52x44.
  * Container is 52x44 positioned at top-right, with SVG offset to show the pill correctly.
+ * Shows Edit_Pill.svg when enabled, Edit_Pill_Disabled.svg when disabled.
  */
-export function PassportEditButton({ onPress, style, tintColor = "#C62828", accessibilityLabel }: PassportEditButtonProps) {
+export function PassportEditButton({ onPress, disabled = false, style, tintColor = "#C62828", accessibilityLabel }: PassportEditButtonProps) {
   const iconSource = React.useMemo(() => {
     try {
-      const resolved = Image.resolveAssetSource(require("../../../assets/icons/Edit_Pill.svg"));
+      const iconPath = disabled 
+        ? require("../../../assets/icons/Edit_Pill_Disabled.svg")
+        : require("../../../assets/icons/Edit_Pill.svg");
+      const resolved = Image.resolveAssetSource(iconPath);
       return resolved?.uri ?? null;
     } catch {
       return null;
     }
-  }, []);
+  }, [disabled]);
 
   return (
     <TouchableOpacity

@@ -11,6 +11,7 @@ import { useAuth } from "../auth/authProvider";
 import AuthCallbackScreen from "../screens/Auth/AuthCallbackScreen";
 import LoginScreen from "../screens/Auth/LoginScreen";
 import PastWalksNolliScreen from "../screens/PastWalks/PastWalksNolliScreen";
+import NolliSkiaScreen from "../screens/PastWalks/NolliSkiaScreen";
 import ProfileDetailScreen from "../screens/Profile/ProfileDetailScreen";
 import OnboardingQuizScreen from "../screens/Quiz/OnboardingQuizScreen";
 import BuildingInfoScreen from "../screens/Scan/BuildingInfoScreen";
@@ -149,6 +150,11 @@ export default function AppNavigator() {
             <Stack.Screen
               name="PastWalksNolli"
               component={PastWalksNolliScreen}
+              options={{ headerShown: false, presentation: "fullScreenModal" }}
+            />
+            <Stack.Screen
+              name="NolliSkia"
+              component={NolliSkiaScreen}
               options={{ headerShown: false, presentation: "fullScreenModal" }}
             />
             <Stack.Screen

@@ -27,6 +27,7 @@ export const screens = {
   BuildingInfo: "BuildingInfo",
   NotFound: "NotFound",
   PastWalksNolli: "PastWalksNolli",
+  NolliSkia: "NolliSkia",
   // add screens here as you migrate
 } as const;
 
@@ -105,5 +106,6 @@ export type RootParams = {
   BuildingModule: { building: Record<string, unknown> };
   BuildingInfo: { buildingData: BuildingDetail } | undefined;
   NotFound: { message?: string } | undefined;
-  PastWalksNolli: undefined;
+  PastWalksNolli: { walkId?: string } | undefined;
+  NolliSkia: { walkId?: string } | undefined;
 };

@@ -116,7 +116,7 @@ export function PassportView(): JSX.Element {
           return;
         case "Past Walks":
         case "Past Jinks":
-          navigation.navigate(screens.PastWalksNolli);
+          navigation.navigate(screens.NolliSkia);
           return;
         default:
           log.debug(`[passport] Pressed ${category}`);
