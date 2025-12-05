@@ -115,6 +115,29 @@ async def get_summary_meta(request: Request):
     return _summary_response(result)
 
 
+@fastapi_app.post("/v1/contributions/upload")
+async def upload_contribution(request: Request):
+    headers = dict(request.headers)
+    body = await request.json()
+    auth_header = headers.get("authorization", "")
+    
+    result = _invoke_node(
+        "upload-contribution",
+        {
+            "authorization": auth_header,
+            "authId": body.get("user_id"), 
+            "latitude": body.get("latitude"),
+            "longitude": body.get("longitude"),
+            "heading": body.get("heading"),
+            "fov": body.get("fov"),
+            "pitch": body.get("pitch"),
+            "imagePath": body.get("image_path"),
+            "userNotes": body.get("notes"),
+        }
+    )
+    return _summary_response(result)
+
+
 @app.function(image=node_image, secrets=SECRETS)
 @modal.asgi_app()
 def main():

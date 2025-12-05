@@ -6,9 +6,9 @@
  */
 
 import {
-  getSummaryService,
-  regenerateSummaryService,
-  getSummaryMetaService,
+    getSummaryMetaService,
+    getSummaryService,
+    regenerateSummaryService,
 } from '../src/summary/service.js';
 
 // Redirect all console.log output to stderr so stdout stays JSON-only.
@@ -70,6 +70,21 @@ async function main() {
       result = await getSummaryMetaService({
         authorization: payload.authorization || '',
       });
+    } else if (command === 'upload-contribution') {
+      result = await uploadContributionService({
+        authId: payload.authId,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        heading: payload.heading,
+        fov: payload.fov,
+        pitch: payload.pitch,
+        imagePath: payload.imagePath,
+        userNotes: payload.userNotes,
+      });
+      // Wrap result in standard format if service returns direct object
+      if (!result.status) {
+        result = { status: 200, body: result };
+      }
     } else {
       result = { status: 404, body: { error: `Unknown command: ${command}` } };
     }

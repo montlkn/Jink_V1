@@ -6,6 +6,8 @@ import { BuildingInfoSkeleton, fetchBuildingBySearch, TimePeriodSlider } from '@
 import { log } from '@/lib/log';
 import { screens, type RootParams } from '@/navigation/routes';
 // eslint-disable-next-line no-restricted-imports
+import { getBuildingImageUrl } from '@/services/buildingImageService';
+// eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +39,7 @@ export default function BuildingInfoScreen(): JSX.Element {
   const [building, setBuilding] = useState<any>(buildingParam);
   const [loading, setLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [cloudflareImageUrl, setCloudflareImageUrl] = useState<string | null>(null);
   const [showRewardOverlay, setShowRewardOverlay] = useState(false);
   const hasShownReward = useRef(false);
 
@@ -81,6 +83,16 @@ export default function BuildingInfoScreen(): JSX.Element {
 
     loadBuilding();
   }, [buildingParam]);
+
+  // Load Cloudflare image when building data is available
+  useEffect(() => {
+    if (building?.bin && building.bin !== 'unknown') {
+      // Get the front view (0deg_0pitch) from Cloudflare R2
+      const imageUrl = getBuildingImageUrl(building.bin, { angle: '0deg', pitch: '0pitch' });
+      setCloudflareImageUrl(imageUrl);
+      log.info('[BuildingInfo] Cloudflare image URL:', imageUrl);
+    }
+  }, [building?.bin]);
 
   // Track detail view event on mount
   useEffect(() => {
@@ -177,23 +189,7 @@ export default function BuildingInfoScreen(): JSX.Element {
     }
   };
 
-  const handleSave = async () => {
-    const newSaved = !isSaved;
-    setIsSaved(newSaved);
-
-    if (session?.user?.id && building?.bbl) {
-      try {
-        await createAestheticEvent({
-          userId: session.user.id,
-          eventType: 'building_save',
-          buildingBbl: building.bbl,
-          payload: { building_name: building.name },
-        });
-      } catch (error) {
-        log.warn('[BuildingInfo] Failed to track save event', error);
-      }
-    }
-  };
+  // handleSave removed - "Add to List" button replaces save functionality
 
   const handleContribute = () => {
     // Navigate to NotFound screen with building data for contribution
@@ -244,16 +240,22 @@ export default function BuildingInfoScreen(): JSX.Element {
         showsVerticalScrollIndicator={false}
       >
         {/* Top Image Section */}
-        <View style={styles.imageContainer}>
-          {(building.image || building.photo_url || building.image_url) ? (
+        <View style={styles.imageSection}>
+          {/* Image or Placeholder */}
+          {(cloudflareImageUrl || building.image || building.photo_url || building.image_url) ? (
             <Image
-              source={
-                typeof (building.image || building.photo_url || building.image_url) === 'string'
-                  ? { uri: building.photo_url || building.image_url || building.image }
-                  : building.image as any
-              }
+              source={{ 
+                uri: cloudflareImageUrl || building.photo_url || building.image_url || building.image 
+              }}
               style={styles.mainImage}
               resizeMode="cover"
+              onError={() => {
+                // If Cloudflare image fails, try without it
+                if (cloudflareImageUrl) {
+                  log.warn('[BuildingInfo] Cloudflare image failed to load, falling back');
+                  setCloudflareImageUrl(null);
+                }
+              }}
             />
           ) : (
             <View style={[styles.mainImage, styles.imagePlaceholder]}>
@@ -262,7 +264,7 @@ export default function BuildingInfoScreen(): JSX.Element {
             </View>
           )}
           
-          {/* Header Overlay */}
+          {/* Header Overlay - X button and heart */}
           <SafeAreaView style={styles.headerOverlay}>
             <View style={styles.header}>
               <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
@@ -276,69 +278,64 @@ export default function BuildingInfoScreen(): JSX.Element {
                      color={isLiked ? theme.colors.primary : theme.colors.text}
                    />
                  </TouchableOpacity>
-                 <TouchableOpacity style={styles.actionIcon} onPress={handleSave}>
-                   <Ionicons
-                     name={isSaved ? 'bookmark' : 'bookmark-outline'}
-                     size={24}
-                     color={isSaved ? theme.colors.primary : theme.colors.text}
-                   />
-                 </TouchableOpacity>
               </View>
-            </View>
-            <View style={styles.locationHeader}>
-               <Ionicons name="location-sharp" size={16} color={theme.colors.primary} />
-               <Text style={styles.locationTitle}>{building.name}</Text>
             </View>
           </SafeAreaView>
+        </View>
+        
+        {/* Building Name Banner - Below image */}
+        <View style={styles.nameBanner}>
+          <Ionicons name="location-sharp" size={16} color={theme.colors.primary} />
+          <Text style={styles.nameText}>{building.name}</Text>
+        </View>
 
-          {/* Info Card Overlay */}
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>🏗️</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoCategory}>Architect</Text>
-                <Text style={styles.infoLabel}>{building.architect || 'Unknown'}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
+        {/* Info Card - Separate section */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>🏗️</Text>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoCategory}>Architect</Text>
+              <Text style={styles.infoLabel}>{building.architect || 'Unknown'}</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>🎨</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoCategory}>Style</Text>
-                <Text style={styles.infoLabel}>{building.style || 'Unknown'}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>🧱</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoCategory}>Materials</Text>
-                <Text style={styles.infoLabel}>{building.materials || 'Unknown'}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>🏢</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoCategory}>Use</Text>
-                <Text style={styles.infoLabel}>{building.use || 'Unknown'}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>🏷️</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoCategory}>Type</Text>
-                <Text style={styles.infoLabel}>{building.type || 'Unknown'}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
-            </View>
-            
-            {/* Time Period Slider */}
-            <View style={styles.sliderSection}>
-              <TimePeriodSlider year={building.year || 1930} />
-            </View>
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
           </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>🎨</Text>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoCategory}>Style</Text>
+              <Text style={styles.infoLabel}>{building.style || 'Unknown'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>🧱</Text>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoCategory}>Materials</Text>
+              <Text style={styles.infoLabel}>{building.materials || 'Unknown'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoIcon}>🏢</Text>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoCategory}>Use</Text>
+              <Text style={styles.infoLabel}>{building.use || 'Unknown'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
+          </View>
+          <View style={[styles.infoRow, { marginBottom: 0 }]}>
+            <Text style={styles.infoIcon}>🏷️</Text>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoCategory}>Type</Text>
+              <Text style={styles.infoLabel}>{building.type || 'Unknown'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color={theme.colors.muted} />
+          </View>
+        </View>
+        
+        {/* Time Period Slider - Separate section */}
+        <View style={styles.sliderSection}>
+          <TimePeriodSlider year={building.year || 1930} />
         </View>
 
         {/* Actions Row */}
@@ -405,6 +402,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+  },
+  imageSection: {
+    width: '100%',
+    height: 250,
+    position: 'relative',
   },
   imageContainer: {
     width: '100%',
@@ -638,9 +640,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sliderSection: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  nameBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+    gap: 8,
+  },
+  nameText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    flex: 1,
   },
 });
 

@@ -505,7 +505,7 @@ const WalkStartScreen = ({ navigation, route }) => {
         <Animated.View style={[styles.timerDisplay, { opacity: timerOpacity, transform: [{ translateY: timerTranslateY }] }]}>
           {xpBonus.multiplier > 1.0 && (
             <View style={styles.xpBonusContainer}>
-              <XpBonusIndicator multiplier={xpBonus.multiplier} />
+              <XpBonusIndicator multiplier={xpBonus.multiplier} color={xpBonus.color} />
             </View>
           )}
           

@@ -4,6 +4,7 @@ import { log } from "@/lib/log";
 import { goBack, navigate } from "@/navigation/nav";
 import { screens } from "@/navigation/routes";
 import { calculateWalkingETA, formatDistance, getBuildingDisplayName, haversineDistance } from "@/utils/buildingUtils";
+import { AngularKalmanFilter } from "@/utils/KalmanFilter";
 // eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from "@/services/gateways/aestheticEventGateway";
 import { useFocusEffect } from "@react-navigation/native";
@@ -11,15 +12,15 @@ import * as Location from "expo-location";
 import { Magnetometer } from "expo-sensors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Pressable,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { DirectionalGlow } from "../../components/navigation/DirectionalGlow";
+import { DirectionalGlow } from "../../components/glow/DirectionalGlow";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { deriveBuildingOrder } from "../../utils/deriveUtils";
 
@@ -53,6 +54,9 @@ const WalkNavScreen = ({ route, navigation }) => {
   const [userHeading, setUserHeading] = useState(0);
   const locationSubscriptionRef = useRef(null);
   const magnetometerSubscriptionRef = useRef(null);
+  
+  // Kalman filter for smooth heading (reduces magnetometer jitter)
+  const headingFilterRef = useRef(new AngularKalmanFilter(0.08, 1.5, 0));
 
   // Get walk params
   const walkId = route.params?.walkId;
@@ -112,12 +116,12 @@ const WalkNavScreen = ({ route, navigation }) => {
           });
         }
 
-        // Watch location with smart throttling (update every 5 seconds or 10m movement)
+        // Watch location with more frequent updates for responsive navigation
         locationSubscriptionRef.current = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.BestForNavigation,
-            timeInterval: 5000, // 5 seconds
-            distanceInterval: 10, // 10 meters
+            timeInterval: 2000, // 2 seconds - more responsive
+            distanceInterval: 5, // 5 meters - more granular
           },
           (loc) => {
             if (isMounted) {
@@ -148,19 +152,23 @@ const WalkNavScreen = ({ route, navigation }) => {
     };
   }, []);
 
-  // Magnetometer for compass heading
+  // Magnetometer for compass heading (with Kalman filtering for smoothness)
   useEffect(() => {
     let isMounted = true;
 
     try {
-      Magnetometer.setUpdateInterval(250);
+      // Faster updates for responsiveness, Kalman filter handles smoothing
+      Magnetometer.setUpdateInterval(100);
       magnetometerSubscriptionRef.current = Magnetometer.addListener((data) => {
         if (!isMounted) return;
         const { x, y } = data;
         let angle = Math.atan2(y, x) * (180 / Math.PI);
         angle = 90 - angle;
-        const normalized = ((angle % 360) + 360) % 360;
-        setUserHeading(normalized);
+        const rawHeading = ((angle % 360) + 360) % 360;
+        
+        // Apply Kalman filter for smooth heading (reduces jitter)
+        const smoothHeading = headingFilterRef.current.updateAngle(rawHeading);
+        setUserHeading(smoothHeading);
       });
     } catch (error) {
       log.error('[WalkNav] Magnetometer error', error);
@@ -367,6 +375,35 @@ const WalkNavScreen = ({ route, navigation }) => {
       ? `${Math.round(tsp.est_duration_min)} min`
       : null;
 
+  // Helper to get color based on duration (inlined to ensure reliability)
+  const getDurationColor = (minutes) => {
+    minutes = Number(minutes) || 45;
+    if (minutes >= 5 && minutes <= 10) return '#00ffff'; // Cyan
+    if (minutes >= 10 && minutes < 15) return '#ff8c00'; // Orange
+    if (minutes >= 15 && minutes < 25) return '#32cd32'; // Green
+    if (minutes >= 25 && minutes < 40) return '#dc143c'; // Red
+    if (minutes >= 40 && minutes < 50) return '#ff8c00'; // Orange
+    if (minutes >= 50 && minutes < 60) return '#32cd32'; // Green
+    if (minutes >= 60 && minutes < 70) return '#dc143c'; // Red
+    if (minutes >= 70 && minutes < 80) return '#32cd32'; // Green
+    if (minutes >= 80 && minutes < 85) return '#ff8c00'; // Orange
+    if (minutes >= 85 && minutes <= 90) return '#00ffff'; // Cyan
+    if (minutes > 90 && minutes <= 95) return '#dc143c'; // Red
+    return '#00ffff'; // Default Cyan
+  };
+
+  const duration = Number(route.params?.duration) || 45; 
+  const xpBadgeColor = getDurationColor(duration);
+  
+  // Debug log for XP badge
+  useEffect(() => {
+    log.info('[WalkNav] XP Badge Debug', {
+      duration,
+      xpBadgeColor,
+      routeParams: route.params
+    });
+  }, [duration, xpBadgeColor, route.params]);
+
   // Extract walking directions from OSRM route data
   const routeData = route.params?.routeData;
   const currentLeg = routeData?.legs?.[currentIndex];
@@ -440,9 +477,9 @@ const WalkNavScreen = ({ route, navigation }) => {
       <View style={styles.screen}>
         <View style={styles.headerRow}>
           <PausePillButton onPress={handlePause} />
-          {/* XP Counter */}
+          {/* XP Counter - color synced with walk duration multiplier (time-based) */}
           {walkXp > 0 && (
-            <View style={styles.xpBadge}>
+            <View style={[styles.xpBadge, { backgroundColor: xpBadgeColor }]}>
               <Text style={styles.xpText}>+{walkXp} XP</Text>
             </View>
           )}
@@ -552,7 +589,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   xpBadge: {
-    backgroundColor: "#10B981",
+    // backgroundColor set dynamically via xpBadgeColor
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,

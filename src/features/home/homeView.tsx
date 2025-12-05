@@ -1,8 +1,7 @@
 import AuraBreakdownModal, {
     type AuraSegment,
 } from "@/components/modals/AuraBreakdownModal";
-import XPDetailModal from "@/components/modals/XPDetailModal";
-import XPGlassBadge from "@/components/passport/XPGlassBadge";
+import XPStatusBanner from "@/components/passport/XPStatusBanner";
 import QuestCard from "@/components/quests/QuestCard";
 import QuestDetailModal from "@/components/quests/QuestDetailModal";
 import { getArchetypeColorSafe } from "@/constants/archetypeColors";
@@ -74,7 +73,6 @@ function HomeSkeleton() {
 export function HomeView(): JSX.Element {
   const navigation = useNavigation<HomeNavigation>();
   const dataState = useHomeData();
-  const [xpModalVisible, setXpModalVisible] = useState(false);
   const [selectedQuest, setSelectedQuest] = useState<HomeQuest | null>(null);
   const [questModalVisible, setQuestModalVisible] = useState(false);
   const [auraModalVisible, setAuraModalVisible] = useState(false);
@@ -295,11 +293,11 @@ export function HomeView(): JSX.Element {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Animated.View style={[styles.xpBadgeContainer, { opacity: contentFade }]}>
-          <XPGlassBadge
+          <XPStatusBanner
             currentXP={userData.xp}
             level={userData.level}
             xpForNextLevel={userData.xpForNextLevel}
-            onPress={() => setXpModalVisible(true)}
+            streakCount={streakCount}
           />
         </Animated.View>
 
@@ -361,14 +359,7 @@ export function HomeView(): JSX.Element {
         </Animated.View>
       </ScrollView>
 
-      <XPDetailModal
-        visible={xpModalVisible}
-        onClose={() => setXpModalVisible(false)}
-        currentXP={userData.xp}
-        level={userData.level}
-        xpForNextLevel={userData.xpForNextLevel}
-        streakCount={streakCount}
-      />
+
 
       <QuestDetailModal
         visible={questModalVisible}

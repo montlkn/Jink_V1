@@ -4,14 +4,14 @@ import { StyleSheet, Text, View } from "react-native";
  * XP Multiplier Indicator Component
  * Displays white text showing the current walk duration XP multiplier
  */
-const XpBonusIndicator = ({ multiplier }) => {
+const XpBonusIndicator = ({ multiplier, color }) => {
   // Don't render if no multiplier bonus (1.0x)
   if (multiplier <= 1.0) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, color && { backgroundColor: color }]}>
       <Text style={styles.text}>{multiplier}x XP</Text>
     </View>
   );
@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.2)", // Subtle background for contrast
+    backgroundColor: "rgba(0,0,0,0.2)", // Subtle background for contrast (default)
     alignItems: "center",
     justifyContent: "center",
   },

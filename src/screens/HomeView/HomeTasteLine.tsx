@@ -171,7 +171,7 @@ export default function HomeTasteLine({ action }: Props): JSX.Element {
         <View style={styles.content}>
           <View style={styles.copyWrapper}>
             <View style={styles.badge}>
-              <Text style={styles.label}>Recent taste</Text>
+              <Text style={styles.label}>We've noticed</Text>
             </View>
             <Text style={styles.headline}>{finalHeadline}</Text>
           </View>

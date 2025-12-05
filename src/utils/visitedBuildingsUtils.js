@@ -12,17 +12,31 @@ export async function fetchUserScannedBuildings(userId) {
   }
 
   try {
-    // Fetch from walk_seen_points table (buildings scanned during walks)
-    const { data: walkPoints, error: walkError } = await supabaseGateway
-      .from('walk_seen_points')
-      .select('building_bin, building_bbl')
-      .eq('scanned', true)
-      .in('walk_id', 
-        supabaseGateway
-          .from('walks')
-          .select('id')
-          .eq('user_id', userId)
-      );
+    // Step 1: Fetch user's walk IDs first (Supabase JS client doesn't support nested queries in .in())
+    const { data: userWalks, error: walksError } = await supabaseGateway
+      .from('walks')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (walksError) {
+      log.warn('[fetchUserScannedBuildings] Error fetching user walks', walksError);
+    }
+
+    const walkIds = userWalks?.map(w => w.id) || [];
+    let walkPoints = null;
+    let walkError = null;
+
+    // Step 2: Fetch from walk_seen_points table (buildings scanned during walks)
+    if (walkIds.length > 0) {
+      const result = await supabaseGateway
+        .from('walk_seen_points')
+        .select('building_bin, building_bbl')
+        .eq('scanned', true)
+        .in('walk_id', walkIds);
+      
+      walkPoints = result.data;
+      walkError = result.error;
+    }
 
     if (walkError) {
       log.warn('[fetchUserScannedBuildings] Error fetching from walk_seen_points', walkError);
