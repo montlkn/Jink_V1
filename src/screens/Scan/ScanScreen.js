@@ -262,7 +262,8 @@ export default function ScanScreen({ navigation, route }) {
 
     try {
       photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
+        quality: 0.5,
+        skipProcessing: true,
       });
 
       // Use multi-tier verification system
@@ -336,20 +337,146 @@ export default function ScanScreen({ navigation, route }) {
       }
 
       // Normal scan mode - try CLIP/multi-tier verification first, fallback to backend GPS
-      log.info('[scan] Starting CLIP-based scan (multi-tier verification for all scans)');
-      
-      // Try multi-tier verification which uses CLIP first
-      const clipResult = await verifyBuilding({
+      log.info('[scan] Starting parallel scan (GPS lookups + CLIP)');
+
+      // 1. Start GPS-based lookups immediately (Parallel Task)
+      const gpsLookupPromise = (async () => {
+        try {
+          // Tier 2: Check user-contributed buildings table (by GPS proximity)
+          log.info('[scan] Starting user_contributed_buildings lookup');
+          const contributedMatch = await fetchContributedBuildingBySearch({
+            lat: position.latitude,
+            lng: position.longitude,
+            radiusKm: 0.03, // 30m radius
+          });
+
+          if (contributedMatch && contributedMatch.name) {
+             return { type: 'contributed', data: contributedMatch };
+          }
+        } catch (err) {
+          log.warn('[scan] Contributed lookup failed', err);
+        }
+
+        try {
+          // Tier 3: Try reverse geocoding + address lookup
+          log.info('[scan] Starting address lookup');
+          const reverseGeocode = await Location.reverseGeocodeAsync({
+            latitude: position.latitude,
+            longitude: position.longitude,
+          });
+
+          if (reverseGeocode && reverseGeocode.length > 0) {
+            const geo = reverseGeocode[0];
+            const streetAddress = `${geo.streetNumber || ''} ${geo.street || ''}`.trim();
+            
+            if (streetAddress) {
+              const addressMatch = await fetchBuildingBySearch({ 
+                address: streetAddress,
+                lat: position.latitude,
+                lng: position.longitude,
+                radiusKm: 0.05, // 50m radius
+              });
+              
+              if (addressMatch && addressMatch.name) {
+                return { type: 'address', data: addressMatch, address: streetAddress };
+              }
+            }
+          }
+        } catch (err) {
+          log.warn('[scan] Address lookup failed', err);
+        }
+        return null;
+      })();
+
+      // 2. Start CLIP verification (Parallel Task - needs photo)
+      const clipPromise = verifyBuilding({
         photo,
         position,
         heading,
         pitch,
-        expectedBuilding: null, // No expected building for normal scans
+        expectedBuilding: null,
         nearbyBuildings: nearbyBuildings || [],
       });
 
-      // If CLIP found a match, use it
-      if (clipResult.verified && clipResult.buildingData) {
+      // 3. Race them! Prioritize GPS if fast, but wait for CLIP if GPS fails
+      // We create a race where if GPS returns a match, we use it.
+      // If GPS returns null, we wait for CLIP.
+      
+      const result = await Promise.race([
+        gpsLookupPromise.then(res => res ? res : clipPromise),
+        clipPromise
+      ]);
+
+      // Handle the winner
+      if (result && result.type === 'contributed') {
+        const contributedMatch = result.data;
+        log.info('[scan] FAST MATCH: User-contributed building found!', {
+            building: contributedMatch.name,
+            source: 'user_contribution',
+        });
+
+        // Award XP
+        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+
+        // Track event
+        try {
+            if (session?.user?.id && contributedMatch.bbl) {
+              await createAestheticEvent({
+                userId: session.user.id,
+                eventType: 'building_scan',
+                eventSubtype: 'contributed_match',
+                buildingBbl: contributedMatch.bbl,
+                payload: {
+                  scan_method: 'user_contribution',
+                  contributed_by: contributedMatch.contributed_by,
+                },
+              });
+            }
+        } catch (error) {
+            log.warn('[scan] Failed to create aesthetic event', error);
+        }
+
+        navigation.navigate(screens.BuildingInfo, { buildingData: contributedMatch });
+        return;
+      }
+
+      if (result && result.type === 'address') {
+        const addressMatch = result.data;
+        log.info('[scan] FAST MATCH: Address lookup match found!', {
+            building: addressMatch.name,
+            address: result.address,
+        });
+
+        // Award XP
+        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+
+        // Track event
+        try {
+            if (session?.user?.id && addressMatch.bbl) {
+                await createAestheticEvent({
+                userId: session.user.id,
+                eventType: 'building_scan',
+                eventSubtype: 'address_match',
+                buildingBbl: addressMatch.bbl,
+                payload: {
+                    scan_method: 'address_lookup',
+                    address: result.address,
+                },
+                });
+            }
+        } catch (error) {
+            log.warn('[scan] Failed to create aesthetic event', error);
+        }
+
+        navigation.navigate(screens.BuildingInfo, { buildingData: addressMatch });
+        return;
+      }
+
+      // If we are here, it means either CLIP won, or GPS failed and we fell back to CLIP
+      // Check CLIP result (which might be the result of the race or awaited after GPS failed)
+      const clipResult = result && result.verified ? result : await clipPromise;
+
+      if (clipResult && clipResult.verified && clipResult.buildingData) {
         log.info('[scan] CLIP match found!', {
           building: clipResult.buildingData.name,
           method: clipResult.method,
@@ -381,52 +508,7 @@ export default function ScanScreen({ navigation, route }) {
         return;
       }
 
-      log.info('[scan] CLIP no match, trying user_contributed_buildings lookup');
-
-      // Tier 2: Check user-contributed buildings table (by GPS proximity)
-      // These are buildings submitted by users, may have images in Cloudflare too
-      try {
-        const contributedMatch = await fetchContributedBuildingBySearch({
-          lat: position.latitude,
-          lng: position.longitude,
-          radiusKm: 0.03, // 30m radius for contributed buildings
-        });
-
-        if (contributedMatch && contributedMatch.name) {
-          log.info('[scan] User-contributed building found!', {
-            building: contributedMatch.name,
-            source: 'user_contribution',
-          });
-
-          // Award XP for successful scan
-          await questsActions.awardXp({ amount: 50, source: 'building_scan' });
-
-          // Track aesthetic event
-          try {
-            if (session?.user?.id && contributedMatch.bbl) {
-              await createAestheticEvent({
-                userId: session.user.id,
-                eventType: 'building_scan',
-                eventSubtype: 'contributed_match',
-                buildingBbl: contributedMatch.bbl,
-                payload: {
-                  scan_method: 'user_contribution',
-                  contributed_by: contributedMatch.contributed_by,
-                },
-              });
-            }
-          } catch (error) {
-            log.warn('[scan] Failed to create aesthetic event', error);
-          }
-
-          navigation.navigate(screens.BuildingInfo, { buildingData: contributedMatch });
-          return;
-        }
-      } catch (contribError) {
-        log.info('[scan] User contributions lookup skipped', contribError);
-      }
-
-      log.info('[scan] No user contribution, trying reverse geocode + address lookup');
+      log.info('[scan] No parallel match found, trying reverse geocode + address lookup (legacy fallback)');
 
       // Tier 3: Try reverse geocoding + address lookup from building database
       let streetAddress = null;

@@ -1,4 +1,7 @@
+
 import { useAuth } from '@/auth/authProvider';
+// eslint-disable-next-line no-restricted-imports
+import { RewardAnimationOverlay } from '@/components/rewards';
 import { BuildingInfoSkeleton, fetchBuildingBySearch, TimePeriodSlider } from '@/features/scan';
 import { log } from '@/lib/log';
 import { screens, type RootParams } from '@/navigation/routes';
@@ -10,15 +13,15 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useRef, useState } from 'react';
 import {
-    Image,
-    Linking,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  Linking,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { BuildingContributionSection } from '../BuildingDetails/BuildingContributionSection';
 
@@ -35,6 +38,8 @@ export default function BuildingInfoScreen(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showRewardOverlay, setShowRewardOverlay] = useState(false);
+  const hasShownReward = useRef(false);
 
   // Dwell time tracking
   const dwellStartTime = useRef(Date.now());
@@ -86,6 +91,13 @@ export default function BuildingInfoScreen(): JSX.Element {
         buildingBbl: building.bbl || building.bin,
         payload: { building_name: building.name },
       }).catch((err) => log.warn('[BuildingInfo] Failed to track detail_view', err));
+
+      // Show reward overlay on first view
+      if (!hasShownReward.current) {
+        hasShownReward.current = true;
+        // Small delay so screen renders first
+        setTimeout(() => setShowRewardOverlay(true), 500);
+      }
     }
   }, [building, building?.bbl, building?.bin, session?.user?.id]);
 
@@ -216,6 +228,15 @@ export default function BuildingInfoScreen(): JSX.Element {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
+      
+      {/* Reward Animation Overlay */}
+      <RewardAnimationOverlay
+        visible={showRewardOverlay}
+        xpEarned={50}
+        source="scan"
+        onDismiss={() => setShowRewardOverlay(false)}
+        autoDismissDelay={3500}
+      />
       
       <ScrollView 
         style={styles.scrollView}
@@ -386,12 +407,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   imageContainer: {
-    height: 500,
     width: '100%',
+    height: 300,
     position: 'relative',
-    marginBottom: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.primary, // Technical accent line
   },
   mainImage: {
     width: '100%',
@@ -401,258 +419,229 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   placeholderIcon: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  placeholderText: {
+    color: theme.colors.muted,
+    fontFamily: 'monospace',
   },
   headerOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionIcon: {
+  closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 0, // Sharp corners
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
-  locationHeader: {
+  headerActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    gap: 6,
-    backgroundColor: theme.colors.surface,
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 0, // Sharp corners
-    borderWidth: 1,
-    borderColor: theme.colors.primary, // Accent border
+    gap: 8,
   },
-  locationTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    fontFamily: 'monospace',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  infoCard: {
-    position: 'absolute',
-    bottom: -40,
-    left: 20,
-    right: 20,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 0, // Sharp corners
+  titleContainer: {
     padding: 20,
-    // Removed shadow for flatter technical look, added border
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    zIndex: 20,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  infoIcon: {
-    fontSize: 14,
-  },
-  infoContent: {
-    flex: 1,
-    marginLeft: 8,
-  },
-  infoCategory: {
-    fontSize: 10,
-    fontFamily: 'monospace',
-    color: theme.colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontFamily: 'monospace',
-    fontWeight: 'bold',
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
     color: theme.colors.text,
-    textTransform: 'uppercase', // Uppercase for technical feel
+    fontFamily: 'monospace',
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
-  sliderSection: {
-    marginTop: 16,
-    marginBottom: 5,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    paddingTop: 16,
+  subtitle: {
+    fontSize: 14,
+    color: theme.colors.muted,
+    fontFamily: 'monospace',
   },
-  cardArrowContainer: {
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: -10,
-    left: 0,
-    right: 0,
-  },
-  cardArrow: {
-    width: 0,
-    height: 0,
-    backgroundColor: 'transparent',
-    borderStyle: 'solid',
-    borderLeftWidth: 10,
-    borderRightWidth: 10,
-    borderBottomWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
+  statsRow: {
+    flexDirection: 'row',
+    padding: 20,
+    borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-    transform: [{ rotate: '180deg' }],
+    gap: 24,
+  },
+  statItem: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    fontFamily: 'monospace',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.text,
+    fontFamily: 'monospace',
   },
   actionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginTop: -12,
-    gap: 12,
+    padding: 20,
+    gap: 16,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 0, // Sharp corners
+    alignItems: 'center',
+    padding: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    borderRadius: 4,
   },
   actionText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
+    fontSize: 10,
     color: theme.colors.text,
+    fontFamily: 'monospace',
+    marginTop: 4,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border + '40',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'left',
-    fontFamily: 'monospace',
-    color: theme.colors.primary, // Accent color for headers
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
-  infoTextContainer: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  verticalLine: {
-    width: 4, // Thicker line
-    backgroundColor: theme.colors.primary,
-    height: '100%',
-  },
-  bodyText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 20,
-    fontFamily: 'monospace',
-    textAlign: 'left',
-    color: theme.colors.text,
-  },
-  placeholderText: {
-    fontSize: 12,
-    fontFamily: 'monospace',
-    color: theme.colors.muted,
-    fontStyle: 'italic',
   },
   directionsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.text, // Inverted for prominence
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 0, // Sharp corners
-    borderWidth: 0,
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 20,
-    marginBottom: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.text,
+    borderRadius: 4,
     gap: 8,
+    marginBottom: 20,
   },
   directionsText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: theme.colors.text,
     fontFamily: 'monospace',
-    color: theme.colors.surface, // Inverted text color
+    textTransform: 'uppercase',
+  },
+  section: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    fontFamily: 'monospace',
+    marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  infoTextContainer: {
+    flexDirection: 'row',
+  },
+  verticalLine: {
+    width: 2,
+    backgroundColor: theme.colors.primary,
+    marginRight: 12,
+  },
+  bodyText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 22,
+    color: theme.colors.text,
+    fontFamily: 'monospace',
   },
   errorHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    gap: 20,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   errorTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: theme.colors.primary,
-    letterSpacing: 2,
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.accent,
     fontFamily: 'monospace',
-    textTransform: 'uppercase',
+    marginLeft: 12,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
   },
   errorText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    letterSpacing: 1,
-    textAlign: 'center',
+    fontSize: 18,
+    color: theme.colors.muted,
     fontFamily: 'monospace',
-    textTransform: 'uppercase',
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+  actionIcon: {
+    marginBottom: 4,
+  },
+  locationHeader: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  locationTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.primary,
+    fontFamily: 'monospace',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  infoCard: {
+    backgroundColor: theme.colors.surface,
+    margin: 20,
+    padding: 16,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  infoIcon: {
+    marginRight: 12,
+    marginTop: 2,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoCategory: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    fontFamily: 'monospace',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: theme.colors.text,
+    fontFamily: 'monospace',
+    fontWeight: '600',
+  },
+  sliderSection: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
 });
+
+

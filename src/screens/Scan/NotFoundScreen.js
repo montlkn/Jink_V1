@@ -1,4 +1,6 @@
 import { useAuth } from "@/auth/authProvider";
+// eslint-disable-next-line no-restricted-imports
+import { RewardAnimationOverlay } from "@/components/rewards";
 import { questsActions } from "@/features/quests";
 import { screens } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME } from "@/theme/designer_republic";
@@ -40,6 +42,10 @@ export default function NotFoundScreen({ route, navigation }) {
   const [currentStep, setCurrentStep] = useState(STEPS.INITIAL);
   // eslint-disable-next-line no-unused-vars
   const [_isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Reward overlay state
+  const [showRewardOverlay, setShowRewardOverlay] = useState(false);
+  const [earnedXP, setEarnedXP] = useState(0);
 
   // Photo capture state
   const [permission, requestPermission] = useCameraPermissions();
@@ -185,11 +191,9 @@ export default function NotFoundScreen({ route, navigation }) {
         }
       }
 
-      Alert.alert(
-        "CONTRIBUTION RECEIVED",
-        `+${xpEarned} XP for ${capturedPhotos.length} photo${capturedPhotos.length !== 1 ? "s" : ""}`,
-        [{ text: "OK", onPress: goHome }]
-      );
+      // Show reward overlay instead of Alert
+      setEarnedXP(xpEarned);
+      setShowRewardOverlay(true);
     } catch (error) {
       console.error("[NotFoundScreen] Submit failed:", error);
       Alert.alert(
@@ -273,11 +277,9 @@ export default function NotFoundScreen({ route, navigation }) {
         }
       }
 
-      Alert.alert(
-        "PIONEER CONTRIBUTION",
-        `+${xpEarned} XP earned! Thank you for helping.`,
-        [{ text: "OK", onPress: goHome }]
-      );
+      // Show reward overlay instead of Alert
+      setEarnedXP(xpEarned);
+      setShowRewardOverlay(true);
     } catch (error) {
       console.error("[NotFoundScreen] Submit failed:", error);
       Alert.alert("RECORDED", "Your contribution has been noted.", [
@@ -598,7 +600,24 @@ export default function NotFoundScreen({ route, navigation }) {
     </View>
   );
 
-  return <View style={styles.container}>{renderContent()}</View>;
+  const handleRewardDismiss = () => {
+    setShowRewardOverlay(false);
+    goHome();
+  };
+
+  return (
+    <View style={styles.container}>
+      {renderContent()}
+      <RewardAnimationOverlay
+        visible={showRewardOverlay}
+        xpEarned={earnedXP}
+        source="contribution"
+        stamps={earnedXP >= 30 ? [{ id: 'pioneer', name: 'Pioneer Contributor', type: 'stamp', icon: '🏅' }] : []}
+        onDismiss={handleRewardDismiss}
+        autoDismissDelay={3500}
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
