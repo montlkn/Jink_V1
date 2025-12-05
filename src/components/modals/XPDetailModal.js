@@ -2,12 +2,12 @@ import { getStreakMultiplier } from '@/theme/designConstants';
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Dimensions,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View
+    Dimensions,
+    Modal,
+    Pressable,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ModalCloseButton from './ModalCloseButton';
@@ -105,13 +105,23 @@ const XPDetailModal = ({
                   {remainingXP.toLocaleString()}
                 </Text>
               </View>
+
+              <View style={[styles.statRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
+                <Text style={styles.statLabel}>STREAK BONUS</Text>
+                <Text style={[styles.statValue, { color: streakInfo.color }]}>
+                  {streakInfo.multiplier}
+                </Text>
+              </View>
             </View>
           </View>
 
           {/* Streak Section */}
           <View style={styles.streakSection}>
              <View style={styles.streakHeader}>
-                <Text style={styles.statLabel}>DAILY STREAK</Text>
+                <View style={styles.streakLabelContainer}>
+                  <Ionicons name="flame" size={16} color={theme.colors.accent} style={{ marginRight: 6 }} />
+                  <Text style={styles.statLabel}>DAILY STREAK</Text>
+                </View>
                 {streakCount >= 3 && (
                   <Text style={[styles.multiplierText, { color: streakInfo.color }]}>
                     {streakInfo.multiplier} BONUS
@@ -263,7 +273,12 @@ const styles = StyleSheet.create({
   streakHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 6,
+  },
+  streakLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   streakValue: {
     fontSize: 14,

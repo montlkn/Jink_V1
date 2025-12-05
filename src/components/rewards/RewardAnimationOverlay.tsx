@@ -195,7 +195,7 @@ export function RewardAnimationOverlay({
         }
       };
     }
-  }, [visible, xpEarned, autoDismissDelay]);
+  }, [visible, xpEarned, autoDismissDelay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDismiss = () => {
     if (autoDismissTimer.current) {

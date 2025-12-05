@@ -1,4 +1,3 @@
-import StreakCard from "@/components/cards/StreakCard";
 import AuraBreakdownModal, {
     type AuraSegment,
 } from "@/components/modals/AuraBreakdownModal";
@@ -339,10 +338,7 @@ export function HomeView(): JSX.Element {
 
         <Animated.View style={{ opacity: contentFade }}>
           <View style={styles.section}>
-            {/* Streak Card */}
-            <View style={styles.streakCardWrapper}>
-              <StreakCard streakCount={streakCount} />
-            </View>
+
 
             {/* Quest Cards */}
             {questsToRender.map((quest) => (
@@ -432,9 +428,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 12,
   },
-  streakCardWrapper: {
-    marginBottom: 16,
-  },
+
   questCardWrapper: {
     marginBottom: 12,
   },
