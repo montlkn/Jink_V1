@@ -1,21 +1,21 @@
-import { achievementLedger, type AchievementDefinition } from "@/constants/passportContent";
-import { InlineFlipCard, PassportBackButton, PassportInfoButton } from "@/features/passport";
+import { type AchievementDefinition } from "@/constants/passportContent";
+import { InfoMenu, InlineFlipCard, PassportBackButton, PassportInfoButton } from "@/features/passport";
+import { usePassportData } from "@/hooks/usePassportData";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  UIManager,
-  View
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    UIManager,
+    View
 } from "react-native";
 
 if (Platform.OS === 'android') {
@@ -142,17 +142,39 @@ function AchievementCard({ item, expanded, onPress }: AchievementCardProps) {
 
 export default function AchievementsScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
+  const passportState = usePassportData();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showInfoMenu, setShowInfoMenu] = useState(false);
+
+  // Convert user's raw achievement IDs to display-friendly achievement objects
+  const userAchievements = useMemo(() => {
+    if (passportState.status !== 'ready') return [];
+    
+    // Map raw achievement IDs to display-friendly objects
+    return passportState.value.achievements.map((achievement, index) => {
+      // Create display-friendly title from ID
+      const displayTitle = achievement.name
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      return {
+        id: `user-achievement-${index}`,
+        title: displayTitle,
+        purpose: `Earned: ${displayTitle}`,
+        xp: 100,
+        missable: false,
+        verification: 'Completed through user activity',
+      };
+    });
+  }, [passportState]);
 
   const handlePress = useCallback((id: string) => {
     setExpandedId(prev => prev === id ? null : id);
   }, []);
 
   const handleInfo = useCallback(() => {
-    Alert.alert(
-      "ACHIEVEMENT LOG",
-      "Achievements signal milestone skill and streaks. Unlock them by scanning buildings, completing derives, and pursuing special challenges."
-    );
+    setShowInfoMenu(true);
   }, []);
 
   return (
@@ -173,17 +195,34 @@ export default function AchievementsScreen(): JSX.Element {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.gridContainer}>
-          {achievementLedger.map((item) => (
-            <AchievementCard 
-              key={item.id} 
-              item={item} 
-              expanded={expandedId === item.id}
-              onPress={handlePress} 
-            />
-          ))}
-        </View>
+        {userAchievements.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateIcon}>🏆</Text>
+            <Text style={styles.emptyStateTitle}>NO ACHIEVEMENTS YET</Text>
+            <Text style={styles.emptyStateText}>
+              Complete challenges and milestones to unlock achievements
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.gridContainer}>
+            {userAchievements.map((item) => (
+              <AchievementCard 
+                key={item.id} 
+                item={item} 
+                expanded={expandedId === item.id}
+                onPress={handlePress} 
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
+
+      <InfoMenu
+        visible={showInfoMenu}
+        onClose={() => setShowInfoMenu(false)}
+        title="ACHIEVEMENT LOG"
+        content="Achievements signal milestone skill and streaks. Unlock them by scanning buildings, completing derives, and pursuing special challenges."
+      />
     </SafeAreaView>
   );
 }
@@ -305,5 +344,28 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     textAlign: 'center',
     marginBottom: 4,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    gap: 12,
+  },
+  emptyStateIcon: {
+    fontSize: 48,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    letterSpacing: 2,
+  },
+  emptyStateText: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+    lineHeight: 18,
   },
 });

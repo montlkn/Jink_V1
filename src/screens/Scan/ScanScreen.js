@@ -15,6 +15,10 @@ import {
   detectMovementType,
 } from '../../utils/sensorFusion';
 // eslint-disable-next-line no-restricted-imports
+import { fetchBuildingBySearch, fetchContributedBuildingBySearch, fetchNearbyBuildingsFromDB } from '@/services/buildingService';
+// eslint-disable-next-line no-restricted-imports
+import { verifyBuilding } from '@/services/buildingVerificationService';
+// eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -23,16 +27,18 @@ export default function ScanScreen({ navigation, route }) {
   const [permission, requestPermission] = useCameraPermissions();
   const [position, setPosition] = useState(null);
   const [heading, setHeading] = useState(0);
+  const [pitch, setPitch] = useState(0); // Phone pitch for cone of vision
   const [altitude, setAltitude] = useState(null);
   const [confidence, setConfidence] = useState(0);
+  const [gpsAccuracy, setGpsAccuracy] = useState(null); // GPS accuracy in meters
   const [movementType, setMovementType] = useState('stationary');
   const [isScanning, setIsScanning] = useState(false);
+  const [nearbyBuildings, setNearbyBuildings] = useState([]); // For cone of vision verification
 
   // Verification mode params from WalkNav
   const verificationMode = route.params?.verificationMode || false;
   const expectedBuilding = route.params?.expectedBuilding;
-  // walkId and returnScreen are for future use
-  // const _walkId = route.params?.walkId;
+  const walkId = route.params?.walkId;
   // const _returnScreen = route.params?.returnScreen;
 
   const fusionRef = useRef(null);
@@ -68,13 +74,20 @@ export default function ScanScreen({ navigation, route }) {
     }
   }, []);
 
-  // Accelerometer (Movement Detection)
+  // Accelerometer (Movement Detection + Pitch)
   useEffect(() => {
     try {
       Accelerometer.setUpdateInterval(100);
       const accelSub = Accelerometer.addListener((data) => {
         const movement = detectMovementType(data);
         setMovementType(movement);
+
+        // Calculate pitch (phone tilt angle)
+        // pitch = atan2(y, sqrt(x² + z²)) * 180/π
+        // Positive = tilted up, Negative = tilted down
+        const { x, y, z } = data;
+        const calculatedPitch = Math.atan2(y, Math.sqrt(x * x + z * z)) * (180 / Math.PI);
+        setPitch(calculatedPitch);
       });
 
       return () => accelSub.remove();
@@ -89,7 +102,7 @@ export default function ScanScreen({ navigation, route }) {
       const timeSinceGPS = Date.now() - lastGPSTime.current;
       const conf = calculatePositionConfidence({
         hasGPS: position !== null,
-        gpsAccuracy: 10,
+        gpsAccuracy: gpsAccuracy || 50, // Use actual GPS accuracy
         hasBarometer: false,
         hasIMU: true,
         timeSinceLastGPS: timeSinceGPS,
@@ -98,7 +111,7 @@ export default function ScanScreen({ navigation, route }) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [position]);
+  }, [position, gpsAccuracy]);
 
   // Barometer (Altitude/Floor detection) - DISABLED
   // Crashes on this device - floor will default to 0
@@ -168,6 +181,7 @@ export default function ScanScreen({ navigation, route }) {
           }
 
           setPosition(initial.coords);
+          setGpsAccuracy(initial.coords.accuracy);
           setAltitude(initial.coords.altitude ?? null);
           lastGPSTime.current = Date.now();
 
@@ -190,6 +204,7 @@ export default function ScanScreen({ navigation, route }) {
               }
 
               setPosition(loc.coords);
+              setGpsAccuracy(loc.coords.accuracy);
               setAltitude(loc.coords.altitude ?? null);
               lastGPSTime.current = Date.now();
             }
@@ -213,51 +228,292 @@ export default function ScanScreen({ navigation, route }) {
     }
   }, [permission, requestPermission]);
 
+  // Fetch nearby buildings for cone of vision verification (verification mode only)
+  useEffect(() => {
+    if (!verificationMode || !position) return;
+
+    const fetchNearby = async () => {
+      try {
+        const buildings = await fetchNearbyBuildingsFromDB({
+          latitude: position.latitude,
+          longitude: position.longitude,
+          radiusKm: 0.05, // 50m radius for verification
+          limit: 50,
+        });
+
+        setNearbyBuildings(buildings);
+        log.info('[scan] Fetched nearby buildings for cone of vision', {
+          count: buildings.length,
+        });
+      } catch (error) {
+        log.error('[scan] Error fetching nearby buildings', error);
+      }
+    };
+
+    fetchNearby();
+  }, [verificationMode, position]);
+
   // Handle photo capture
   const handleCapture = async () => {
     if (!cameraRef.current || !position) return;
 
     setIsScanning(true);
+    let photo = null; // Declare in outer scope so it's accessible in error handling
 
     try {
-      const photo = await cameraRef.current.takePictureAsync({
+      photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
       });
 
-      // Create FormData for multipart/form-data upload
-      const formData = new FormData();
+      // Use multi-tier verification system
+      if (verificationMode && expectedBuilding) {
+        log.info('[scan] Starting multi-tier verification', {
+          expectedBuilding: expectedBuilding.name,
+          nearbyBuildingsCount: nearbyBuildings.length,
+        });
 
-      // Add photo as a file
+        const verificationResult = await verifyBuilding({
+          photo,
+          position,
+          heading,
+          pitch,
+          expectedBuilding,
+          nearbyBuildings,
+        });
+
+        log.info('[scan] Verification result', {
+          verified: verificationResult.verified,
+          confidence: verificationResult.confidence,
+          method: verificationResult.method,
+          candidates: verificationResult.candidateBuildings?.length || 0,
+        });
+
+        if (verificationResult.verified) {
+          // Track successful verification
+          if (session?.user?.id && walkId) {
+            createAestheticEvent({
+              userId: session.user.id,
+              eventType: 'building_scan',
+              eventSubtype: 'repeat',
+              buildingBbl: expectedBuilding.bin,
+              payload: {
+                verification_method: verificationResult.method,
+                confidence: verificationResult.confidence,
+                walk_id: walkId,
+                candidates_count: verificationResult.candidateBuildings?.length || 0,
+              },
+            }).catch((err) => log.warn('[scan] Failed to track verification', err));
+          }
+
+          // Return to WalkNav with verification result
+          navigation.navigate(screens.WalkNav, {
+            scanResult: {
+              verified: true,
+              buildingBin: expectedBuilding.bin,
+              buildingData: verificationResult.buildingData || expectedBuilding,
+              verificationMethod: verificationResult.method,
+              confidence: verificationResult.confidence,
+            },
+          });
+        } else {
+          // Verification failed - show helpful message
+          let failureMessage = `We couldn't verify you're at ${expectedBuilding.name || 'the building'}.`;
+
+          if (verificationResult.candidateBuildings && verificationResult.candidateBuildings.length > 0) {
+            failureMessage += ` We detected ${verificationResult.candidateBuildings.length} nearby buildings. Try pointing your camera more directly at the building.`;
+          } else {
+            failureMessage += ' Make sure you\'re close to the building (within 20m) and pointing your camera at it.';
+          }
+
+          navigation.navigate(screens.NotFound, {
+            message: failureMessage,
+            returnScreen: screens.WalkNav,
+            position: position,
+            capturedPhotoUri: photo?.uri,
+          });
+        }
+        return;
+      }
+
+      // Normal scan mode - try CLIP/multi-tier verification first, fallback to backend GPS
+      log.info('[scan] Starting CLIP-based scan (multi-tier verification for all scans)');
+      
+      // Try multi-tier verification which uses CLIP first
+      const clipResult = await verifyBuilding({
+        photo,
+        position,
+        heading,
+        pitch,
+        expectedBuilding: null, // No expected building for normal scans
+        nearbyBuildings: nearbyBuildings || [],
+      });
+
+      // If CLIP found a match, use it
+      if (clipResult.verified && clipResult.buildingData) {
+        log.info('[scan] CLIP match found!', {
+          building: clipResult.buildingData.name,
+          method: clipResult.method,
+          confidence: clipResult.confidence,
+        });
+
+        // Award XP for successful scan
+        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+
+        // Track aesthetic event
+        try {
+          if (session?.user?.id && clipResult.buildingData?.bbl) {
+            await createAestheticEvent({
+              userId: session.user.id,
+              eventType: 'building_scan',
+              eventSubtype: 'clip_match',
+              buildingBbl: clipResult.buildingData.bbl,
+              payload: {
+                scan_method: clipResult.method,
+                confidence: clipResult.confidence,
+              },
+            });
+          }
+        } catch (error) {
+          log.warn('[scan] Failed to create aesthetic event', error);
+        }
+
+        navigation.navigate(screens.BuildingInfo, { buildingData: clipResult.buildingData });
+        return;
+      }
+
+      log.info('[scan] CLIP no match, trying user_contributed_buildings lookup');
+
+      // Tier 2: Check user-contributed buildings table (by GPS proximity)
+      // These are buildings submitted by users, may have images in Cloudflare too
+      try {
+        const contributedMatch = await fetchContributedBuildingBySearch({
+          lat: position.latitude,
+          lng: position.longitude,
+          radiusKm: 0.03, // 30m radius for contributed buildings
+        });
+
+        if (contributedMatch && contributedMatch.name) {
+          log.info('[scan] User-contributed building found!', {
+            building: contributedMatch.name,
+            source: 'user_contribution',
+          });
+
+          // Award XP for successful scan
+          await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+
+          // Track aesthetic event
+          try {
+            if (session?.user?.id && contributedMatch.bbl) {
+              await createAestheticEvent({
+                userId: session.user.id,
+                eventType: 'building_scan',
+                eventSubtype: 'contributed_match',
+                buildingBbl: contributedMatch.bbl,
+                payload: {
+                  scan_method: 'user_contribution',
+                  contributed_by: contributedMatch.contributed_by,
+                },
+              });
+            }
+          } catch (error) {
+            log.warn('[scan] Failed to create aesthetic event', error);
+          }
+
+          navigation.navigate(screens.BuildingInfo, { buildingData: contributedMatch });
+          return;
+        }
+      } catch (contribError) {
+        log.info('[scan] User contributions lookup skipped', contribError);
+      }
+
+      log.info('[scan] No user contribution, trying reverse geocode + address lookup');
+
+      // Tier 3: Try reverse geocoding + address lookup from building database
+      let streetAddress = null;
+      try {
+        const reverseGeocode = await Location.reverseGeocodeAsync({
+          latitude: position.latitude,
+          longitude: position.longitude,
+        });
+
+        if (reverseGeocode && reverseGeocode.length > 0) {
+          const geo = reverseGeocode[0];
+          streetAddress = `${geo.streetNumber || ''} ${geo.street || ''}`.trim();
+          
+          log.info('[scan] Reverse geocode result', {
+            streetAddress,
+            city: geo.city,
+            region: geo.region,
+          });
+
+          if (streetAddress) {
+            // Pass GPS coords to filter by proximity (prevent matching wrong building on same street)
+            const addressMatch = await fetchBuildingBySearch({ 
+              address: streetAddress,
+              lat: position.latitude,
+              lng: position.longitude,
+              radiusKm: 0.05, // 50m radius
+            });
+            
+            if (addressMatch && addressMatch.name) {
+              log.info('[scan] Address lookup match found!', {
+                building: addressMatch.name,
+                address: streetAddress,
+              });
+
+              // Award XP for successful scan
+              await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+
+              // Track aesthetic event
+              try {
+                if (session?.user?.id && addressMatch.bbl) {
+                  await createAestheticEvent({
+                    userId: session.user.id,
+                    eventType: 'building_scan',
+                    eventSubtype: 'address_match',
+                    buildingBbl: addressMatch.bbl,
+                    payload: {
+                      scan_method: 'address_lookup',
+                      address: streetAddress,
+                    },
+                  });
+                }
+              } catch (error) {
+                log.warn('[scan] Failed to create aesthetic event', error);
+              }
+
+              navigation.navigate(screens.BuildingInfo, { buildingData: addressMatch });
+              return;
+            }
+          }
+        }
+      } catch (geoError) {
+        log.warn('[scan] Reverse geocode failed', geoError);
+      }
+
+      log.info('[scan] All lookups failed, falling back to GPS-based backend query');
+
+      // Fallback: GPS-based backend query (original flow)
+      const formData = new FormData();
       formData.append('photo', {
         uri: photo.uri,
         type: 'image/jpeg',
         name: 'scan.jpg',
       });
-
-      // Add required fields
       formData.append('gps_lat', position.latitude.toString());
       formData.append('gps_lng', position.longitude.toString());
       formData.append('compass_bearing', heading.toString());
-
-      // Add optional fields
-      formData.append('phone_pitch', '0');
+      formData.append('phone_pitch', pitch.toString());
       formData.append('phone_roll', '0');
       formData.append('altitude', (altitude || 0).toString());
       formData.append('confidence', Math.round(confidence).toString());
       formData.append('movement_type', movementType);
       formData.append('gps_accuracy', (position.accuracy || 10).toString());
 
-      // Add timeout (90 seconds for first request when backend wakes up)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
 
       log.info('[scan] Sending request to:', `${BACKEND_URL}/api/scan`);
-      log.info('[scan] Request payload:', {
-        gps_lat: position.latitude,
-        gps_lng: position.longitude,
-        compass_bearing: heading,
-        confidence: Math.round(confidence),
-      });
 
       const response = await fetch(`${BACKEND_URL}/api/scan`, {
         method: 'POST',
@@ -268,7 +524,6 @@ export default function ScanScreen({ navigation, route }) {
       clearTimeout(timeoutId);
 
       const responseText = await response.text();
-      log.info('[scan] Raw API response:', responseText);
 
       if (!response.ok) {
         log.error('[scan] Scan API error', response.status, responseText);
@@ -282,42 +537,8 @@ export default function ScanScreen({ navigation, route }) {
         log.error('[scan] Failed to parse response as JSON:', responseText);
         throw new Error('Invalid response from scan API');
       }
-      
-      log.info('[scan] Parsed API response:', JSON.stringify(data, null, 2));
 
-      // Handle verification mode (from walk)
-      if (verificationMode) {
-        // In verification mode, check if the scanned building matches expected
-        const scannedBin = data.building?.bin || data.building?.bbl;
-        // expectedBin could be used for strict matching in the future
-        // const _expectedBin = expectedBuilding?.bin;
-        
-        // For now, accept any successful scan as verification
-        // In production, you could check if scannedBin matches expectedBin
-        if (data.building && data.building.name) {
-          log.info('[scan] Verification successful', {
-            scannedBuilding: data.building.name,
-            expectedBuilding: expectedBuilding?.name,
-          });
-          
-          // Return to WalkNav with verification result
-          navigation.navigate(screens.WalkNav, {
-            scanResult: {
-              verified: true,
-              buildingBin: scannedBin,
-              buildingData: data.building,
-            },
-          });
-        } else {
-          // Scan didn't identify a building - let user try again
-          log.info('[scan] Verification failed - no building identified');
-          navigation.navigate(screens.NotFound, {
-            message: `We couldn't verify you're at ${expectedBuilding?.name || 'the building'}. Try getting a clearer view of the building.`,
-            returnScreen: screens.WalkNav,
-          });
-        }
-        return;
-      }
+      log.info('[scan] Parsed API response:', JSON.stringify(data, null, 2));
 
       // Normal scan mode - navigate to building info
       if (data.building && data.building.name) {
@@ -359,9 +580,84 @@ export default function ScanScreen({ navigation, route }) {
         // Successfully identified building
         navigation.navigate(screens.BuildingInfo, { buildingData: data.building });
       } else {
-        // Could not identify building
+        // Could not identify building - check for user contributions first
+        try {
+          // First, check local storage for user's pending contributions
+          const pendingContributions = await AsyncStorage.getItem('@pending_contributions');
+          if (pendingContributions) {
+            const contributions = JSON.parse(pendingContributions);
+            
+            // Find contributions near current position (within ~50m)
+            const nearbyLocalContribution = contributions.find(contrib => {
+              if (!contrib.gps_lat || !contrib.gps_lng) return false;
+              const latDiff = Math.abs(contrib.gps_lat - position.latitude);
+              const lngDiff = Math.abs(contrib.gps_lng - position.longitude);
+              // Roughly 50m in degrees (~0.00045)
+              return latDiff < 0.00045 && lngDiff < 0.00045;
+            });
+            
+            if (nearbyLocalContribution) {
+              log.info('[scan] Found local pending contribution for this location', nearbyLocalContribution);
+              
+              // Navigate to BuildingInfo with locally contributed data
+              navigation.navigate(screens.BuildingInfo, {
+                buildingData: {
+                  name: nearbyLocalContribution.building_name || nearbyLocalContribution.address || 'Pending Contribution',
+                  address: nearbyLocalContribution.address,
+                  bin: nearbyLocalContribution.bin,
+                  year_built: nearbyLocalContribution.year_built,
+                  architect: nearbyLocalContribution.architect,
+                  architectural_style: nearbyLocalContribution.style,
+                  // Mark as user-contributed
+                  source: 'local_contribution',
+                  contribution_status: 'pending',
+                },
+              });
+              return;
+            }
+          }
+
+          // Then try the backend API for synced contributions
+          const contributionsResponse = await fetch(
+            `${BACKEND_URL}/api/contributions/by-location?gps_lat=${position.latitude}&gps_lng=${position.longitude}&radius_meters=50`
+          );
+          const contributionsData = await contributionsResponse.json();
+
+          if (contributionsData.contributions && contributionsData.contributions.length > 0) {
+            // Found user-contributed data! Show it to the user
+            const contribution = contributionsData.contributions[0];
+            log.info('[scan] Found user contribution for this location', contribution);
+
+            // Navigate to BuildingInfo with contributed data
+            navigation.navigate(screens.BuildingInfo, {
+              buildingData: {
+                name: contribution.building_name || contribution.address || 'User Contributed Building',
+                address: contribution.address,
+                bin: contribution.bin,
+                bbl: contribution.bbl,
+                year_built: contribution.year_built,
+                architect: contribution.architect,
+                architectural_style: contribution.architectural_style,
+                photo_url: contribution.photo_url,
+                // Mark as user-contributed
+                source: 'user_contribution',
+                contribution_id: contribution.id,
+                contribution_status: contribution.status,
+              },
+            });
+            return;
+          }
+        } catch (contributionError) {
+          log.warn('[scan] Failed to check for contributions', contributionError);
+          // Continue to NotFound flow
+        }
+
+        // No contributions found - offer contribution flow
         navigation.navigate(screens.NotFound, {
-          message: data.message || "We couldn't identify this building."
+          message: data.message || "We couldn't identify this building.",
+          buildingBIN: data.building?.bin || null,
+          position: position,
+          capturedPhotoUri: photo.uri, // Pass the photo for multi-angle capture
         });
       }
     } catch (error) {
@@ -378,8 +674,12 @@ export default function ScanScreen({ navigation, route }) {
         message = error.message;
       }
 
-      // Navigate to NotFound screen on error
-      navigation.navigate(screens.NotFound, { message });
+      // Navigate to NotFound screen on error - still offer contribution
+      navigation.navigate(screens.NotFound, {
+        message,
+        position: position,
+        capturedPhotoUri: photo?.uri, // Pass photo if available
+      });
     } finally {
       setIsScanning(false);
     }
@@ -434,6 +734,14 @@ export default function ScanScreen({ navigation, route }) {
         <Text style={styles.sensorText}>
           🚶 {movementType}
         </Text>
+        <Text style={[
+          styles.sensorText, 
+          gpsAccuracy && gpsAccuracy > 25 && styles.sensorTextWarning,
+          gpsAccuracy && gpsAccuracy <= 10 && styles.sensorTextGood
+        ]}>
+          📡 GPS: {gpsAccuracy ? `±${Math.round(gpsAccuracy * 3.28)}ft` : 'Acquiring...'}
+          {gpsAccuracy && gpsAccuracy > 25 ? ' ⚠️ Low' : ''}
+        </Text>
       </View>
 
       {/* Crosshair */}
@@ -458,9 +766,12 @@ export default function ScanScreen({ navigation, route }) {
             />
           )}
           <TouchableOpacity
-            style={[styles.captureButton, !position && styles.captureButtonDisabled]}
+            style={[
+              styles.captureButton, 
+              (!position || (gpsAccuracy && gpsAccuracy > 25)) && styles.captureButtonDisabled
+            ]}
             onPress={handleCapture}
-            disabled={isScanning || !position}
+            disabled={isScanning || !position || (gpsAccuracy && gpsAccuracy > 25)}
           >
             {isScanning ? (
               <ActivityIndicator color="#fff" />
@@ -504,6 +815,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'monospace',
     marginBottom: 4,
+  },
+  sensorTextWarning: {
+    color: '#FF6B6B', // Red for low accuracy
+  },
+  sensorTextGood: {
+    color: '#51CF66', // Green for good accuracy
   },
   crosshair: {
     position: 'absolute',

@@ -27,9 +27,12 @@ export type PassportSnapshot = {
   lists: PassportList[];
   dailyStreak: number;
   lastActivityDate?: string;
+  totalBuildingsScanned: number;
 };
 
-export async function fetchPassportProfile(userId: string): Promise<ProfileRow> {
+export async function fetchPassportProfile(
+  userId: string,
+): Promise<ProfileRow> {
   const { data, error } = await supabase
     .from("profiles")
     .select("stamps, achievements, daily_streak_count, last_activity_date")
@@ -41,7 +44,9 @@ export async function fetchPassportProfile(userId: string): Promise<ProfileRow> 
   }
 
   const stamps = Array.isArray(data?.stamps) ? data.stamps : [];
-  const achievements = Array.isArray(data?.achievements) ? data.achievements : [];
+  const achievements = Array.isArray(data?.achievements)
+    ? data.achievements
+    : [];
 
   return {
     stamps,
@@ -61,6 +66,27 @@ export async function fetchPassport(userId: string): Promise<PassportSnapshot> {
   const level = xpSnapshot?.level ?? 1;
   const xpSpent = xpSnapshot?.xpSpent ?? 0;
 
+  // Fetch scanned buildings count from AsyncStorage
+  let totalBuildingsScanned = 0;
+  try {
+    const AsyncStorage =
+      (await import("@react-native-async-storage/async-storage")).default;
+    const scannedBuildingsJson = await AsyncStorage.getItem(
+      "@scanned_buildings",
+    );
+    if (scannedBuildingsJson) {
+      const scannedList = JSON.parse(scannedBuildingsJson);
+      totalBuildingsScanned = Array.isArray(scannedList)
+        ? scannedList.length
+        : 0;
+    }
+  } catch (error) {
+    console.warn(
+      "[passportGateway] Failed to fetch scanned buildings count",
+      error,
+    );
+  }
+
   return {
     xpTotal,
     level,
@@ -70,6 +96,7 @@ export async function fetchPassport(userId: string): Promise<PassportSnapshot> {
     lists: [],
     dailyStreak: profile.daily_streak_count ?? 0,
     lastActivityDate: profile.last_activity_date,
+    totalBuildingsScanned,
   };
 }
 
@@ -78,12 +105,17 @@ export async function fetchPassportStamps(userId: string): Promise<string[]> {
   return profile.stamps;
 }
 
-export async function fetchPassportAchievements(userId: string): Promise<string[]> {
+export async function fetchPassportAchievements(
+  userId: string,
+): Promise<string[]> {
   const profile = await fetchPassportProfile(userId);
   return profile.achievements;
 }
 
-export async function revokePassport(userId: string, revokedAt: Date = new Date()): Promise<boolean> {
+export async function revokePassport(
+  userId: string,
+  revokedAt: Date = new Date(),
+): Promise<boolean> {
   const { error } = await supabase
     .from("profiles")
     .update({ passport_revoked_at: revokedAt.toISOString() })
@@ -123,7 +155,9 @@ export async function updateDailyStreak(userId: string): Promise<StreakUpdate> {
 /**
  * Get the XP multiplier based on current streak count
  */
-export async function getStreakMultiplier(streakCount: number): Promise<number> {
+export async function getStreakMultiplier(
+  streakCount: number,
+): Promise<number> {
   const { data, error } = await supabase
     .rpc("get_streak_multiplier", { p_streak_count: streakCount });
 

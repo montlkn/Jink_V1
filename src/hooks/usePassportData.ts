@@ -41,13 +41,37 @@ export function usePassportData(): PassportDataState {
         throw new Error("Not authenticated");
       }
 
-      const snapshot = await fetchPassport(session.user.id);
+      // Fetch passport data and walk summaries in parallel
+      const { fetchWalkSummaries } = await import(
+        "@/services/gateways/walkGateway"
+      );
+      const [snapshot, walkSummaries] = await Promise.all([
+        fetchPassport(session.user.id),
+        fetchWalkSummaries({ userId: session.user.id, platform: "ios" }).catch(
+          (err) => {
+            log.warn("[passport] Failed to fetch walk summaries", err);
+            return [];
+          },
+        ),
+      ]);
+
+      // Get building count from walk context if available
+      const walksWithBuildingCount = walkSummaries.map((walk: any) => ({
+        id: walk.id,
+        startedAt: walk.startedAt,
+        endedAt: walk.endedAt,
+        dominantStyle: walk.dominantStyle,
+        borough: walk.borough,
+        buildingCount: walk.buildingCount || 0, // Use buildingCount from walk if available
+      }));
+
       const uiValue = toPassportUi({
         user: {
           id: session.user.id,
           created_at: session.user.created_at,
         },
         snapshot,
+        walks: walksWithBuildingCount,
       });
 
       setState({ kind: "ready", value: uiValue });

@@ -1,44 +1,42 @@
 /**
- * NolliMapScreen - True Nolli-style map using Mapbox
+ * NolliMapScreen - True Nolli-style figure-ground map
  * 
- * The Nolli map (1748) showed Rome as figure-ground:
- * - White = public/outdoor space (streets, plazas, church interiors)
- * - Black = private building mass
- * 
- * This screen recreates that aesthetic with:
- * - Mapbox custom style showing all buildings as black on white
- * - User's visited buildings highlighted in a distinct color
- * - Real building footprints from Supabase walk data
+ * ONLY renders:
+ * - BLACK = Visited buildings (real footprints from Supabase)
+ * - GREY = Adjacent buildings (real footprints)
+ * - WHITE = Everything else
+ * - Dashed lines = walked routes
+ * - Animated smoke overlay from sprite sheet
  */
 
 import { useAuth } from "@/auth/authProvider";
 import { PassportBackButton } from "@/features/passport";
 // eslint-disable-next-line no-restricted-imports
-import { fetchWalkDetail, fetchWalkSummaries } from "@/services/gateways/walkGateway";
-import type { GeoJsonFeature, LatLng, WalkGeometry, WalkSummary } from "@/types/walks";
+import { buildingsSupabaseClient } from "@/services/gateways/buildingsSupabaseClient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import MapboxGL from "@rnmapbox/maps";
 import Constants from "expo-constants";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    View,
+  Animated,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View
 } from "react-native";
 
-// -------------------- Mapbox Setup --------------------
-const MAPBOX_TOKEN = 
-  Constants.expoConfig?.extra?.mapboxAccessToken || 
+// -------------------- Config --------------------
+const USE_DEMO_DATA = true;
+
+const MAPBOX_TOKEN =
+  Constants.expoConfig?.extra?.mapboxAccessToken ||
   process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ||
   "";
 
-// Initialize once
 if (MAPBOX_TOKEN) {
   MapboxGL.setAccessToken(MAPBOX_TOKEN);
 }
@@ -50,400 +48,417 @@ type RootStackParamList = {
 
 type Props = NativeStackScreenProps<RootStackParamList, "NolliSkia">;
 
-type AuthSession = {
-  user?: { id: string };
+// -------------------- Constants --------------------
+const MASTER_WALK_ID = "__MASTER__";
+
+const COLORS = {
+  visited: "#000000",
+  adjacent: "#888888",
+  background: "#FFFFFF",
+  water: "#F0F0F0",
+  route: "#444444",
 };
 
-// -------------------- Constants --------------------
-const NYC_CENTER: [number, number] = [-74.006, 40.7128];
-const DEFAULT_ZOOM = 15;
-const MASTER_WALK_ID = "__ALL_WALKS__";
+// -------------------- WKT Parser --------------------
+function parseWKTMultiPolygon(wkt: string): GeoJSON.MultiPolygon | GeoJSON.Polygon | null {
+  try {
+    // Handle MULTIPOLYGON
+    if (wkt.startsWith("MULTIPOLYGON")) {
+      const coordsStr = wkt.replace("MULTIPOLYGON (", "").slice(0, -1);
+      const polygons: number[][][][] = [];
+      
+      // Split by )),(( to get individual polygons
+      const polyStrs = coordsStr.split(/\)\s*,\s*\(/);
+      
+      for (const polyStr of polyStrs) {
+        const cleaned = polyStr.replace(/[()]/g, "").trim();
+        const rings: number[][][] = [];
+        
+        // For simplicity, assume single ring per polygon
+        const coords = cleaned.split(",").map(pair => {
+          const [lng, lat] = pair.trim().split(/\s+/).map(Number);
+          return [lng, lat];
+        });
+        
+        if (coords.length > 0) {
+          rings.push(coords);
+          polygons.push(rings);
+        }
+      }
+      
+      if (polygons.length === 1) {
+        return { type: "Polygon", coordinates: polygons[0] };
+      }
+      return { type: "MultiPolygon", coordinates: polygons };
+    }
+    
+    // Handle POLYGON
+    if (wkt.startsWith("POLYGON")) {
+      const coordsStr = wkt.replace("POLYGON ((", "").replace("))", "");
+      const coords = coordsStr.split(",").map(pair => {
+        const [lng, lat] = pair.trim().split(/\s+/).map(Number);
+        return [lng, lat];
+      });
+      return { type: "Polygon", coordinates: [coords] };
+    }
+    
+    return null;
+  } catch (e) {
+    console.error("[WKT Parse Error]", e);
+    return null;
+  }
+}
 
-// Colors
-const VISITED_FILL = "#B8860B"; // Dark goldenrod - stands out on black/white
-const VISITED_STROKE = "#8B6914";
-const ROUTE_COLOR = "rgba(184, 134, 11, 0.6)";
+// -------------------- Demo Data --------------------
+// Demo BINs - real NYC buildings
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _DEMO_VISITED_BINS = [
+  "1001831", // Woolworth Building
+  "1003188", // City Hall
+  "1015266", // Flatiron Building
+  "1012949", // Empire State Building area
+];
 
-// -------------------- Nolli Style JSON --------------------
-// Custom Mapbox style that creates the figure-ground effect
-const NOLLI_STYLE_JSON = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _DEMO_ADJACENT_BINS = [
+  "1001830",
+  "1001832",
+  "1003187",
+  "1003189",
+  "1015265",
+  "1015267",
+];
+
+type DemoWalk = {
+  id: string;
+  name: string;
+  date: string;
+  borough: string;
+  visitedBins: string[];
+  adjacentBins: string[];
+  route: [number, number][];
+  center: [number, number];
+};
+
+const DEMO_WALKS: DemoWalk[] = [
+  {
+    id: "walk-fidi",
+    name: "Financial District",
+    date: "2024-11-28",
+    borough: "Manhattan",
+    visitedBins: ["1001831", "1003188"],
+    adjacentBins: ["1001830", "1001832", "1003187", "1003189"],
+    route: [
+      [-74.0095, 40.7108],
+      [-74.0088, 40.7115],
+      [-74.0083, 40.7120],
+      [-74.0078, 40.7125],
+    ],
+    center: [-74.0085, 40.7118],
+  },
+  {
+    id: "walk-flatiron",
+    name: "Flatiron District",
+    date: "2024-12-01",
+    borough: "Manhattan",
+    visitedBins: ["1015266"],
+    adjacentBins: ["1015265", "1015267"],
+    route: [
+      [-73.9905, 40.7405],
+      [-73.9895, 40.7410],
+      [-73.9885, 40.7415],
+    ],
+    center: [-73.9895, 40.7410],
+  },
+];
+
+// -------------------- Blank Map Style --------------------
+const BLANK_STYLE_JSON = {
   version: 8,
-  name: "Nolli",
+  name: "Blank",
   sources: {
-    "mapbox": {
+    mapbox: {
       type: "vector",
       url: "mapbox://mapbox.mapbox-streets-v8",
     },
   },
   glyphs: "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
   layers: [
-    // Pure white background
     {
       id: "background",
       type: "background",
-      paint: {
-        "background-color": "#FFFFFF",
-      },
+      paint: { "background-color": COLORS.background },
     },
-    // Water - slightly off-white
     {
       id: "water",
       type: "fill",
       source: "mapbox",
       "source-layer": "water",
-      paint: {
-        "fill-color": "#F8F8F8",
-      },
+      paint: { "fill-color": COLORS.water },
     },
-    // Parks/green space - white (public)
-    {
-      id: "landuse-park",
-      type: "fill",
-      source: "mapbox",
-      "source-layer": "landuse",
-      filter: ["==", "class", "park"],
-      paint: {
-        "fill-color": "#FFFFFF",
-      },
-    },
-    // ALL buildings - solid black (the Nolli effect)
-    {
-      id: "building",
-      type: "fill",
-      source: "mapbox",
-      "source-layer": "building",
-      paint: {
-        "fill-color": "#1A1A1A",
-        "fill-opacity": 0.95,
-      },
-    },
-    // Building outlines for crispness
-    {
-      id: "building-outline",
-      type: "line",
-      source: "mapbox",
-      "source-layer": "building",
-      paint: {
-        "line-color": "#000000",
-        "line-width": 0.3,
-      },
-    },
-    // Subtle road network (helps orientation)
-    {
-      id: "road-street",
-      type: "line",
-      source: "mapbox",
-      "source-layer": "road",
-      filter: ["in", "class", "street", "street_limited", "primary", "secondary", "tertiary"],
-      paint: {
-        "line-color": "#E8E8E8",
-        "line-width": 0.5,
-      },
-    },
+    // NO buildings - we render our own
   ],
 };
 
-// -------------------- Helpers --------------------
-function featureToGeoJson(feature: GeoJsonFeature): GeoJSON.Feature {
-  return {
-    type: "Feature",
-    geometry: feature.geometry as GeoJSON.Geometry,
-    properties: feature.properties || {},
-  };
-}
+// -------------------- Smoke Animation --------------------
+// Use sprite sheet for better performance
+const SMOKE_SPRITE_SHEET = require("../../../assets/textures/nolli_smoke_spritesheet.png");
 
-function buildingsToFeatureCollection(buildings: GeoJsonFeature[]): GeoJSON.FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: buildings.map(featureToGeoJson),
-  };
-}
+// Sprite sheet metadata (generated by create_sprite_sheet.py)
+const SPRITE_CONFIG = {
+  totalFrames: 250,
+  frameWidth: 512,
+  frameHeight: 756,
+  columns: 10,
+  rows: 25,
+};
 
-function routesToFeatureCollection(routes: LatLng[][]): GeoJSON.FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: routes.map((route, idx) => ({
-      type: "Feature" as const,
-      properties: { id: `route-${idx}` },
-      geometry: {
-        type: "LineString" as const,
-        coordinates: route.map((p) => [p.longitude, p.latitude]),
-      },
-    })),
-  };
-}
-
-function calculateBounds(buildings: GeoJsonFeature[], routes: LatLng[][]): {
-  ne: [number, number];
-  sw: [number, number];
-} | null {
-  let minLng = 180, maxLng = -180, minLat = 90, maxLat = -90;
-  let hasCoords = false;
-
-  // From routes
-  for (const route of routes) {
-    for (const p of route) {
-      minLng = Math.min(minLng, p.longitude);
-      maxLng = Math.max(maxLng, p.longitude);
-      minLat = Math.min(minLat, p.latitude);
-      maxLat = Math.max(maxLat, p.latitude);
-      hasCoords = true;
+function AnimatedSmoke({ visible }: { visible: boolean }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_frameIndex, setFrameIndex] = useState(0);
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  useEffect(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-  }
-
-  // From buildings
-  for (const building of buildings) {
-    const geom = building.geometry;
-    const coordArrays = geom.type === "Polygon" 
-      ? [geom.coordinates[0]]
-      : geom.type === "MultiPolygon"
-        ? geom.coordinates.map(p => p[0])
-        : [];
     
-    for (const coords of coordArrays) {
-      for (const [lng, lat] of coords as [number, number][]) {
-        minLng = Math.min(minLng, lng);
-        maxLng = Math.max(maxLng, lng);
-        minLat = Math.min(minLat, lat);
-        maxLat = Math.max(maxLat, lat);
-        hasCoords = true;
+    if (!visible) return;
+    
+    // Animate through frames - use every 10th frame for ~25 total frames (smoother, less memory)
+    intervalRef.current = setInterval(() => {
+      setFrameIndex((prev) => {
+        const nextFrame = (prev + 10) % SPRITE_CONFIG.totalFrames;
+        
+        // Calculate sprite position
+        const col = (nextFrame % SPRITE_CONFIG.columns);
+        const row = Math.floor(nextFrame / SPRITE_CONFIG.columns);
+        
+        // Animate to new position
+        Animated.parallel([
+          Animated.timing(translateX, {
+            toValue: -col * SPRITE_CONFIG.frameWidth,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+          Animated.timing(translateY, {
+            toValue: -row * SPRITE_CONFIG.frameHeight,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ]).start();
+        
+        return nextFrame;
+      });
+    }, 42); // 24 fps for smooth animation (1000ms / 24 = ~42ms)
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
-    }
-  }
-
-  if (!hasCoords) return null;
-
-  // Add padding
-  const lngPad = (maxLng - minLng) * 0.1;
-  const latPad = (maxLat - minLat) * 0.1;
-
-  return {
-    ne: [maxLng + lngPad, maxLat + latPad],
-    sw: [minLng - lngPad, minLat - latPad],
-  };
+    };
+  }, [visible, translateX, translateY]);
+  
+  if (!visible) return null;
+  
+  return (
+    <View style={[styles.smokeContainer, { opacity: 0.8 }]} pointerEvents="none">
+      <View style={{
+        flex: 1,
+        width: '100%',
+        overflow: 'hidden',
+      }}>
+        <Animated.Image
+          source={SMOKE_SPRITE_SHEET}
+          style={{
+            width: SPRITE_CONFIG.frameWidth * SPRITE_CONFIG.columns,
+            height: SPRITE_CONFIG.frameHeight * SPRITE_CONFIG.rows,
+            transform: [
+              { translateX },
+              { translateY },
+            ],
+          }}
+          resizeMode="cover"
+        />
+      </View>
+    </View>
+  );
 }
 
 // -------------------- Main Component --------------------
-export default function NolliMapScreen({ route, navigation }: Props) {
+export default function NolliMapScreen({ navigation }: Props) {
   const cameraRef = useRef<MapboxGL.Camera>(null);
-  const walkIdParam = route?.params?.walkId;
-  const { session } = useAuth() as { session: AuthSession | null };
-  const userId = session?.user?.id;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { session: _session } = useAuth() as { session: { user?: { id: string } } | null };
 
-  // State
-  const [isReady, setIsReady] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [walkSummaries, setWalkSummaries] = useState<WalkSummary[]>([]);
+  const [isMapReady, setIsMapReady] = useState(false);
   const [selectedWalkId, setSelectedWalkId] = useState<string>(MASTER_WALK_ID);
-  const [walkGeometries, setWalkGeometries] = useState<Map<string, WalkGeometry>>(new Map());
-  const [loadingGeometry, setLoadingGeometry] = useState(false);
+  const [showSmoke, setShowSmoke] = useState(true);
+  
+  // Building footprints from database
+  const [visitedGeoJson, setVisitedGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [adjacentGeoJson, setAdjacentGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load walk summaries
-  useEffect(() => {
-    if (!userId) {
-      setLoading(false);
+  // Get current walk data
+  const currentWalks = useMemo(() => {
+    if (selectedWalkId === MASTER_WALK_ID) {
+      return DEMO_WALKS;
+    }
+    const walk = DEMO_WALKS.find((w) => w.id === selectedWalkId);
+    return walk ? [walk] : [];
+  }, [selectedWalkId]);
+
+  // Fetch building footprints from Supabase
+  const fetchBuildingFootprints = useCallback(async () => {
+    if (!buildingsSupabaseClient) {
+      console.log("[Nolli] No buildings client");
       return;
     }
 
-    let cancelled = false;
+    setIsLoading(true);
 
-    async function load() {
-      try {
-        setLoading(true);
-        const summaries = await fetchWalkSummaries({
-          userId,
-          platform: Platform.OS,
-        });
-        
-        if (cancelled) return;
-        
-        setWalkSummaries(summaries);
-        
-        if (walkIdParam && summaries.some((s) => s.id === walkIdParam)) {
-          setSelectedWalkId(walkIdParam);
-        }
-      } catch (err) {
-        if (cancelled) return;
-        console.error("[NolliMap] Failed to load summaries:", err);
-        setError("Failed to load walks");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+    try {
+      // Collect all BINs
+      const visitedBins = currentWalks.flatMap((w) => w.visitedBins);
+      const adjacentBins = currentWalks.flatMap((w) => w.adjacentBins);
 
-    load();
-    return () => { cancelled = true; };
-  }, [userId, walkIdParam]);
+      // Fetch visited buildings
+      if (visitedBins.length > 0) {
+        const { data: visitedData, error: visitedError } = await buildingsSupabaseClient
+          .from("buildings_full_merge_scanning")
+          .select("bin, building_name, geometry")
+          .in("bin", visitedBins);
 
-  // Load geometry for selected walk(s)
-  useEffect(() => {
-    if (walkSummaries.length === 0) return;
-
-    let cancelled = false;
-
-    async function loadGeometries() {
-      setLoadingGeometry(true);
-      
-      const walksToLoad = selectedWalkId === MASTER_WALK_ID
-        ? walkSummaries.filter((s) => !walkGeometries.has(s.id))
-        : walkSummaries.filter((s) => s.id === selectedWalkId && !walkGeometries.has(s.id));
-
-      if (walksToLoad.length === 0) {
-        setLoadingGeometry(false);
-        return;
-      }
-
-      const results = await Promise.all(
-        walksToLoad.map(async (summary) => {
-          try {
-            const geometry = await fetchWalkDetail({
-              walkId: summary.id,
-              platform: Platform.OS,
-            });
-            return { id: summary.id, geometry };
-          } catch (err) {
-            console.warn(`[NolliMap] Failed to load ${summary.id}:`, err);
-            return null;
+        if (visitedError) {
+          console.error("[Nolli] Visited fetch error:", visitedError);
+        } else if (visitedData) {
+          const features: GeoJSON.Feature[] = [];
+          for (const row of visitedData) {
+            if (row.geometry) {
+              const geom = parseWKTMultiPolygon(row.geometry);
+              if (geom) {
+                features.push({
+                  type: "Feature",
+                  properties: { bin: row.bin, name: row.building_name },
+                  geometry: geom,
+                });
+              }
+            }
           }
-        })
-      );
-
-      if (cancelled) return;
-
-      setWalkGeometries((prev) => {
-        const next = new Map(prev);
-        for (const result of results) {
-          if (result) next.set(result.id, result.geometry);
+          setVisitedGeoJson({ type: "FeatureCollection", features });
+          console.log("[Nolli] Loaded", features.length, "visited buildings");
         }
-        return next;
-      });
-      
-      setLoadingGeometry(false);
+      }
+
+      // Fetch adjacent buildings
+      if (adjacentBins.length > 0) {
+        const { data: adjacentData, error: adjacentError } = await buildingsSupabaseClient
+          .from("buildings_full_merge_scanning")
+          .select("bin, building_name, geometry")
+          .in("bin", adjacentBins);
+
+        if (adjacentError) {
+          console.error("[Nolli] Adjacent fetch error:", adjacentError);
+        } else if (adjacentData) {
+          const features: GeoJSON.Feature[] = [];
+          for (const row of adjacentData) {
+            if (row.geometry) {
+              const geom = parseWKTMultiPolygon(row.geometry);
+              if (geom) {
+                features.push({
+                  type: "Feature",
+                  properties: { bin: row.bin, name: row.building_name },
+                  geometry: geom,
+                });
+              }
+            }
+          }
+          setAdjacentGeoJson({ type: "FeatureCollection", features });
+          console.log("[Nolli] Loaded", features.length, "adjacent buildings");
+        }
+      }
+    } catch (err) {
+      console.error("[Nolli] Fetch error:", err);
+    } finally {
+      setIsLoading(false);
     }
+  }, [currentWalks]);
 
-    loadGeometries();
-    return () => { cancelled = true; };
-  }, [selectedWalkId, walkSummaries, walkGeometries]);
-
-  // Compute active data
-  const { buildings, routes, bounds } = useMemo(() => {
-    const allBuildings: GeoJsonFeature[] = [];
-    const allRoutes: LatLng[][] = [];
-
-    const geometries = selectedWalkId === MASTER_WALK_ID
-      ? Array.from(walkGeometries.values())
-      : walkGeometries.has(selectedWalkId)
-        ? [walkGeometries.get(selectedWalkId)!]
-        : [];
-
-    for (const geom of geometries) {
-      if (geom.buildings) allBuildings.push(...geom.buildings);
-      if (geom.route?.length > 0) allRoutes.push(geom.route);
-    }
-
-    return {
-      buildings: allBuildings,
-      routes: allRoutes,
-      bounds: calculateBounds(allBuildings, allRoutes),
-    };
-  }, [selectedWalkId, walkGeometries]);
-
-  // GeoJSON for map layers
-  const buildingsGeoJson = useMemo(
-    () => buildingsToFeatureCollection(buildings),
-    [buildings]
-  );
-  
-  const routesGeoJson = useMemo(
-    () => routesToFeatureCollection(routes),
-    [routes]
-  );
-
-  // Fit bounds when data changes
+  // Fetch when walk selection changes
   useEffect(() => {
-    if (!isReady || !bounds || !cameraRef.current) return;
-    
-    // Small delay to ensure map is ready
-    const timer = setTimeout(() => {
-      cameraRef.current?.fitBounds(bounds.ne, bounds.sw, [100, 60, 220, 60], 800);
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [isReady, bounds]);
+    fetchBuildingFootprints();
+  }, [fetchBuildingFootprints]);
+
+  // Route GeoJSON
+  const routeGeoJson = useMemo((): GeoJSON.FeatureCollection => ({
+    type: "FeatureCollection",
+    features: currentWalks.map((walk) => ({
+      type: "Feature" as const,
+      properties: { id: walk.id },
+      geometry: {
+        type: "LineString" as const,
+        coordinates: walk.route,
+      },
+    })),
+  }), [currentWalks]);
+
+  // Camera fit
+  useEffect(() => {
+    if (!isMapReady || currentWalks.length === 0) return;
+
+    const walk = currentWalks[0];
+    setTimeout(() => {
+      cameraRef.current?.setCamera({
+        centerCoordinate: walk.center,
+        zoomLevel: selectedWalkId === MASTER_WALK_ID ? 13 : 16,
+        animationDuration: 600,
+      });
+    }, 100);
+  }, [isMapReady, currentWalks, selectedWalkId]);
+
+  const onMapReady = useCallback(() => {
+    setIsMapReady(true);
+  }, []);
 
   // Tab data
   const tabs = useMemo(() => [
-    { id: MASTER_WALK_ID, label: "All Walks" },
-    ...walkSummaries.map((s) => ({
-      id: s.id,
-      label: s.dominantStyle || s.borough || `Walk`,
+    {
+      id: MASTER_WALK_ID,
+      label: "All Walks",
+      count: DEMO_WALKS.reduce((s, w) => s + w.visitedBins.length, 0),
+    },
+    ...DEMO_WALKS.map((w) => ({
+      id: w.id,
+      label: w.name,
+      count: w.visitedBins.length,
     })),
-  ], [walkSummaries]);
+  ], []);
 
-  const activeSummary = walkSummaries.find((s) => s.id === selectedWalkId);
+  const selectedWalk = DEMO_WALKS.find((w) => w.id === selectedWalkId);
+  const visitedCount = visitedGeoJson?.features.length || 0;
+  const adjacentCount = adjacentGeoJson?.features.length || 0;
 
-  // Handle map ready
-  const onMapReady = useCallback(() => {
-    setIsReady(true);
-  }, []);
-
-  // -------------------- Render States --------------------
-  
   if (!MAPBOX_TOKEN) {
     return (
       <View style={[styles.root, styles.centered]}>
-        <Text style={styles.errorText}>
-          Mapbox not configured.{"\n"}
-          Add EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN to .env
-        </Text>
-        <Pressable onPress={() => navigation.goBack()} style={styles.button}>
-          <Text style={styles.buttonText}>Go Back</Text>
-        </Pressable>
+        <Text style={styles.errorText}>Mapbox not configured</Text>
       </View>
     );
   }
 
-  if (loading) {
-    return (
-      <View style={[styles.root, styles.centered]}>
-        <ActivityIndicator size="large" color="#1A1A1A" />
-        <Text style={styles.loadingText}>Loading your walks...</Text>
-      </View>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <View style={[styles.root, styles.centered]}>
-        <Text style={styles.errorText}>Sign in to view your Nolli map</Text>
-        <Pressable onPress={() => navigation.goBack()} style={styles.button}>
-          <Text style={styles.buttonText}>Go Back</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={[styles.root, styles.centered]}>
-        <Text style={styles.errorText}>{error}</Text>
-        <Pressable onPress={() => navigation.goBack()} style={styles.button}>
-          <Text style={styles.buttonText}>Go Back</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  // -------------------- Main Render --------------------
   return (
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Mapbox Map */}
       <MapboxGL.MapView
         style={StyleSheet.absoluteFill}
-        styleJSON={JSON.stringify(NOLLI_STYLE_JSON)}
+        styleJSON={JSON.stringify(BLANK_STYLE_JSON)}
         logoEnabled={false}
         attributionEnabled={false}
         compassEnabled={false}
@@ -455,53 +470,74 @@ export default function NolliMapScreen({ route, navigation }: Props) {
         <MapboxGL.Camera
           ref={cameraRef}
           defaultSettings={{
-            centerCoordinate: NYC_CENTER,
-            zoomLevel: DEFAULT_ZOOM,
+            centerCoordinate: [-74.006, 40.7128],
+            zoomLevel: 14,
           }}
-          animationMode="flyTo"
-          animationDuration={800}
         />
 
-        {/* Visited buildings - highlighted */}
-        {buildings.length > 0 && (
-          <MapboxGL.ShapeSource id="visited-buildings" shape={buildingsGeoJson}>
+        {/* ADJACENT buildings - Grey */}
+        {adjacentGeoJson && adjacentGeoJson.features.length > 0 && (
+          <MapboxGL.ShapeSource id="adjacent-source" shape={adjacentGeoJson}>
             <MapboxGL.FillLayer
-              id="visited-fill"
+              id="adjacent-fill"
               style={{
-                fillColor: VISITED_FILL,
-                fillOpacity: 0.85,
+                fillColor: COLORS.adjacent,
+                fillOpacity: 1,
               }}
             />
             <MapboxGL.LineLayer
-              id="visited-outline"
+              id="adjacent-outline"
               style={{
-                lineColor: VISITED_STROKE,
-                lineWidth: 1.5,
+                lineColor: "#666666",
+                lineWidth: 0.5,
               }}
             />
           </MapboxGL.ShapeSource>
         )}
 
-        {/* Walk routes */}
-        {routes.length > 0 && (
-          <MapboxGL.ShapeSource id="walk-routes" shape={routesGeoJson}>
+        {/* VISITED buildings - Black */}
+        {visitedGeoJson && visitedGeoJson.features.length > 0 && (
+          <MapboxGL.ShapeSource id="visited-source" shape={visitedGeoJson}>
+            <MapboxGL.FillLayer
+              id="visited-fill"
+              style={{
+                fillColor: COLORS.visited,
+                fillOpacity: 1,
+              }}
+            />
+            <MapboxGL.LineLayer
+              id="visited-outline"
+              style={{
+                lineColor: "#000000",
+                lineWidth: 1,
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
+
+        {/* Walked routes - dashed */}
+        {routeGeoJson.features.length > 0 && (
+          <MapboxGL.ShapeSource id="route-source" shape={routeGeoJson}>
             <MapboxGL.LineLayer
               id="route-line"
               style={{
-                lineColor: ROUTE_COLOR,
-                lineWidth: 3,
+                lineColor: COLORS.route,
+                lineWidth: 2.5,
+                lineDasharray: [2, 2],
                 lineCap: "round",
-                lineJoin: "round",
               }}
             />
           </MapboxGL.ShapeSource>
         )}
       </MapboxGL.MapView>
 
-      {/* Loading overlay for geometry */}
-      {loadingGeometry && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="small" color="#1A1A1A" />
+      {/* Animated smoke overlay */}
+      <AnimatedSmoke visible={showSmoke} />
+
+      {/* Loading indicator */}
+      {isLoading && (
+        <View style={styles.loadingBadge}>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       )}
 
@@ -511,59 +547,69 @@ export default function NolliMapScreen({ route, navigation }: Props) {
           <View style={styles.headerSide}>
             <PassportBackButton onPress={() => navigation.goBack()} />
           </View>
-          <Text style={styles.title}>Nolli Map</Text>
-          <View style={styles.headerSide} />
+          <Text style={styles.title}>Past Walks Map</Text>
+          <View style={styles.headerSide}>
+            <Pressable
+              onPress={() => setShowSmoke(!showSmoke)}
+              style={[styles.smokeToggle, !showSmoke && styles.smokeToggleOff]}
+            >
+              <Text style={styles.smokeToggleText}>{showSmoke ? "☁️" : "👁️"}</Text>
+            </Pressable>
+          </View>
         </View>
       </SafeAreaView>
 
       {/* Bottom UI */}
       <View style={styles.bottomContainer} pointerEvents="box-none">
-        {/* Walk tabs */}
-        {walkSummaries.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tabsContent}
-            style={styles.tabsScroll}
-          >
-            {tabs.map((tab) => {
-              const isActive = tab.id === selectedWalkId;
-              return (
-                <Pressable
-                  key={tab.id}
-                  onPress={() => setSelectedWalkId(tab.id)}
-                  style={[styles.tab, isActive && styles.tabActive]}
-                >
-                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsContent}
+          style={styles.tabsScroll}
+        >
+          {tabs.map((tab) => {
+            const isActive = tab.id === selectedWalkId;
+            return (
+              <Pressable
+                key={tab.id}
+                onPress={() => setSelectedWalkId(tab.id)}
+                style={[styles.tab, isActive && styles.tabActive]}
+              >
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {tab.label}
+                </Text>
+                <Text style={[styles.tabCount, isActive && styles.tabCountActive]}>
+                  {tab.count}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
-        {/* Info card */}
         <View style={styles.infoCard}>
-          {walkSummaries.length === 0 ? (
-            <Text style={styles.infoText}>
-              Complete a walk to see your buildings on the Nolli map.
-            </Text>
-          ) : activeSummary ? (
-            <>
-              <Text style={styles.infoLabel}>
-                {activeSummary.dominantStyle || "Walk"}
-              </Text>
-              <Text style={styles.infoText}>
-                {activeSummary.distanceKm?.toFixed(1)} km
-                {activeSummary.borough ? ` • ${activeSummary.borough}` : ""}
-                {activeSummary.era?.label ? ` • ${activeSummary.era.label}` : ""}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.infoText}>
-              {buildings.length} buildings from {walkGeometries.size} walks
-            </Text>
+          <View style={styles.statsRow}>
+            <View style={styles.stat}>
+              <View style={[styles.statDot, { backgroundColor: COLORS.visited }]} />
+              <Text style={styles.statValue}>{visitedCount}</Text>
+              <Text style={styles.statLabel}>Visited</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <View style={[styles.statDot, { backgroundColor: COLORS.adjacent }]} />
+              <Text style={styles.statValue}>{adjacentCount}</Text>
+              <Text style={styles.statLabel}>Adjacent</Text>
+            </View>
+          </View>
+
+          {selectedWalk && (
+            <View style={styles.walkInfo}>
+              <Text style={styles.walkDate}>{selectedWalk.date}</Text>
+              <Text style={styles.walkBorough}>{selectedWalk.borough}</Text>
+            </View>
+          )}
+
+          {USE_DEMO_DATA && (
+            <Text style={styles.demoLabel}>DEMO</Text>
           )}
         </View>
       </View>
@@ -575,47 +621,44 @@ export default function NolliMapScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.background,
   },
   centered: {
     justifyContent: "center",
     alignItems: "center",
     padding: 32,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 15,
-    color: "#666",
-  },
   errorText: {
     fontSize: 16,
     color: "#333",
     textAlign: "center",
-    marginBottom: 20,
-    lineHeight: 24,
   },
-  button: {
-    backgroundColor: "#1A1A1A",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+
+  // Smoke
+  smokeContainer: {
+    ...StyleSheet.absoluteFillObject,
+    pointerEvents: "none",
   },
-  buttonText: {
-    color: "#FFF",
-    fontSize: 15,
-    fontWeight: "600",
+  smokeImage: {
+    width: "100%",
+    height: "100%",
+    opacity: 0.7,
   },
-  loadingOverlay: {
+
+  loadingBadge: {
     position: "absolute",
     top: 100,
     alignSelf: "center",
-    backgroundColor: "rgba(255,255,255,0.9)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  loadingText: {
+    color: "#FFF",
+    fontSize: 12,
   },
 
-  // Header
   headerContainer: {
     position: "absolute",
     top: 0,
@@ -635,14 +678,30 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 17,
     fontWeight: "600",
     color: "#1A1A1A",
   },
+  smokeToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  smokeToggleOff: {
+    backgroundColor: "rgba(0,0,0,0.08)",
+  },
+  smokeToggleText: {
+    fontSize: 16,
+  },
 
-  // Bottom
   bottomContainer: {
     position: "absolute",
     bottom: 0,
@@ -652,38 +711,45 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabsScroll: {
-    maxHeight: 50,
+    maxHeight: 56,
   },
   tabsContent: {
     paddingHorizontal: 16,
     gap: 8,
   },
   tab: {
-    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: "rgba(255,255,255,0.95)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
   },
   tabActive: {
     backgroundColor: "#1A1A1A",
     borderColor: "#1A1A1A",
   },
-  tabText: {
+  tabLabel: {
     fontSize: 14,
     fontWeight: "500",
     color: "#666",
   },
-  tabTextActive: {
+  tabLabelActive: {
     color: "#FFF",
     fontWeight: "600",
   },
+  tabCount: {
+    fontSize: 12,
+    color: "#999",
+    fontWeight: "600",
+  },
+  tabCountActive: {
+    color: "rgba(255,255,255,0.7)",
+  },
+
   infoCard: {
     marginHorizontal: 16,
     padding: 16,
@@ -691,23 +757,64 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.95)",
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.06)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
   },
-  infoLabel: {
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stat: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  statDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  statLabel: {
     fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1,
+    color: "#888",
     textTransform: "uppercase",
-    color: "#999",
-    marginBottom: 4,
+    letterSpacing: 0.5,
+    marginTop: 2,
   },
-  infoText: {
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 20,
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "rgba(0,0,0,0.1)",
+  },
+  walkInfo: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+  },
+  walkDate: {
+    fontSize: 13,
+    color: "#666",
+  },
+  walkBorough: {
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
+  },
+  demoLabel: {
+    position: "absolute",
+    top: 8,
+    right: 12,
+    fontSize: 10,
+    color: "#B8860B",
+    fontWeight: "700",
+    letterSpacing: 1,
   },
 });

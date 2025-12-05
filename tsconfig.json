@@ -10,6 +10,8 @@
     "skipLibCheck": true,
     "strict": true,
     "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "types": ["react-native", "expo-router"],
     "baseUrl": ".",
     "paths": {

@@ -3,19 +3,23 @@ import { Compass, PausePillButton } from "@/features/walks";
 import { log } from "@/lib/log";
 import { goBack, navigate } from "@/navigation/nav";
 import { screens } from "@/navigation/routes";
+import { calculateWalkingETA, formatDistance, getBuildingDisplayName, haversineDistance } from "@/utils/buildingUtils";
 // eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from "@/services/gateways/aestheticEventGateway";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import * as Location from "expo-location";
+import { Magnetometer } from "expo-sensors";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    Pressable,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
+import { DirectionalGlow } from "../../components/navigation/DirectionalGlow";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { deriveBuildingOrder } from "../../utils/deriveUtils";
 
@@ -26,12 +30,29 @@ const normalizeCoords = (v) => {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 };
 
+// Calculate bearing from point A to point B (in degrees, 0-360)
+function calculateBearing(lat1, lon1, lat2, lon2) {
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const lat1Rad = (lat1 * Math.PI) / 180;
+  const lat2Rad = (lat2 * Math.PI) / 180;
+  const y = Math.sin(dLon) * Math.cos(lat2Rad);
+  const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) - Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+  const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+  return (bearing + 360) % 360;
+}
+
 const WalkNavScreen = ({ route, navigation }) => {
   const { pinToJink } = useOrbTransition();
   const { session } = useAuth();
   const [buildingIndex, setBuildingIndex] = useState(0);
   const [visitedBuildings, setVisitedBuildings] = useState(new Set()); // Track which buildings user has verified
   const [walkXp, setWalkXp] = useState(0); // Track XP earned during walk
+
+  // Real-time location tracking
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [userHeading, setUserHeading] = useState(0);
+  const locationSubscriptionRef = useRef(null);
+  const magnetometerSubscriptionRef = useRef(null);
 
   // Get walk params
   const walkId = route.params?.walkId;
@@ -67,6 +88,92 @@ const WalkNavScreen = ({ route, navigation }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [walkId, session])
   );
+
+  // Real-time location tracking with battery-optimized updates
+  useEffect(() => {
+    let isMounted = true;
+
+    const startLocationTracking = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          log.warn('[WalkNav] Location permission not granted');
+          return;
+        }
+
+        // Get initial location
+        const initial = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.BestForNavigation,
+        });
+        if (isMounted) {
+          setCurrentLocation({
+            lat: initial.coords.latitude,
+            lng: initial.coords.longitude,
+          });
+        }
+
+        // Watch location with smart throttling (update every 5 seconds or 10m movement)
+        locationSubscriptionRef.current = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 5000, // 5 seconds
+            distanceInterval: 10, // 10 meters
+          },
+          (loc) => {
+            if (isMounted) {
+              setCurrentLocation({
+                lat: loc.coords.latitude,
+                lng: loc.coords.longitude,
+              });
+              log.info('[WalkNav] Location updated', {
+                lat: loc.coords.latitude.toFixed(6),
+                lng: loc.coords.longitude.toFixed(6),
+              });
+            }
+          }
+        );
+      } catch (error) {
+        log.error('[WalkNav] Location tracking error', error);
+      }
+    };
+
+    startLocationTracking();
+
+    return () => {
+      isMounted = false;
+      if (locationSubscriptionRef.current) {
+        locationSubscriptionRef.current.remove();
+        locationSubscriptionRef.current = null;
+      }
+    };
+  }, []);
+
+  // Magnetometer for compass heading
+  useEffect(() => {
+    let isMounted = true;
+
+    try {
+      Magnetometer.setUpdateInterval(250);
+      magnetometerSubscriptionRef.current = Magnetometer.addListener((data) => {
+        if (!isMounted) return;
+        const { x, y } = data;
+        let angle = Math.atan2(y, x) * (180 / Math.PI);
+        angle = 90 - angle;
+        const normalized = ((angle % 360) + 360) % 360;
+        setUserHeading(normalized);
+      });
+    } catch (error) {
+      log.error('[WalkNav] Magnetometer error', error);
+    }
+
+    return () => {
+      isMounted = false;
+      if (magnetometerSubscriptionRef.current) {
+        magnetometerSubscriptionRef.current.remove();
+        magnetometerSubscriptionRef.current = null;
+      }
+    };
+  }, []);
 
   // Auto-complete when last building is visited
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -138,7 +245,7 @@ const WalkNavScreen = ({ route, navigation }) => {
       verificationMode: true,
       expectedBuilding: {
         bin: currentStop.bin,
-        name: currentStop.name || currentStop.title || currentStop.des_addres,
+        name: getBuildingDisplayName(currentStop),
         address: currentStop.des_addres || currentStop.address,
         lat: currentStop.lat || currentStop.latitude,
         lng: currentStop.lng || currentStop.longitude,
@@ -223,12 +330,38 @@ const WalkNavScreen = ({ route, navigation }) => {
   const progressLabel = hasRoute
     ? `${currentIndex + 1}/${routeStops.length}`
     : null;
-  const nextAddress =
-    currentStop?.des_addres ??
-    currentStop?.name ??
-    currentStop?.title ??
-    "Generating your route…";
-  const summaryDistance = formatKilometers(tsp.total_distance_km);
+  
+  // Use validated building name
+  const nextAddress = hasRoute && currentStop
+    ? getBuildingDisplayName(currentStop)
+    : "Generating your route…";
+  
+  // Calculate distance and ETA to current stop (updates in real-time)
+  const distanceToStop = useMemo(() => {
+    if (!hasRoute || !currentStop) return null;
+    // Use real-time location if available, otherwise fall back to route params
+    const userLoc = currentLocation || normalizeCoords(route.params?.location);
+    if (!userLoc) return null;
+    const stopLoc = normalizeCoords(currentStop);
+    if (!stopLoc) return null;
+    return haversineDistance(userLoc, stopLoc);
+  }, [hasRoute, currentStop, currentLocation, route.params?.location]);
+
+  // Calculate bearing to target for directional glow
+  const targetBearing = useMemo(() => {
+    if (!currentLocation || !currentStop) return 0;
+    const stopLoc = normalizeCoords(currentStop);
+    if (!stopLoc) return 0;
+    return calculateBearing(currentLocation.lat, currentLocation.lng, stopLoc.lat, stopLoc.lng);
+  }, [currentLocation, currentStop]);
+
+  // Distance in meters for the glow component
+  const distanceMeters = distanceToStop ? distanceToStop * 1000 : 1000;
+
+  const nextStopDistance = distanceToStop ? formatDistance(distanceToStop) : null;
+  const nextStopETA = distanceToStop ? calculateWalkingETA(distanceToStop) : null;
+  
+  const summaryDistance = formatDistance(tsp.total_distance_km);
   const summaryDuration =
     Number.isFinite(tsp.est_duration_min) && tsp.est_duration_min > 0
       ? `${Math.round(tsp.est_duration_min)} min`
@@ -265,10 +398,13 @@ const WalkNavScreen = ({ route, navigation }) => {
       }
 
       const distanceM = Math.round(firstStep.distance);
-      if (distanceM < 1000) {
-        instruction += ` (${distanceM}m)`;
+      const feet = distanceM * 3.28084;
+      
+      if (feet < 2640) {
+        instruction += ` (${Math.round(feet)} ft)`;
       } else {
-        instruction += ` (${(distanceM / 1000).toFixed(1)}km)`;
+        const miles = distanceM * 0.000621371;
+        instruction += ` (${miles.toFixed(1)} mi)`;
       }
 
       return instruction;
@@ -277,11 +413,14 @@ const WalkNavScreen = ({ route, navigation }) => {
     const distanceKm = currentLeg.distanceKm;
     const durationMin = currentLeg.durationMin;
 
+    const feet = distanceKm * 3280.84;
     let distanceText;
-    if (distanceKm < 0.1) {
-      distanceText = `${Math.round(distanceKm * 1000)}m`;
+    
+    if (feet < 2640) {
+      distanceText = `${Math.round(feet)} ft`;
     } else {
-      distanceText = `${distanceKm.toFixed(1)}km`;
+      const miles = distanceKm * 0.621371;
+      distanceText = `${miles.toFixed(1)} mi`;
     }
 
     const durationText = durationMin < 1 ? "< 1 min" : `${Math.round(durationMin)} min`;
@@ -291,6 +430,13 @@ const WalkNavScreen = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Directional Glow Indicator - hot/cold navigation aid */}
+      <DirectionalGlow
+        targetBearing={targetBearing}
+        userHeading={userHeading}
+        distanceMeters={distanceMeters}
+        isActive={hasRoute && currentStop !== null}
+      />
       <View style={styles.screen}>
         <View style={styles.headerRow}>
           <PausePillButton onPress={handlePause} />
@@ -307,6 +453,12 @@ const WalkNavScreen = ({ route, navigation }) => {
             <Text style={styles.nextAddress} numberOfLines={2}>
               {nextAddress}
             </Text>
+            {/* Distance and ETA */}
+            {nextStopDistance && nextStopETA ? (
+              <View style={styles.etaRow}>
+                <Text style={styles.etaText}>{nextStopDistance} away · {nextStopETA}</Text>
+              </View>
+            ) : null}
             {walkingInstruction ? (
               <View style={styles.directionRow}>
                 <Text style={styles.directionText}>{walkingInstruction}</Text>
@@ -322,7 +474,7 @@ const WalkNavScreen = ({ route, navigation }) => {
               <Compass
                 buildings={routeStops}
                 buildingIndex={currentIndex}
-                size={320}
+                size={260}
               />
             ) : (
               <View style={styles.loadingState}>
@@ -446,6 +598,22 @@ const styles = StyleSheet.create({
     color: "#3C3C43",
     opacity: 0.72,
   },
+  etaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "#f0f9ff",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  etaText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#0369a1",
+  },
   directionRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -558,10 +726,4 @@ const styles = StyleSheet.create({
   },
 });
 
-function formatKilometers(value) {
-  if (!Number.isFinite(value)) return null;
-  if (value < 1) {
-    return `${Math.round(value * 1000)} m`;
-  }
-  return `${value < 10 ? value.toFixed(1) : value.toFixed(0)} km`;
-}
+

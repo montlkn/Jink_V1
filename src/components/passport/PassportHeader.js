@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PassportLogoutButton } from './PassportLogoutButton';
 
-const PassportHeader = ({ issueDate, onLogout }) => {
+const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout }) => {
   const [idRef, setIdRef] = useState('DR-LOAD-ING');
 
   useEffect(() => {
@@ -33,6 +33,13 @@ const PassportHeader = ({ issueDate, onLogout }) => {
               <Text style={styles.passportDate}>{issueDate}</Text>
             </View>
           )}
+
+          {totalBuildingsScanned !== undefined && (
+            <View style={styles.dataRow}>
+              <Text style={styles.passportLabel}>BUILDINGS</Text>
+              <Text style={styles.passportDate}>{totalBuildingsScanned} SCANNED</Text>
+            </View>
+          )}
         </View>
         
         <PassportLogoutButton
@@ -50,7 +57,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 20,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#ece9da',
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },

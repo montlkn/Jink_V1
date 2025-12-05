@@ -1,5 +1,6 @@
-import { stampCollection, type StampDefinition } from "@/constants/passportContent";
-import { InlineFlipCard, PassportBackButton, PassportInfoButton, PassportStamp } from "@/features/passport";
+import { type StampDefinition } from "@/constants/passportContent";
+import { InfoMenu, InlineFlipCard, PassportBackButton, PassportInfoButton, PassportStamp } from "@/features/passport";
+import { usePassportData } from "@/hooks/usePassportData";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,7 +9,6 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    Alert,
     Platform,
     SafeAreaView,
     ScrollView,
@@ -181,20 +181,33 @@ function StampCard({ item, pinned, expanded, onLongPress, onPress }: StampCardPr
 
 export default function StampsScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
+  const passportState = usePassportData();
   const [pinned, setPinned] = useState<Record<string, boolean>>({});
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showInfoMenu, setShowInfoMenu] = useState(false);
 
-  const sortedStamps = useMemo(
-    () =>
-      [...stampCollection].sort((a, b) => {
-        if (a.rarity === b.rarity) {
-          return new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime();
-        }
-        const rarityOrder: StampDefinition["rarity"][] = ["legendary", "epic", "rare", "common"];
-        return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
-      }),
-    []
-  );
+  // Convert user's raw stamp IDs to display-friendly stamp objects
+  const userStamps = useMemo(() => {
+    if (passportState.status !== 'ready') return [];
+    
+    // Map raw stamp IDs to display-friendly objects
+    return passportState.value.stamps.map((stamp, index) => {
+      // Create display-friendly title from ID
+      const displayTitle = stamp.name
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      return {
+        id: `user-stamp-${index}`,
+        title: displayTitle,
+        rarity: 'common' as StampDefinition['rarity'],
+        issuedAt: new Date().toISOString().split('T')[0],
+        description: `Earned stamp: ${displayTitle}`,
+        source: 'User activity',
+      };
+    });
+  }, [passportState]);
 
   const handleLongPress = useCallback((id: string) => {
     setPinned((prev) => {
@@ -217,10 +230,7 @@ export default function StampsScreen(): JSX.Element {
   }, []);
 
   const handleInfo = useCallback(() => {
-    Alert.alert(
-      "PASSPORT STAMPS",
-      "COLLECT STAMPS TO TRACK YOUR AESTHETIC JOURNEY."
-    );
+    setShowInfoMenu(true);
   }, []);
 
   return (
@@ -241,23 +251,40 @@ export default function StampsScreen(): JSX.Element {
       </View>
 
       <Text style={styles.subheader}>
-        {sortedStamps.length} RECORDED // LONG-PRESS TO PIN
+        {userStamps.length} RECORDED // LONG-PRESS TO PIN
       </Text>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.gridContainer}>
-          {sortedStamps.map((item) => (
-            <StampCard
-              key={item.id}
-              item={item}
-              pinned={Boolean(pinned[item.id])}
-              expanded={expandedId === item.id}
-              onLongPress={handleLongPress}
-              onPress={handlePress}
-            />
-          ))}
-        </View>
+        {userStamps.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateIcon}>📭</Text>
+            <Text style={styles.emptyStateTitle}>NO STAMPS YET</Text>
+            <Text style={styles.emptyStateText}>
+              Scan buildings and complete activities to earn stamps
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.gridContainer}>
+            {userStamps.map((item) => (
+              <StampCard
+                key={item.id}
+                item={item}
+                pinned={Boolean(pinned[item.id])}
+                expanded={expandedId === item.id}
+                onLongPress={handleLongPress}
+                onPress={handlePress}
+              />
+            ))}
+          </View>
+        )}
       </ScrollView>
+
+      <InfoMenu
+        visible={showInfoMenu}
+        onClose={() => setShowInfoMenu(false)}
+        title="PASSPORT STAMPS"
+        content="COLLECT STAMPS TO TRACK YOUR AESTHETIC JOURNEY."
+      />
     </SafeAreaView>
   );
 }
@@ -375,5 +402,28 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: theme.colors.border,
     marginVertical: 6,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    gap: 12,
+  },
+  emptyStateIcon: {
+    fontSize: 48,
+  },
+  emptyStateTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    letterSpacing: 2,
+  },
+  emptyStateText: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+    lineHeight: 18,
   },
 });

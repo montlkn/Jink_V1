@@ -392,9 +392,16 @@ function haversineMeters(a, b) {
 }
 
 function formatDistance(m) {
-  if (m < 1000) return `${Math.round(m)} m`;
-  const km = m / 1000;
-  return `${km < 10 ? km.toFixed(2) : km.toFixed(1)} km`;
+  const feet = m * 3.28084; // Convert meters to feet
+  
+  // Show in feet for distances under 0.5 miles (2640 feet)
+  if (feet < 2640) {
+    return `${Math.round(feet)} ft`;
+  }
+  
+  // Otherwise show in miles for longer distances
+  const miles = m * 0.000621371;
+  return `${miles.toFixed(1)} mi`;
 }
 
 function bearingDeg(from, to) {

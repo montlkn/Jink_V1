@@ -2,15 +2,17 @@ import { useAuth } from "@/auth/authProvider";
 import { log } from "@/lib/log";
 import { screens } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { getBuildingDisplayName } from '@/utils/buildingUtils';
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     Pressable,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     View,
 } from "react-native";
 // eslint-disable-next-line no-restricted-imports
@@ -20,6 +22,9 @@ export default function WalkSummaryScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { session } = useAuth();
+  const [walkLabel, setWalkLabel] = useState('');
+  // eslint-disable-next-line no-unused-vars
+  const [_isSavingLabel, setIsSavingLabel] = useState(false);
   
   const walkId = route.params?.walkId;
   const stats = useMemo(() => route.params?.stats || {
@@ -52,7 +57,29 @@ export default function WalkSummaryScreen() {
     }).catch((err) => log.warn('[WalkSummary] Failed to track route_complete', err));
   }, [walkId, session, stats]);
 
-  const handleDone = () => {
+  const handleSaveLabel = async () => {
+    if (!walkId || !walkLabel.trim()) return;
+
+    setIsSavingLabel(true);
+    try {
+      const { supabaseGateway } = await import('@/services/gateways/supabaseGateway');
+      await supabaseGateway
+        .from('walks')
+        .update({ custom_label: walkLabel.trim() })
+        .eq('id', walkId);
+      log.info(`[WalkSummary] Saved custom label: ${walkLabel}`);
+    } catch (err) {
+      log.warn('[WalkSummary] Failed to save label', err);
+    } finally {
+      setIsSavingLabel(false);
+    }
+  };
+
+  const handleDone = async () => {
+    // Save label before navigating away if there's a label
+    if (walkLabel.trim()) {
+      await handleSaveLabel();
+    }
     navigation.navigate(screens.Main, { screen: screens.Home });
   };
 
@@ -79,6 +106,23 @@ export default function WalkSummaryScreen() {
           {stats.xpMultiplier > 1 && (
             <Text style={styles.xpMultiplier}>{stats.xpMultiplier}x bonus applied</Text>
           )}
+        </View>
+
+        {/* Walk Label Input */}
+        <View style={styles.labelSection}>
+          <Text style={styles.labelTitle}>NAME THIS JINK (OPTIONAL)</Text>
+          <TextInput
+            style={styles.labelInput}
+            placeholder="e.g., SoHo Cast Iron, Brooklyn Heights..."
+            placeholderTextColor={theme.colors.muted}
+            value={walkLabel}
+            onChangeText={setWalkLabel}
+            maxLength={50}
+            autoCapitalize="words"
+          />
+          <Text style={styles.labelHint}>
+            {walkLabel.length}/50 characters
+          </Text>
         </View>
 
         {/* Stats Grid */}
@@ -120,7 +164,7 @@ export default function WalkSummaryScreen() {
                 <Ionicons name="checkmark-circle" size={20} color="#10B981" />
                 <View style={styles.buildingInfo}>
                   <Text style={styles.buildingName}>
-                    {building.name || building.title || building.des_addres || 'Unknown Building'}
+                    {getBuildingDisplayName(building)}
                   </Text>
                   {building.style && (
                     <Text style={styles.buildingStyle}>{building.style}</Text>
@@ -140,7 +184,7 @@ export default function WalkSummaryScreen() {
                 <Ionicons name="close-circle" size={20} color="#9CA3AF" />
                 <View style={styles.buildingInfo}>
                   <Text style={[styles.buildingName, styles.buildingNameSkipped]}>
-                    {building.name || building.title || building.des_addres || 'Unknown Building'}
+                    {getBuildingDisplayName(building)}
                   </Text>
                 </View>
               </View>
@@ -212,6 +256,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
+  },
+  labelSection: {
+    marginBottom: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  labelTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.muted,
+    letterSpacing: 1,
+    marginBottom: 12,
+    fontFamily: 'monospace',
+  },
+  labelInput: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: theme.colors.text,
+    fontFamily: 'monospace',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  labelHint: {
+    fontSize: 10,
+    color: theme.colors.muted,
+    marginTop: 6,
+    textAlign: 'right',
+    fontFamily: 'monospace',
   },
   statsGrid: {
     flexDirection: 'row',

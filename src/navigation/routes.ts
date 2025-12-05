@@ -105,7 +105,12 @@ export type RootParams = {
   WalkNavScreen: WalkNavParams;
   BuildingModule: { building: Record<string, unknown> };
   BuildingInfo: { buildingData: BuildingDetail } | undefined;
-  NotFound: { message?: string } | undefined;
+  NotFound: {
+    message?: string;
+    buildingBIN?: string | null;
+    position?: { latitude: number; longitude: number } | null;
+    capturedPhotoUri?: string | null;
+  } | undefined;
   PastWalksNolli: { walkId?: string } | undefined;
   NolliSkia: { walkId?: string } | undefined;
 };

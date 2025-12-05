@@ -1,6 +1,6 @@
 import { APP_COLORS } from "@/constants/appColors";
 import { passportLists, type BuildingDetail } from "@/constants/passportContent";
-import { PassportBackButton, PassportInfoButton } from "@/features/passport";
+import { InfoMenu, PassportBackButton, PassportInfoButton } from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +9,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import DraggableFlatList, { type RenderItemParams } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
 
@@ -103,16 +103,14 @@ export default function ListDetailScreen(): JSX.Element {
   const [listTagline, setListTagline] = useState(list.tagline);
   const [listMood, setListMood] = useState(list.mood);
   const [isEditing, setIsEditing] = useState(false);
+  const [showInfoMenu, setShowInfoMenu] = useState(false);
 
   useEffect(() => {
     setBuildings(list.buildings);
   }, [list]);
 
   const handleInfo = useCallback(() => {
-    Alert.alert(
-      "LIST DETAILS",
-      "Each list is a curated itinerary. Long-press any building tile to drag it to a new position."
-    );
+    setShowInfoMenu(true);
   }, []);
 
   const handleDelete = useCallback((buildingId: string) => {
@@ -236,6 +234,13 @@ export default function ListDetailScreen(): JSX.Element {
             </View>
           }
           ListFooterComponent={<View style={{ height: 40 }} />}
+        />
+
+        <InfoMenu
+          visible={showInfoMenu}
+          onClose={() => setShowInfoMenu(false)}
+          title="LIST DETAILS"
+          content="Each list is a curated itinerary. Long-press any building tile to drag it to a new position."
         />
       </SafeAreaView>
     </GestureHandlerRootView>

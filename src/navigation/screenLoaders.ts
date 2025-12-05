@@ -36,7 +36,7 @@ export const ScreenLoaders: Record<string, Loader> = {
   ),
   NotFound: createLoader(() => require("@/screens/Scan/NotFoundScreen")),
   PastWalksNolli: createLoader(() =>
-    require("@/screens/PastWalks/PastWalksNolliScreen")
+    require("@/screens/PastWalks/NolliMapScreen")
   ),
   OnboardingQuiz: createLoader(() =>
     require("@/screens/Quiz/OnboardingQuizScreen")

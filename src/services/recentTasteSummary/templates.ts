@@ -1,7 +1,8 @@
 export type TasteTemplate = {
   template: string;
   category: "discovery" | "pattern" | "evolution" | "streak" | "mystery";
-  requiredData: ("streak" | "location" | "scanCount" | "archetype" | "descriptor")[];
+  requiredData:
+    ("streak" | "location" | "scanCount" | "archetype" | "descriptor")[];
   weight: number; // Higher weight = preferred when multiple templates match
 };
 
@@ -14,7 +15,8 @@ export const TASTE_TEMPLATES: TasteTemplate[] = [
     weight: 3,
   },
   {
-    template: "Your {location} walks show a preference for {archetype} buildings",
+    template:
+      "Your {location} walks show a preference for {archetype} buildings",
     category: "discovery",
     requiredData: ["location", "archetype"],
     weight: 4,
@@ -26,7 +28,8 @@ export const TASTE_TEMPLATES: TasteTemplate[] = [
     weight: 5,
   },
   {
-    template: "Something {descriptor} keeps catching your eye in {location}",
+    template:
+      "Something about {descriptor} keeps catching your eye in {location}",
     category: "discovery",
     requiredData: ["descriptor", "location"],
     weight: 4,

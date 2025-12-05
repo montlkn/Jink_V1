@@ -13,8 +13,8 @@ module.exports = () => {
   // Google Maps API key only needed for Android
   const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
   
-  // Mapbox access token
-  const mapboxAccessToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  // Mapbox public token (pk.) - for runtime map display
+  const mapboxPublicToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
   return {
     name: "jink",
@@ -40,8 +40,6 @@ module.exports = () => {
       [
         "react-native-maps",
         {
-          // Use Apple Maps on iOS (Google Maps has polygon hole bugs)
-          // Keep Google Maps for Android only
           androidGoogleMapsApiKey: googleMapsApiKey,
         },
       ],
@@ -49,7 +47,7 @@ module.exports = () => {
         "@rnmapbox/maps",
         {
           RNMapboxMapsImpl: "mapbox",
-          RNMapboxMapsDownloadToken: mapboxAccessToken,
+          // NO download token here - it reads from RNMAPBOX_MAPS_DOWNLOAD_TOKEN env var
         },
       ],
     ],
@@ -58,7 +56,7 @@ module.exports = () => {
       appUrl,
       buildingsSupabaseUrl: process.env.EXPO_PUBLIC_BUILDINGS_SUPABASE_URL,
       buildingsSupabaseAnonKey: process.env.EXPO_PUBLIC_BUILDINGS_SUPABASE_ANON_KEY,
-      mapboxAccessToken,
+      mapboxAccessToken: mapboxPublicToken,
       eas: {
         projectId: "b12162bd-7319-470b-b952-a352382cfd2c",
       },

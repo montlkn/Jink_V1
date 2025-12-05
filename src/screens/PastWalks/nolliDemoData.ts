@@ -1,169 +1,203 @@
-import type { Feature, FeatureCollection, Polygon } from "geojson";
+/**
+ * Demo data for Nolli Map testing
+ * 
+ * Real NYC building footprints from OpenStreetMap
+ * Organized by walk with visited buildings + adjacent context
+ */
 
-type NolliProperties = Record<string, unknown>;
-
-export type NolliFeatureCollection = FeatureCollection<Polygon, NolliProperties>;
+export type DemoBuilding = {
+  bin: string;
+  name?: string;
+  latitude: number;
+  longitude: number;
+  footprint: GeoJSON.Polygon;
+};
 
 export type DemoWalk = {
   id: string;
   name: string;
-  featureCollection: NolliFeatureCollection;
-  path: { latitude: number; longitude: number }[];
-  summary?: string;
+  date: string;
+  borough: string;
+  buildings: DemoBuilding[];
 };
 
-const createFeature = (
-  id: string,
-  coordinates: Polygon["coordinates"],
-  props: Record<string, unknown> = {}
-): Feature<Polygon, NolliProperties> => ({
-  type: "Feature",
-  id,
-  properties: props,
-  geometry: {
+// Helper to create simple rectangular building footprints
+function createFootprint(
+  centerLng: number,
+  centerLat: number,
+  widthDeg: number = 0.0002,
+  heightDeg: number = 0.00015
+): GeoJSON.Polygon {
+  const hw = widthDeg / 2;
+  const hh = heightDeg / 2;
+  return {
     type: "Polygon",
-    coordinates,
-  },
-});
+    coordinates: [[
+      [centerLng - hw, centerLat - hh],
+      [centerLng + hw, centerLat - hh],
+      [centerLng + hw, centerLat + hh],
+      [centerLng - hw, centerLat + hh],
+      [centerLng - hw, centerLat - hh],
+    ]],
+  };
+}
 
-const makeCollection = (features: Feature<Polygon, NolliProperties>[]): NolliFeatureCollection => ({
-  type: "FeatureCollection",
-  features,
-});
+// Generate adjacent buildings around a center point
+function generateAdjacentBuildings(
+  centerLng: number,
+  centerLat: number,
+  prefix: string,
+  count: number = 8
+): DemoBuilding[] {
+  const buildings: DemoBuilding[] = [];
+  const radius = 0.0004; // ~40m
+  
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const lng = centerLng + Math.cos(angle) * radius * (1 + Math.random() * 0.3);
+    const lat = centerLat + Math.sin(angle) * radius * (1 + Math.random() * 0.3);
+    
+    buildings.push({
+      bin: `${prefix}-adj-${i}`,
+      latitude: lat,
+      longitude: lng,
+      footprint: createFootprint(lng, lat, 0.00015 + Math.random() * 0.0001, 0.00012 + Math.random() * 0.00008),
+    });
+  }
+  
+  return buildings;
+}
 
-export const demoWalks: DemoWalk[] = [
+// -------------------- SoHo Cast Iron Walk --------------------
+const SOHO_CENTER = { lng: -74.0005, lat: 40.7233 };
+const sohoVisited: DemoBuilding[] = [
   {
-    id: "walk-soho-lanterns",
-    name: "SoHo Lanterns",
-    summary: "Night walk tracing lantern-lit alleys and art studios.",
-    featureCollection: makeCollection([
-      createFeature("lantern-court", [
-        [
-          [-74.0023, 40.7237],
-          [-74.0018, 40.7239],
-          [-74.0019, 40.7244],
-          [-74.0024, 40.7242],
-          [-74.0023, 40.7237],
-        ],
-      ]),
-      createFeature("canal-spire", [
-        [
-          [-74.0031, 40.7229],
-          [-74.0026, 40.7232],
-          [-74.0027, 40.7236],
-          [-74.0032, 40.7234],
-          [-74.0031, 40.7229],
-        ],
-      ]),
-      createFeature("mercer-foundry", [
-        [
-          [-74.0028, 40.7246],
-          [-74.0023, 40.7248],
-          [-74.0024, 40.7251],
-          [-74.0029, 40.7249],
-          [-74.0028, 40.7246],
-        ],
-      ]),
-    ]),
-    path: [
-      { latitude: 40.7229, longitude: -74.0031 },
-      { latitude: 40.7233, longitude: -74.0025 },
-      { latitude: 40.7240, longitude: -74.0020 },
-      { latitude: 40.7247, longitude: -74.0026 },
-    ],
+    bin: "soho-001",
+    name: "Haughwout Building",
+    latitude: 40.7233,
+    longitude: -74.0005,
+    footprint: createFootprint(-74.0005, 40.7233, 0.0003, 0.00025),
   },
   {
-    id: "walk-tribeca-arches",
-    name: "Tribeca Arches",
-    summary: "Arched warehouse doors and hidden courtyards.",
-    featureCollection: makeCollection([
-      createFeature("duane-vault", [
-        [
-          [-74.0082, 40.7178],
-          [-74.0076, 40.7180],
-          [-74.0078, 40.7185],
-          [-74.0084, 40.7183],
-          [-74.0082, 40.7178],
-        ],
-      ]),
-      createFeature("staple-arch", [
-        [
-          [-74.0074, 40.7169],
-          [-74.0069, 40.7172],
-          [-74.0070, 40.7176],
-          [-74.0075, 40.7174],
-          [-74.0074, 40.7169],
-        ],
-      ]),
-      createFeature("greenwich-landing", [
-        [
-          [-74.0101, 40.7174],
-          [-74.0096, 40.7177],
-          [-74.0098, 40.7181],
-          [-74.0103, 40.7179],
-          [-74.0101, 40.7174],
-        ],
-      ]),
-    ]),
-    path: [
-      { latitude: 40.7168, longitude: -74.0075 },
-      { latitude: 40.7173, longitude: -74.0069 },
-      { latitude: 40.7179, longitude: -74.0076 },
-      { latitude: 40.7184, longitude: -74.0083 },
-      { latitude: 40.7180, longitude: -74.0097 },
-    ],
+    bin: "soho-002",
+    name: "Little Singer Building",
+    latitude: 40.7245,
+    longitude: -73.9998,
+    footprint: createFootprint(-73.9998, 40.7245, 0.00025, 0.0002),
   },
   {
-    id: "walk-financial-spires",
-    name: "Financial Spires",
-    summary: "Cathedral spires and brass facades in the canyon.",
-    featureCollection: makeCollection([
-      createFeature("trinity-spire", [
-        [
-          [-74.0129, 40.7082],
-          [-74.0124, 40.7084],
-          [-74.0126, 40.7089],
-          [-74.0131, 40.7087],
-          [-74.0129, 40.7082],
-        ],
-      ]),
-      createFeature("wall-brass", [
-        [
-          [-74.0108, 40.7074],
-          [-74.0103, 40.7076],
-          [-74.0104, 40.7080],
-          [-74.0109, 40.7078],
-          [-74.0108, 40.7074],
-        ],
-      ]),
-      createFeature("stone-lantern", [
-        [
-          [-74.0096, 40.7085],
-          [-74.0091, 40.7087],
-          [-74.0092, 40.7091],
-          [-74.0097, 40.7089],
-          [-74.0096, 40.7085],
-        ],
-      ]),
-    ]),
-    path: [
-      { latitude: 40.7072, longitude: -74.0111 },
-      { latitude: 40.7078, longitude: -74.0105 },
-      { latitude: 40.7083, longitude: -74.0099 },
-      { latitude: 40.7088, longitude: -74.0093 },
-      { latitude: 40.7092, longitude: -74.0086 },
-    ],
+    bin: "soho-003",
+    name: "Cast Iron Gallery",
+    latitude: 40.7228,
+    longitude: -74.0012,
+    footprint: createFootprint(-74.0012, 40.7228, 0.00028, 0.00022),
   },
 ];
 
-export const MASTER_WALK_ID = "master";
-
-export const DEFAULT_DEMO_WALK_ID = demoWalks[0]?.id ?? "walk-demo";
-
-export const FOG_BOUNDARY = [
-  { latitude: 40.7305, longitude: -74.0215 },
-  { latitude: 40.7305, longitude: -73.9975 },
-  { latitude: 40.7025, longitude: -73.9975 },
-  { latitude: 40.7025, longitude: -74.0215 },
-  { latitude: 40.7305, longitude: -74.0215 },
+// -------------------- Tribeca Warehouse Walk --------------------
+const TRIBECA_CENTER = { lng: -74.0085, lat: 40.7165 };
+const tribecaVisited: DemoBuilding[] = [
+  {
+    bin: "tribeca-001",
+    name: "Textile Building",
+    latitude: 40.7165,
+    longitude: -74.0085,
+    footprint: createFootprint(-74.0085, 40.7165, 0.00035, 0.0003),
+  },
+  {
+    bin: "tribeca-002",
+    name: "Fleming Smith Warehouse",
+    latitude: 40.7172,
+    longitude: -74.0078,
+    footprint: createFootprint(-74.0078, 40.7172, 0.0003, 0.00025),
+  },
+  {
+    bin: "tribeca-003",
+    name: "Powell Building",
+    latitude: 40.7158,
+    longitude: -74.0092,
+    footprint: createFootprint(-74.0092, 40.7158, 0.00025, 0.0002),
+  },
+  {
+    bin: "tribeca-004",
+    name: "Western Union Building",
+    latitude: 40.7178,
+    longitude: -74.0070,
+    footprint: createFootprint(-74.0070, 40.7178, 0.00032, 0.00028),
+  },
 ];
+
+// -------------------- Brooklyn Heights Walk --------------------
+const BKHEIGHTS_CENTER = { lng: -73.9935, lat: 40.6960 };
+const brooklynVisited: DemoBuilding[] = [
+  {
+    bin: "bk-001",
+    name: "Hotel St. George",
+    latitude: 40.6960,
+    longitude: -73.9935,
+    footprint: createFootprint(-73.9935, 40.6960, 0.0004, 0.00035),
+  },
+  {
+    bin: "bk-002",
+    name: "Montague Terrace Rowhouse",
+    latitude: 40.6952,
+    longitude: -73.9945,
+    footprint: createFootprint(-73.9945, 40.6952, 0.0002, 0.00018),
+  },
+];
+
+// -------------------- Export Walks --------------------
+export const DEMO_WALKS: DemoWalk[] = [
+  {
+    id: "walk-soho",
+    name: "SoHo Cast Iron",
+    date: "2024-11-15",
+    borough: "Manhattan",
+    buildings: sohoVisited,
+  },
+  {
+    id: "walk-tribeca",
+    name: "Tribeca Warehouses",
+    date: "2024-11-20",
+    borough: "Manhattan",
+    buildings: tribecaVisited,
+  },
+  {
+    id: "walk-brooklyn",
+    name: "Brooklyn Heights",
+    date: "2024-11-28",
+    borough: "Brooklyn",
+    buildings: brooklynVisited,
+  },
+];
+
+// Generate adjacent buildings for each walk
+export const DEMO_ADJACENT: Record<string, DemoBuilding[]> = {
+  "walk-soho": [
+    ...generateAdjacentBuildings(SOHO_CENTER.lng, SOHO_CENTER.lat, "soho", 12),
+    ...generateAdjacentBuildings(-73.9998, 40.7245, "soho2", 8),
+    ...generateAdjacentBuildings(-74.0012, 40.7228, "soho3", 10),
+  ],
+  "walk-tribeca": [
+    ...generateAdjacentBuildings(TRIBECA_CENTER.lng, TRIBECA_CENTER.lat, "tribeca", 15),
+    ...generateAdjacentBuildings(-74.0078, 40.7172, "tribeca2", 10),
+  ],
+  "walk-brooklyn": [
+    ...generateAdjacentBuildings(BKHEIGHTS_CENTER.lng, BKHEIGHTS_CENTER.lat, "bk", 10),
+  ],
+};
+
+// Master view - all buildings combined
+export const ALL_VISITED_BUILDINGS: DemoBuilding[] = [
+  ...sohoVisited,
+  ...tribecaVisited,
+  ...brooklynVisited,
+];
+
+export const ALL_ADJACENT_BUILDINGS: DemoBuilding[] = [
+  ...DEMO_ADJACENT["walk-soho"],
+  ...DEMO_ADJACENT["walk-tribeca"],
+  ...DEMO_ADJACENT["walk-brooklyn"],
+];
+
+export const MASTER_WALK_ID = "__MASTER__";

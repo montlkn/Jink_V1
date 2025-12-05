@@ -1,5 +1,5 @@
 import { useAuth } from '@/auth/authProvider';
-import { ClosePillButton, fetchBuildingBySearch, TimePeriodSlider } from '@/features/scan';
+import { BuildingInfoSkeleton, fetchBuildingBySearch, TimePeriodSlider } from '@/features/scan';
 import { log } from '@/lib/log';
 import { screens, type RootParams } from '@/navigation/routes';
 // eslint-disable-next-line no-restricted-imports
@@ -10,7 +10,6 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
     Image,
     Linking,
     SafeAreaView,
@@ -19,8 +18,9 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import { BuildingContributionSection } from '../BuildingDetails/BuildingContributionSection';
 
 type Route = RouteProp<RootParams, typeof screens.BuildingInfo>;
 type Navigation = NativeStackNavigationProp<RootParams>;
@@ -183,11 +183,23 @@ export default function BuildingInfoScreen(): JSX.Element {
     }
   };
 
+  const handleContribute = () => {
+    // Navigate to NotFound screen with building data for contribution
+    navigation.navigate(screens.NotFound, {
+      message: `Help us add more information about ${building?.name || 'this building'}!`,
+      buildingBIN: building?.bin || null,
+      position: null,
+      capturedPhotoUri: null,
+    });
+  };
+
   if (!building) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorHeader}>
-          <ClosePillButton onPress={() => navigation.goBack()} />
+          <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
+            <Ionicons name="close" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
           <Text style={styles.errorTitle}>ERROR</Text>
         </View>
         <View style={styles.errorContainer}>
@@ -198,20 +210,7 @@ export default function BuildingInfoScreen(): JSX.Element {
   }
 
   if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorHeader}>
-          <ClosePillButton onPress={() => navigation.goBack()} />
-          <Text style={styles.errorTitle}>Loading...</Text>
-        </View>
-        <View style={styles.errorContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.errorText, { marginTop: 20 }]}>
-            Loading building details...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <BuildingInfoSkeleton />;
   }
 
   return (
@@ -225,16 +224,29 @@ export default function BuildingInfoScreen(): JSX.Element {
       >
         {/* Top Image Section */}
         <View style={styles.imageContainer}>
-          <Image
-            source={building.image as any}
-            style={styles.mainImage}
-            resizeMode="cover"
-          />
+          {(building.image || building.photo_url || building.image_url) ? (
+            <Image
+              source={
+                typeof (building.image || building.photo_url || building.image_url) === 'string'
+                  ? { uri: building.photo_url || building.image_url || building.image }
+                  : building.image as any
+              }
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.mainImage, styles.imagePlaceholder]}>
+              <Text style={styles.placeholderIcon}>🏛️</Text>
+              <Text style={styles.placeholderText}>No image available</Text>
+            </View>
+          )}
           
           {/* Header Overlay */}
           <SafeAreaView style={styles.headerOverlay}>
             <View style={styles.header}>
-              <ClosePillButton onPress={() => navigation.goBack()} />
+              <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
               <View style={styles.headerActions}>
                  <TouchableOpacity style={styles.actionIcon} onPress={handleLike}>
                    <Ionicons
@@ -310,7 +322,7 @@ export default function BuildingInfoScreen(): JSX.Element {
 
         {/* Actions Row */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleContribute}>
             <Ionicons name="camera-outline" size={24} color={theme.colors.text} />
             <Text style={styles.actionText}>contribute</Text>
           </TouchableOpacity>
@@ -349,6 +361,14 @@ export default function BuildingInfoScreen(): JSX.Element {
            <Text style={styles.placeholderText}>No lore available yet.</Text>
         </View>
 
+        {/* Community Contributions Section */}
+        {building.bin && session?.user?.id && (
+          <BuildingContributionSection
+            buildingBIN={building.bin}
+            currentUserId={session.user.id}
+          />
+        )}
+
       </ScrollView>
     </View>
   );
@@ -369,11 +389,24 @@ const styles = StyleSheet.create({
     height: 500,
     width: '100%',
     position: 'relative',
-    marginBottom: 60, // Increased to accommodate slider
+    marginBottom: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.primary, // Technical accent line
   },
   mainImage: {
     width: '100%',
     height: '100%',
+  },
+  imagePlaceholder: {
+    backgroundColor: theme.colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  placeholderIcon: {
+    fontSize: 48,
+    marginBottom: 12,
   },
   headerOverlay: {
     position: 'absolute',
@@ -396,8 +429,8 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 0, // Sharp corners
+    backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -409,20 +442,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 10,
     gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: theme.colors.surface,
     alignSelf: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 0, // Sharp corners
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.primary, // Accent border
   },
   locationTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     color: theme.colors.text,
     fontFamily: 'monospace',
     textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   infoCard: {
     position: 'absolute',
@@ -430,16 +464,12 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     backgroundColor: theme.colors.surface,
-    borderRadius: 4, // Sharper corners for Designer Republic feel
+    borderRadius: 0, // Sharp corners
     padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    zIndex: 20,
+    // Removed shadow for flatter technical look, added border
     borderWidth: 1,
     borderColor: theme.colors.border,
+    zIndex: 20,
   },
   infoRow: {
     flexDirection: 'row',
@@ -447,7 +477,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border + '40',
+    borderBottomColor: theme.colors.border,
   },
   infoIcon: {
     fontSize: 14,
@@ -457,23 +487,26 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   infoCategory: {
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: 'monospace',
     color: theme.colors.muted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     marginBottom: 2,
   },
   infoLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'monospace',
-    fontWeight: '500',
+    fontWeight: 'bold',
     color: theme.colors.text,
-    textTransform: 'lowercase',
+    textTransform: 'uppercase', // Uppercase for technical feel
   },
   sliderSection: {
-    marginTop: 10,
+    marginTop: 16,
     marginBottom: 5,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: 16,
   },
   cardArrowContainer: {
     alignItems: 'center',
@@ -505,57 +538,60 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 4,
+    borderRadius: 0, // Sharp corners
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     fontFamily: 'monospace',
     color: theme.colors.text,
     textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   section: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border + '40',
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'left',
     fontFamily: 'monospace',
-    color: theme.colors.muted,
+    color: theme.colors.primary, // Accent color for headers
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2,
   },
   infoTextContainer: {
     flexDirection: 'row',
     gap: 16,
   },
   verticalLine: {
-    width: 2,
+    width: 4, // Thicker line
     backgroundColor: theme.colors.primary,
     height: '100%',
   },
   bodyText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 12,
+    lineHeight: 20,
     fontFamily: 'monospace',
     textAlign: 'left',
     color: theme.colors.text,
   },
   placeholderText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'monospace',
     color: theme.colors.muted,
     fontStyle: 'italic',
@@ -564,12 +600,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surface,
-    paddingVertical: 10,
+    backgroundColor: theme.colors.text, // Inverted for prominence
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderRadius: 0, // Sharp corners
+    borderWidth: 0,
     marginHorizontal: 20,
     marginBottom: 12,
     gap: 8,
@@ -578,8 +613,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     fontFamily: 'monospace',
-    color: theme.colors.text,
+    color: theme.colors.surface, // Inverted text color
     textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   errorHeader: {
     flexDirection: 'row',
@@ -592,6 +628,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: theme.colors.primary,
     letterSpacing: 2,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
   },
   errorContainer: {
     flex: 1,
@@ -600,10 +638,21 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   errorText: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: 'bold',
     color: theme.colors.text,
     letterSpacing: 1,
     textAlign: 'center',
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
 });

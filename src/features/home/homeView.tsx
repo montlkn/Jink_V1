@@ -1,6 +1,6 @@
 import StreakCard from "@/components/cards/StreakCard";
 import AuraBreakdownModal, {
-  type AuraSegment,
+    type AuraSegment,
 } from "@/components/modals/AuraBreakdownModal";
 import XPDetailModal from "@/components/modals/XPDetailModal";
 import XPGlassBadge from "@/components/passport/XPGlassBadge";
@@ -18,13 +18,13 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  InteractionManager,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View
+    Animated,
+    InteractionManager,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import type { HomeQuest } from "./homeSelectors";
@@ -371,6 +371,7 @@ export function HomeView(): JSX.Element {
         currentXP={userData.xp}
         level={userData.level}
         xpForNextLevel={userData.xpForNextLevel}
+        streakCount={streakCount}
       />
 
       <QuestDetailModal

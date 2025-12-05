@@ -6,6 +6,8 @@ export type WalkSummary = {
   borough?: string;
   dominantStyle?: string;
   dominantArchitect?: string;
+  buildingCount?: number;
+  customLabel?: string;
   era?: {
     start: number;
     end: number;

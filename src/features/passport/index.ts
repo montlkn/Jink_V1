@@ -4,6 +4,7 @@ export { PassportView as PassportFeature } from "./passportView";
 
 // Re-export passport components for use by screens
 export { default as InlineFlipCard } from "@/components/InlineFlipCard";
+export { InfoMenu } from "@/components/passport/InfoMenu";
 export { default as PassportBackButton } from "@/components/passport/PassportBackButton";
 export { default as PassportBackdrop } from "@/components/passport/PassportBackdrop";
 export { PassportEditButton } from "@/components/passport/PassportEditButton";

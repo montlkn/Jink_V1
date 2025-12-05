@@ -97,6 +97,8 @@ export type FetchXpSummaryResult = {
   xp: number;
   level: number;
   xpSpent: number;
+  levelTitle?: string;
+  levelTier?: string;
 };
 
 export type XpSnapshot = FetchXpSummaryResult;
@@ -418,12 +420,14 @@ type ProfileXpRow = {
   xp: number | null;
   level: number | null;
   xp_spent: number | null;
+  level_title?: string | null;
+  level_tier?: string | null;
 };
 
 export async function fetchXpSummary(userId: string): Promise<FetchXpSummaryResult> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("xp, level, xp_spent")
+    .select("xp, level, xp_spent, level_title, level_tier")
     .eq("id", userId)
     .single();
 
@@ -437,6 +441,8 @@ export async function fetchXpSummary(userId: string): Promise<FetchXpSummaryResu
     xp: coerceNumber(source.xp, 0),
     level: Math.max(1, coerceNumber(source.level, 1)),
     xpSpent: coerceNumber(source.xp_spent, 0),
+    levelTitle: source.level_title || undefined,
+    levelTier: source.level_tier || undefined,
   };
 }
 
@@ -496,18 +502,84 @@ export async function awardXp(params: AwardXpParams): Promise<void> {
     throw error;
   }
 
+  // Update level title and tier after awarding XP
+  try {
+    const { getProgressToNextLevel } = await import('@/constants/xpLevels');
+    const xpSummary = await fetchXpSummary(userId);
+    const levelInfo = getProgressToNextLevel(xpSummary.xp);
+
+    await supabase
+      .from('profiles')
+      .update({
+        level_title: levelInfo.currentLevelTitle,
+        level_tier: levelInfo.tier,
+      })
+      .eq('id', userId);
+
+    log.info(`[supabaseGateway] Updated level: ${xpSummary.level} - ${levelInfo.currentLevelTitle} (${levelInfo.tier})`);
+  } catch (levelError) {
+    log.warn("[supabaseGateway] Failed to update level title", levelError);
+  }
+
   // Update daily streak after awarding XP
-  if (source === "building_scan") {
+  // Streaks are maintained by: building scans, verified walks, and contributions
+  const STREAK_SOURCES = ['building_scan', 'walk_completion', 'photo_contribution', 'building_contribution'];
+
+  if (STREAK_SOURCES.includes(source)) {
     try {
       const streakUpdate = await updateDailyStreak(userId);
       if (streakUpdate.isNewDay) {
-        log.info(`[supabaseGateway] Daily streak updated: ${streakUpdate.streakCount} days`);
+        log.info(`[${source}] Daily streak updated: ${streakUpdate.streakCount} days`);
+
+        // Log streak milestones
+        if ([3, 7, 30, 100].includes(streakUpdate.streakCount)) {
+          log.info(`🎉 Streak milestone reached: ${streakUpdate.streakCount} days`);
+        }
       }
     } catch (streakUpdateError) {
       log.warn("[supabaseGateway] Failed to update daily streak", streakUpdateError);
     }
   }
 
+  // Award stamps for contributions
+  if (source === "photo_contribution" || source === "building_contribution") {
+    try {
+      const stampType = source === "photo_contribution" ? "photo_contributor" : "data_pioneer";
+
+      const { data: profile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('stamps')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) {
+        log.warn("[supabaseGateway] Failed to fetch current stamps", fetchError);
+        return;
+      }
+
+      const currentStamps = Array.isArray(profile?.stamps) ? profile.stamps : [];
+
+      if (!currentStamps.includes(stampType)) {
+        const updatedStamps = [...currentStamps, stampType];
+
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ stamps: updatedStamps })
+          .eq('id', userId);
+
+        if (updateError) {
+          log.warn("[supabaseGateway] Failed to award stamp", updateError);
+        } else {
+          log.info(`[supabaseGateway] Awarded stamp: ${stampType}`);
+        }
+      }
+    } catch (stampError) {
+      log.warn("[supabaseGateway] Failed to handle stamp awarding", stampError);
+    }
+    return;
+  }
+
+  // Quest progress only applies to building scans
   if (source !== "building_scan") {
     return;
   }

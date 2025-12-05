@@ -42,6 +42,18 @@ export const APP_COLORS = {
         surface: "#FFFFFF",
         background: "#DEDEDE",
     },
+
+    // Text colors
+    text: "#000000",
+    textSecondary: "#666666",
+
+    // Surface & Background
+    surface: "#FFFFFF",
+    background: "#F5F5F5",
+
+    // Borders & Accents
+    border: "#E0E0E0",
+    accent: "#00AEEF", // Blue from weekly/xp
 };
 
 export default APP_COLORS;

@@ -3,18 +3,22 @@ import { useAestheticProfile } from "@/hooks/useAestheticProfile";
 import { log } from "@/lib/log";
 import { screens } from "@/navigation/routes";
 // eslint-disable-next-line no-restricted-imports
-import { startWalk } from '@/services/gateways';
-// eslint-disable-next-line no-restricted-imports
 import { getUserStyleExposure } from '@/services/gateways/userBehaviorGateway';
 // eslint-disable-next-line no-restricted-imports
 import { buildTimeConstrainedRoute } from '@/services/routeBuilderService';
 // eslint-disable-next-line no-restricted-imports
 import { fetchNearbyBuildingsFromDB } from '@/services/buildingService';
+// eslint-disable-next-line no-restricted-imports
+import { startWalk } from '@/services/gateways';
+// eslint-disable-next-line no-restricted-imports
+import { getCachedLocation } from "@/services/locationCacheService";
+import { fetchUserScannedBuildings, filterVisitedBuildings } from '@/utils/visitedBuildingsUtils';
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, LayoutAnimation, Platform, StyleSheet, UIManager, View } from "react-native";
+import { Alert, Animated, LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
+import { FilterMenu } from "../../components/common/FilterMenu";
 import MultiplierGlow from "../../components/glow/MultiplierGlow";
 import StreamingInstructionText from "../../components/walk/StreamingInstructionText";
 import TimerDisplay from "../../components/walk/TimerDisplay";
@@ -42,6 +46,8 @@ const WalkStartScreen = ({ navigation, route }) => {
   const [locationLoading, setLocationLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [shouldRenderOrb, setShouldRenderOrb] = useState(false); // Defer 3D rendering for performance
+  const [includeVisited, setIncludeVisited] = useState(false); // Toggle for including previously visited buildings
+  const [showFilterMenu, setShowFilterMenu] = useState(false); // Show/hide filter menu
   const hapticsCancelRef = useRef(null);
 
 
@@ -232,14 +238,27 @@ const WalkStartScreen = ({ navigation, route }) => {
   );
 
   useEffect(() => {
-    let retryCount = 0;
-    const maxRetries = 3;
-
     const fetchLocation = async () => {
       try {
-        log.info("[walkStart] Requesting location permissions...");
+        log.info("[walkStart] Fetching location from cache...");
+        
+        // First, try to get cached location (pre-warmed at app startup)
+        const cachedLoc = await getCachedLocation({ maxAge: 60000 }); // 60 second max age
+        
+        if (cachedLoc) {
+          setLocation({ latitude: cachedLoc.latitude, longitude: cachedLoc.longitude });
+          setLocationLoading(false);
+          log.info("[walkStart] Location acquired from cache", { 
+            latitude: cachedLoc.latitude, 
+            longitude: cachedLoc.longitude,
+            accuracy: cachedLoc.accuracy 
+          });
+          return;
+        }
+
+        // Fallback: If no cached location, request permissions and fetch fresh
+        log.info("[walkStart] No cached location, requesting permissions...");
         const { status } = await Location.requestForegroundPermissionsAsync();
-        log.info("[walkStart] Permission status:", status);
 
         if (status !== "granted") {
           Alert.alert(
@@ -250,42 +269,42 @@ const WalkStartScreen = ({ navigation, route }) => {
           return;
         }
 
-        log.info("[walkStart] Fetching current position (attempt ${retryCount + 1}/${maxRetries})...");
-
-        // Use same accuracy as ScanScreen for consistency
+        log.info("[walkStart] Fetching fresh location...");
         const locationData = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.BestForNavigation,
+          accuracy: Location.Accuracy.Balanced, // Use Balanced for faster acquisition
         });
 
         const { latitude, longitude } = locationData.coords;
         setLocation({ latitude, longitude });
         setLocationLoading(false);
-        log.info("[walkStart] Location acquired successfully", { latitude, longitude });
+        log.info("[walkStart] Fresh location acquired", { latitude, longitude });
       } catch (error) {
-        log.error("[walkStart] Location error (attempt ${retryCount + 1}):", {
+        log.error("[walkStart] Location error:", {
           message: error.message,
           code: error.code,
         });
-
-        retryCount++;
-
-        if (retryCount < maxRetries) {
-          log.info("[walkStart] Retrying location fetch in 2 seconds...");
-          setTimeout(fetchLocation, 2000);
-        } else {
-          Alert.alert(
-            "Location Error",
-            "Unable to get your location after multiple attempts. Please check:\n\n• Location Services are enabled in Settings\n• This app has location permission\n• You're not indoors with poor GPS signal\n• Try moving to a window or outdoors",
-            [
-              { text: "Cancel", style: "cancel" },
-              { text: "Try Again", onPress: () => { retryCount = 0; fetchLocation(); } }
-            ]
-          );
-        }
+        
+        Alert.alert(
+          "Location Error",
+          "Unable to get your location. Please check that Location Services are enabled.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Try Again", onPress: fetchLocation }
+          ]
+        );
       }
     };
 
     fetchLocation();
+  }, []);
+
+  const handleFilterPress = useCallback(() => {
+    setShowFilterMenu(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
+  const handleFilterSelect = useCallback((value) => {
+    setIncludeVisited(value);
   }, []);
 
   const handleStartWalk = useCallback(async () => {
@@ -344,7 +363,36 @@ const WalkStartScreen = ({ navigation, route }) => {
 
       // Buildings from fetchNearbyBuildingsFromDB already have correct field names
       // (both lat/lng and latitude/longitude)
-      const mappedBuildings = nearbyPlaces;
+      let mappedBuildings = nearbyPlaces;
+
+      // Filter out previously visited buildings if toggle is off
+      if (!includeVisited && session?.user?.id) {
+        try {
+          const scannedIds = await fetchUserScannedBuildings(session.user.id);
+          const beforeCount = mappedBuildings.length;
+          mappedBuildings = filterVisitedBuildings(mappedBuildings, scannedIds);
+          const afterCount = mappedBuildings.length;
+          
+          log.info('[walkStart] Filtered out visited buildings', {
+            beforeCount,
+            afterCount,
+            filteredOut: beforeCount - afterCount,
+          });
+
+          // If filtering removed all buildings, alert user
+          if (afterCount === 0 && beforeCount > 0) {
+            Alert.alert(
+              "All Buildings Visited!",
+              "You've already visited all nearby buildings! Turn on 'Include Visited Buildings' to revisit them.",
+              [{ text: "OK" }]
+            );
+            return;
+          }
+        } catch (error) {
+          log.warn('[walkStart] Error filtering visited buildings, continuing with all buildings', error);
+          // Continue with all buildings if filtering fails
+        }
+      }
 
       // NEW: Build time-constrained route with aesthetic filtering
       let routeResult;
@@ -392,17 +440,7 @@ const WalkStartScreen = ({ navigation, route }) => {
           );
           return;
         }
-      } catch (routeError) {
-        log.error("[walkStart] Error building route", routeError);
-        // Fallback to unscored buildings if route building fails
-        routeResult = {
-          buildings: mappedBuildings.slice(0, 10),
-          routeTier: 'aesthetic',
-          xpMultiplier: 1.0,
-          compatibilityScore: 50,
-          estimatedDurationMin: time,
-          totalDistanceKm: 1,
-        };
+      } catch (_routeError) {
       }
 
 
@@ -459,7 +497,7 @@ const WalkStartScreen = ({ navigation, route }) => {
         hapticsCancelRef.current = null;
       }
     }
-  }, [isFetching, location, navigation, pinToJink, startLaunchHaptics, time, profile, session?.user?.id]);
+  }, [isFetching, location, navigation, pinToJink, startLaunchHaptics, time, profile, session?.user?.id, includeVisited]);
 
   return (
     <View style={styles.safeArea}>
@@ -472,7 +510,7 @@ const WalkStartScreen = ({ navigation, route }) => {
           )}
           
           {/* Timer Display */}
-          <TimerDisplay value={time} label="minutes" />
+          <TimerDisplay value={time} />
           
           {/* Time Stepper Buttons */}
           <TimeStepper 
@@ -484,6 +522,29 @@ const WalkStartScreen = ({ navigation, route }) => {
             opacity={stepperOpacity}
           />
         </Animated.View>
+        
+        {/* Filter Button - Top Right */}
+        <Pressable 
+          style={styles.filterButton}
+          onPress={handleFilterPress}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.filterIcon}>{includeVisited ? "⊙" : "◎"}</Text>
+        </Pressable>
+
+        {/* Filter Menu */}
+        <FilterMenu
+          visible={showFilterMenu}
+          onClose={() => setShowFilterMenu(false)}
+          title="Filter Options"
+          options={[
+            { label: "Include Visited Buildings", value: true },
+            { label: "Exclude Visited Buildings", value: false },
+          ]}
+          selectedValue={includeVisited}
+          onSelect={handleFilterSelect}
+        />
+        
         <Animated.View
           style={[
             styles.sliderOrbWrapper,
@@ -575,7 +636,7 @@ const styles = StyleSheet.create({
   },
   timerDisplay: {
     position: "absolute",
-    top: 100, // Moved down to make room for XP badge
+    top: 120, // Moved down to make room for XP badge
     left: 0,
     right: 0,
     alignItems: "center",
@@ -605,6 +666,29 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     color: "#111",
+  },
+  filterButton: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterIcon: {
+    fontSize: 24,
+    color: '#111',
+    fontWeight: '600',
   },
 });
 

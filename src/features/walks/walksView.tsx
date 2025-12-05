@@ -31,7 +31,16 @@ const formatDistance = (distanceKm: number | undefined) => {
   if (typeof distanceKm !== "number" || !Number.isFinite(distanceKm)) {
     return "—";
   }
-  return `${distanceKm.toFixed(1)} km`;
+  const feet = distanceKm * 3280.84;
+  
+  // Show in feet for distances under 0.5 miles (2640 feet)
+  if (feet < 2640) {
+    return `${Math.round(feet)} ft`;
+  }
+  
+  // Otherwise show in miles for longer distances
+  const miles = distanceKm * 0.621371;
+  return `${miles.toFixed(1)} mi`;
 };
 
 export function WalksView(): JSX.Element {

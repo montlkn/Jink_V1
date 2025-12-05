@@ -1,8 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { log } from "@/lib/log";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { ArchetypeDatum } from "./archetypeHelpers";
 
-const CACHE_VERSION = "v4"; // Increment this to invalidate all caches
+const CACHE_VERSION = "v5"; // Increment this to invalidate all caches
 const CACHE_KEY_PREFIX = `@taste_summary_cache_${CACHE_VERSION}_`;
 const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -12,17 +12,28 @@ type CachedTasteSummary = {
   cacheKey: string;
 };
 
-export function generateCacheKey(archetypes: ArchetypeDatum[], context: string): string {
+export function generateCacheKey(
+  archetypes: ArchetypeDatum[],
+  context: string,
+): string {
   // Ensure archetypes is a proper array
-  const safeArchetypes = Array.isArray(archetypes) ? Array.from(archetypes) : [];
+  const safeArchetypes = Array.isArray(archetypes)
+    ? Array.from(archetypes)
+    : [];
   const archetypeStr = safeArchetypes
     .slice(0, 2)
-    .map((a) => `${a.name || a.archetype}:${Math.round((a.percentage || a.score || 0) * 10) / 10}`)
+    .map((a) =>
+      `${a.name || a.archetype}:${
+        Math.round((a.percentage || a.score || 0) * 10) / 10
+      }`
+    )
     .join("|");
   return `${CACHE_KEY_PREFIX}${context}_${archetypeStr}`;
 }
 
-export async function getCachedSummary(cacheKey: string): Promise<string | null> {
+export async function getCachedSummary(
+  cacheKey: string,
+): Promise<string | null> {
   try {
     const cached = await AsyncStorage.getItem(cacheKey);
     if (!cached) return null;
@@ -42,7 +53,10 @@ export async function getCachedSummary(cacheKey: string): Promise<string | null>
   }
 }
 
-export async function setCachedSummary(cacheKey: string, text: string): Promise<void> {
+export async function setCachedSummary(
+  cacheKey: string,
+  text: string,
+): Promise<void> {
   try {
     const cached: CachedTasteSummary = {
       text,

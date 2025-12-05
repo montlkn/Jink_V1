@@ -2,12 +2,12 @@ import { getStreakMultiplier } from '@/theme/designConstants';
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
 import {
-    Dimensions,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    View
+  Dimensions,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import ModalCloseButton from './ModalCloseButton';
@@ -173,12 +173,12 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: -6,
+    right: 0,
     zIndex: 10,
   },
   title: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 'bold',
     color: theme.colors.text,
     textAlign: 'center',

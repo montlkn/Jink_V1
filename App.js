@@ -10,6 +10,7 @@ import "@/lib/log";
 import { log } from "@/lib/log";
 import RootNavigator from "@/navigation/RootNavigator";
 import { flushEventQueue } from "@/services/gateways/aestheticEventGateway";
+import { initLocationCache } from "@/services/locationCacheService";
 import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -174,6 +175,11 @@ export default function App() {
 
     Asset.loadAsync(ORB_ASSETS).catch((error) => {
       console.warn("[App] Failed to preload orb assets", error);
+    });
+
+    // Pre-warm GPS location cache for faster WalkStartScreen load
+    initLocationCache().catch((error) => {
+      log.warn("[App] Failed to initialize location cache", error);
     });
 
     // Flush aesthetic event queue when app comes to foreground

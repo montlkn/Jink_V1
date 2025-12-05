@@ -1,6 +1,4 @@
 // get buildings order
-// use mock data for now
-
 /**
  * @param {{id:string, name?:string, lat:number, lng:number}[]} buildings
  * @param {{lat:number, lng:number}} userStart
@@ -18,6 +16,7 @@
 export function deriveBuildingOrder(buildings, userStart, opts = {}) {
   const speedKmh = opts.speedKmh ?? 4.5; // walking default
   const twoOptMaxSwaps = opts.twoOptMaxSwaps ?? 2000;
+  const MAX_WALKING_DISTANCE_KM = 1.21; // 0.75 miles
 
   if (!buildings || buildings.length === 0) {
     return {
@@ -30,8 +29,26 @@ export function deriveBuildingOrder(buildings, userStart, opts = {}) {
     };
   }
 
+  // Filter buildings to only include those within 0.75 miles (1.21 km)
+  const nearbyBuildings = buildings.filter((b) => {
+    const dist = haversineKm(userStart, b);
+    return dist <= MAX_WALKING_DISTANCE_KM;
+  });
+
+  if (nearbyBuildings.length === 0) {
+    return {
+      start: userStart,
+      route: [],
+      legs: [],
+      total_distance_km: 0,
+      est_duration_min: 0,
+      method: "nearest-neighbor+2opt",
+      error: "No buildings within 0.75 miles",
+    };
+  }
+
   // pick the nearest building to the user as the first stop
-  const pool = buildings.slice();
+  const pool = nearbyBuildings.slice();
   const startIdx = argMin(pool, (b) => haversineKm(userStart, b));
   const first = pool.splice(startIdx, 1)[0];
 
@@ -109,7 +126,8 @@ function argMin(arr, f) {
   return best;
 }
 
-// Simple 2-opt improvement; keeps the first node fixed
+// Simple 2-opt improvement; keeps the first node fixed (closest to user)
+// This ensures the nearest building is always first
 function twoOpt(route, maxSwaps = 2000) {
   if (route.length < 4) return;
   let improved = true,
@@ -119,7 +137,8 @@ function twoOpt(route, maxSwaps = 2000) {
 
   while (improved && swaps < maxSwaps) {
     improved = false;
-    for (let i = 0; i < route.length - 3 && swaps < maxSwaps; i++) {
+    // Start from index 1 to keep the first building (closest to user) fixed
+    for (let i = 1; i < route.length - 2 && swaps < maxSwaps; i++) {
       for (let k = i + 2; k < route.length - 1 && swaps < maxSwaps; k++) {
         const a = i,
           b = i + 1,

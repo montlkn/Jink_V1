@@ -1,3 +1,5 @@
+import { getXpForNextLevel as getXpForNext } from "@/constants/xpLevels";
+
 export type QuestReward = {
   type: "stamp" | "achievement";
   icon: "bookmark" | "ribbon";
@@ -103,12 +105,14 @@ const mapRewards = (raw: unknown): QuestReward[] => {
 const pickQuestId = (raw: QuestGatewayPayload): string | null =>
   safeString(raw.id) ?? safeString((raw as any).quest_id);
 
+// Import from xpLevels for consistency (imported at top)
+
 export const getXpForNextLevel = (currentLevel: number): number =>
-  Math.pow(Math.max(1, currentLevel), 2) * 100;
+  getXpForNext(currentLevel);
 
 export function toQuestItem(
   raw: unknown,
-  type: "daily" | "weekly"
+  type: "daily" | "weekly",
 ): QuestItem | null {
   if (!isRecord(raw)) {
     return null;
@@ -131,7 +135,7 @@ export function toQuestItem(
 }
 
 export function toQuestCollection(
-  payload: { daily?: unknown; weekly?: unknown } | null | undefined
+  payload: { daily?: unknown; weekly?: unknown } | null | undefined,
 ): QuestCollection {
   const daily = payload?.daily ? toQuestItem(payload.daily, "daily") : null;
   const weekly = payload?.weekly ? toQuestItem(payload.weekly, "weekly") : null;

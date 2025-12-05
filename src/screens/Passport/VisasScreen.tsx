@@ -1,13 +1,12 @@
 import { visaCarousel } from "@/constants/passportContent";
-import { PassportBackButton, PassportInfoButton, SecurityPattern } from "@/features/passport";
+import { InfoMenu, PassportBackButton, PassportInfoButton, SecurityPattern } from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
-    Alert,
     Dimensions,
     SafeAreaView,
     StyleSheet,
@@ -99,16 +98,14 @@ function VisaCard({ item, index, scrollX }: { item: (typeof visaCarousel)[number
 export default function VisasScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
   const scrollX = useSharedValue(0);
+  const [showInfoMenu, setShowInfoMenu] = useState(false);
 
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollX.value = event.contentOffset.x;
   });
 
   const handleInfo = useCallback(() => {
-    Alert.alert(
-      "NEIGHBORHOOD VISAS",
-      "Visas celebrate neighborhoods you know intimately. Earn them by meeting local visit requirements."
-    );
+    setShowInfoMenu(true);
   }, []);
 
   return (
@@ -141,6 +138,13 @@ export default function VisasScreen(): JSX.Element {
           )}
         />
       </View>
+
+      <InfoMenu
+        visible={showInfoMenu}
+        onClose={() => setShowInfoMenu(false)}
+        title="NEIGHBORHOOD VISAS"
+        content="Visas celebrate neighborhoods you know intimately. Earn them by meeting local visit requirements."
+      />
     </SafeAreaView>
   );
 }
