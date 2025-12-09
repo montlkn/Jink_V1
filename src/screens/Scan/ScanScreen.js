@@ -5,7 +5,7 @@ import { screens } from "@/navigation/routes";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { Accelerometer, Magnetometer } from 'expo-sensors';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import BreathingGlow from '../../components/glow/BreathingGlow';
 import ArchetypeOrb from '../../features/orb/ArchetypeOrb';
@@ -25,27 +25,52 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function ScanScreen({ navigation, route }) {
   const { session } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
-  const [position, setPosition] = useState(null);
-  const [heading, setHeading] = useState(0);
-  const [pitch, setPitch] = useState(0); // Phone pitch for cone of vision
-  const [altitude, setAltitude] = useState(null);
-  const [confidence, setConfidence] = useState(0);
-  const [gpsAccuracy, setGpsAccuracy] = useState(null); // GPS accuracy in meters
-  const [movementType, setMovementType] = useState('stationary');
+
+  // BATCHED sensor state - single state object instead of 7 separate ones
+  const [sensorState, setSensorState] = useState({
+    position: null,
+    heading: 0,
+    pitch: 0,
+    altitude: null,
+    confidence: 0,
+    gpsAccuracy: null,
+    movementType: 'stationary',
+  });
+
   const [isScanning, setIsScanning] = useState(false);
-  const [nearbyBuildings, setNearbyBuildings] = useState([]); // For cone of vision verification
+  const [nearbyBuildings, setNearbyBuildings] = useState([]);
 
   // Verification mode params from WalkNav
   const verificationMode = route.params?.verificationMode || false;
   const expectedBuilding = route.params?.expectedBuilding;
   const walkId = route.params?.walkId;
-  // const _returnScreen = route.params?.returnScreen;
 
   const fusionRef = useRef(null);
   const lastGPSTime = useRef(Date.now());
   const cameraRef = useRef(null);
 
+  // Refs for batching sensor updates - accumulate then flush once per frame
+  const pendingSensorUpdates = useRef({});
+  const frameRequestId = useRef(null);
+
   const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+
+  // Flush batched sensor updates once per frame (16ms) instead of per sensor tick
+  const flushSensorUpdates = useCallback(() => {
+    frameRequestId.current = null;
+    const updates = pendingSensorUpdates.current;
+    if (Object.keys(updates).length > 0) {
+      setSensorState(prev => ({ ...prev, ...updates }));
+      pendingSensorUpdates.current = {};
+    }
+  }, []);
+
+  const queueSensorUpdate = useCallback((updates) => {
+    Object.assign(pendingSensorUpdates.current, updates);
+    if (!frameRequestId.current) {
+      frameRequestId.current = requestAnimationFrame(flushSensorUpdates);
+    }
+  }, [flushSensorUpdates]);
 
   // Initialize sensor fusion on mount
   useEffect(() => {
@@ -54,173 +79,134 @@ export default function ScanScreen({ navigation, route }) {
     } catch (error) {
       log.error('[scan] Error initializing PositionFusion', error);
     }
+    return () => {
+      if (frameRequestId.current) {
+        cancelAnimationFrame(frameRequestId.current);
+      }
+    };
   }, []);
 
-  // Magnetometer (Compass)
+  // OPTIMIZED: Magnetometer at 500ms instead of 250ms, batched updates
   useEffect(() => {
     try {
-      Magnetometer.setUpdateInterval(250);
+      Magnetometer.setUpdateInterval(500); // Was 250ms - halved update rate
       const magSub = Magnetometer.addListener((data) => {
         const { x, y } = data;
         let angle = Math.atan2(y, x) * (180 / Math.PI);
         angle = 90 - angle;
         const normalized = ((angle % 360) + 360) % 360;
-        setHeading(normalized);
+        queueSensorUpdate({ heading: normalized });
       });
-
       return () => magSub.remove();
     } catch (error) {
       log.error('[scan] Magnetometer error', error);
     }
-  }, []);
+  }, [queueSensorUpdate]);
 
-  // Accelerometer (Movement Detection + Pitch)
+  // OPTIMIZED: Accelerometer at 500ms instead of 100ms, batched updates
   useEffect(() => {
     try {
-      Accelerometer.setUpdateInterval(100);
+      Accelerometer.setUpdateInterval(500); // Was 100ms - 5x slower
       const accelSub = Accelerometer.addListener((data) => {
         const movement = detectMovementType(data);
-        setMovementType(movement);
-
-        // Calculate pitch (phone tilt angle)
-        // pitch = atan2(y, sqrt(x² + z²)) * 180/π
-        // Positive = tilted up, Negative = tilted down
         const { x, y, z } = data;
         const calculatedPitch = Math.atan2(y, Math.sqrt(x * x + z * z)) * (180 / Math.PI);
-        setPitch(calculatedPitch);
+        queueSensorUpdate({ movementType: movement, pitch: calculatedPitch });
       });
-
       return () => accelSub.remove();
     } catch (error) {
       log.error('[scan] Accelerometer error', error);
     }
-  }, []);
+  }, [queueSensorUpdate]);
 
-  // Update confidence score
+  // OPTIMIZED: Confidence score at 3s instead of 1s
   useEffect(() => {
     const interval = setInterval(() => {
       const timeSinceGPS = Date.now() - lastGPSTime.current;
       const conf = calculatePositionConfidence({
-        hasGPS: position !== null,
-        gpsAccuracy: gpsAccuracy || 50, // Use actual GPS accuracy
+        hasGPS: sensorState.position !== null,
+        gpsAccuracy: sensorState.gpsAccuracy || 50,
         hasBarometer: false,
         hasIMU: true,
         timeSinceLastGPS: timeSinceGPS,
       });
-      setConfidence(conf);
-    }, 1000);
+      queueSensorUpdate({ confidence: conf });
+    }, 3000); // Was 1000ms
 
     return () => clearInterval(interval);
-  }, [position, gpsAccuracy]);
-
-  // Barometer (Altitude/Floor detection) - DISABLED
-  // Crashes on this device - floor will default to 0
-  // Not essential for building identification
-  /*
+  }, [sensorState.position, sensorState.gpsAccuracy, queueSensorUpdate]);
+  // OPTIMIZED: Location watcher with reduced frequency and batched updates
   useEffect(() => {
-    let subscription = null;
-
-    const setupBarometer = () => {
-      try {
-        Barometer.setUpdateInterval(1000);
-        subscription = Barometer.addListener((barometerData) => {
-          try {
-            const fusion = fusionRef.current;
-            if (!fusion) return;
-            const { pressure } = barometerData;
-            if (pressure) {
-              const altData = fusion.updateBarometer(pressure);
-              setAltitude(altData.relativeAltitude);
-              setFloor(altData.floor);
-            }
-          } catch (error) {
-          log.error('[scan] Error in barometer listener', error);
-          }
-        });
-      } catch (error) {
-        log.error('[scan] Barometer setup failed', error);
-      }
-    };
-
-    const timer = setTimeout(setupBarometer, 500);
-    return () => {
-      clearTimeout(timer);
-      if (subscription) {
-        subscription.remove();
-      }
-    };
-  }, []);
-  **/
-
-  // Get location and watch for updates
-  useEffect(() => {
-    if (!fusionRef.current) {
-      return;
-    }
+    if (!fusionRef.current) return;
 
     let locationSubscription = null;
+    let isMounted = true;
 
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted' || !isMounted) return;
 
-        if (status === 'granted') {
-          // Get initial position
-          const initial = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.BestForNavigation,
-          });
+        // Get initial position with timeout
+        const initial = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High, // Was BestForNavigation - less battery
+        });
 
-          const fusion = fusionRef.current;
-          if (fusion) {
-            fusion.updateGPS(
-              initial.coords.latitude,
-              initial.coords.longitude,
-              initial.coords.altitude,
-              initial.coords.accuracy
-            );
-          }
+        if (!isMounted) return;
 
-          setPosition(initial.coords);
-          setGpsAccuracy(initial.coords.accuracy);
-          setAltitude(initial.coords.altitude ?? null);
-          lastGPSTime.current = Date.now();
-
-          // Watch for position updates
-          locationSubscription = await Location.watchPositionAsync(
-            {
-              accuracy: Location.Accuracy.BestForNavigation,
-              timeInterval: 1000,
-              distanceInterval: 1,
-            },
-            (loc) => {
-              const fusion = fusionRef.current;
-              if (fusion) {
-                fusion.updateGPS(
-                  loc.coords.latitude,
-                  loc.coords.longitude,
-                  loc.coords.altitude,
-                  loc.coords.accuracy
-                );
-              }
-
-              setPosition(loc.coords);
-              setGpsAccuracy(loc.coords.accuracy);
-              setAltitude(loc.coords.altitude ?? null);
-              lastGPSTime.current = Date.now();
-            }
+        const fusion = fusionRef.current;
+        if (fusion) {
+          fusion.updateGPS(
+            initial.coords.latitude,
+            initial.coords.longitude,
+            initial.coords.altitude,
+            initial.coords.accuracy
           );
         }
+
+        queueSensorUpdate({
+          position: initial.coords,
+          gpsAccuracy: initial.coords.accuracy,
+          altitude: initial.coords.altitude ?? null,
+        });
+        lastGPSTime.current = Date.now();
+
+        // OPTIMIZED: Watch at 5s/10m instead of 1s/1m
+        locationSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High, // Was BestForNavigation
+            timeInterval: 5000, // Was 1000ms
+            distanceInterval: 10, // Was 1m
+          },
+          (loc) => {
+            if (!isMounted) return;
+            const fusion = fusionRef.current;
+            if (fusion) {
+              fusion.updateGPS(
+                loc.coords.latitude,
+                loc.coords.longitude,
+                loc.coords.altitude,
+                loc.coords.accuracy
+              );
+            }
+            queueSensorUpdate({
+              position: loc.coords,
+              gpsAccuracy: loc.coords.accuracy,
+              altitude: loc.coords.altitude ?? null,
+            });
+            lastGPSTime.current = Date.now();
+          }
+        );
       } catch (error) {
-      log.error('[scan] Error getting location', error);
+        log.error('[scan] Error getting location', error);
       }
     })();
 
     return () => {
-      if (locationSubscription) {
-        locationSubscription.remove();
-      }
+      isMounted = false;
+      locationSubscription?.remove();
     };
-  }, []);
+  }, [queueSensorUpdate]);
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -230,13 +216,13 @@ export default function ScanScreen({ navigation, route }) {
 
   // Fetch nearby buildings for cone of vision verification (verification mode only)
   useEffect(() => {
-    if (!verificationMode || !position) return;
+    if (!verificationMode || !sensorState.position) return;
 
     const fetchNearby = async () => {
       try {
         const buildings = await fetchNearbyBuildingsFromDB({
-          latitude: position.latitude,
-          longitude: position.longitude,
+          latitude: sensorState.position.latitude,
+          longitude: sensorState.position.longitude,
           radiusKm: 0.05, // 50m radius for verification
           limit: 50,
         });
@@ -251,7 +237,10 @@ export default function ScanScreen({ navigation, route }) {
     };
 
     fetchNearby();
-  }, [verificationMode, position]);
+  }, [verificationMode, sensorState.position]);
+
+  // Destructure for cleaner access in handlers
+  const { position, heading, pitch, altitude, confidence, gpsAccuracy, movementType } = sensorState;
 
   // Handle photo capture
   const handleCapture = async () => {

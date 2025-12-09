@@ -10,6 +10,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import { APP_COLORS } from '../../constants/appColors';
 
 interface ContributeModalProps {
@@ -103,6 +104,13 @@ export const ContributeModal: React.FC<ContributeModalProps> = ({
 
   console.log('[ContributeModal] Showing modal UI');
 
+  const onGestureEvent = (event: any) => {
+    const { translationY, velocityY } = event.nativeEvent;
+    if (translationY > 100 || (velocityY > 500 && translationY > 50)) {
+      onClose();
+    }
+  };
+
   return (
     <Modal
       visible={true}
@@ -111,12 +119,14 @@ export const ContributeModal: React.FC<ContributeModalProps> = ({
       onRequestClose={onClose}
       statusBarTranslucent={true}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalOverlay}
-        pointerEvents="box-none"
-      >
-        <View style={styles.modalContainer} pointerEvents="auto">
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          pointerEvents="box-none"
+        >
+          <PanGestureHandler onGestureEvent={onGestureEvent}>
+            <View style={styles.modalContainer} pointerEvents="auto">
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.header}>
@@ -279,7 +289,9 @@ export const ContributeModal: React.FC<ContributeModalProps> = ({
             </View>
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+          </PanGestureHandler>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 };

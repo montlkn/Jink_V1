@@ -11,6 +11,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import { Magnetometer } from "expo-sensors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+// OPTIMIZED: Batch sensor updates to reduce re-renders
 import {
   ActivityIndicator,
   Alert,
@@ -46,17 +48,43 @@ const WalkNavScreen = ({ route, navigation }) => {
   const { pinToJink } = useOrbTransition();
   const { session } = useAuth();
   const [buildingIndex, setBuildingIndex] = useState(0);
-  const [visitedBuildings, setVisitedBuildings] = useState(new Set()); // Track which buildings user has verified
-  const [walkXp, setWalkXp] = useState(0); // Track XP earned during walk
+  const [visitedBuildings, setVisitedBuildings] = useState(new Set());
+  const [walkXp, setWalkXp] = useState(0);
 
-  // Real-time location tracking
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const [userHeading, setUserHeading] = useState(0);
+  // OPTIMIZED: Batched navigation state - single state object instead of multiple
+  const [navState, setNavState] = useState({
+    currentLocation: null,
+    userHeading: 0,
+  });
+
   const locationSubscriptionRef = useRef(null);
   const magnetometerSubscriptionRef = useRef(null);
-  
-  // Kalman filter for smooth heading (reduces magnetometer jitter)
+
+  // Kalman filter for smooth heading
   const headingFilterRef = useRef(new AngularKalmanFilter(0.08, 1.5, 0));
+
+  // Batching refs for sensor updates
+  const pendingNavUpdates = useRef({});
+  const frameRequestId = useRef(null);
+
+  const flushNavUpdates = useCallback(() => {
+    frameRequestId.current = null;
+    const updates = pendingNavUpdates.current;
+    if (Object.keys(updates).length > 0) {
+      setNavState(prev => ({ ...prev, ...updates }));
+      pendingNavUpdates.current = {};
+    }
+  }, []);
+
+  const queueNavUpdate = useCallback((updates) => {
+    Object.assign(pendingNavUpdates.current, updates);
+    if (!frameRequestId.current) {
+      frameRequestId.current = requestAnimationFrame(flushNavUpdates);
+    }
+  }, [flushNavUpdates]);
+
+  // Destructure for easy access
+  const { currentLocation, userHeading } = navState;
 
   // Get walk params
   const walkId = route.params?.walkId;
@@ -93,7 +121,7 @@ const WalkNavScreen = ({ route, navigation }) => {
     }, [walkId, session])
   );
 
-  // Real-time location tracking with battery-optimized updates
+  // OPTIMIZED: Location tracking with batched updates
   useEffect(() => {
     let isMounted = true;
 
@@ -107,31 +135,31 @@ const WalkNavScreen = ({ route, navigation }) => {
 
         // Get initial location
         const initial = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.BestForNavigation,
+          accuracy: Location.Accuracy.High, // Was BestForNavigation - less battery
         });
         if (isMounted) {
-          setCurrentLocation({
-            lat: initial.coords.latitude,
-            lng: initial.coords.longitude,
+          queueNavUpdate({
+            currentLocation: {
+              lat: initial.coords.latitude,
+              lng: initial.coords.longitude,
+            },
           });
         }
 
-        // Watch location with more frequent updates for responsive navigation
+        // OPTIMIZED: 3s/8m instead of 2s/5m - still responsive but less battery
         locationSubscriptionRef.current = await Location.watchPositionAsync(
           {
-            accuracy: Location.Accuracy.BestForNavigation,
-            timeInterval: 2000, // 2 seconds - more responsive
-            distanceInterval: 5, // 5 meters - more granular
+            accuracy: Location.Accuracy.High,
+            timeInterval: 3000, // Was 2000ms
+            distanceInterval: 8, // Was 5m
           },
           (loc) => {
             if (isMounted) {
-              setCurrentLocation({
-                lat: loc.coords.latitude,
-                lng: loc.coords.longitude,
-              });
-              log.info('[WalkNav] Location updated', {
-                lat: loc.coords.latitude.toFixed(6),
-                lng: loc.coords.longitude.toFixed(6),
+              queueNavUpdate({
+                currentLocation: {
+                  lat: loc.coords.latitude,
+                  lng: loc.coords.longitude,
+                },
               });
             }
           }
@@ -145,30 +173,32 @@ const WalkNavScreen = ({ route, navigation }) => {
 
     return () => {
       isMounted = false;
+      if (frameRequestId.current) {
+        cancelAnimationFrame(frameRequestId.current);
+      }
       if (locationSubscriptionRef.current) {
         locationSubscriptionRef.current.remove();
         locationSubscriptionRef.current = null;
       }
     };
-  }, []);
+  }, [queueNavUpdate]);
 
-  // Magnetometer for compass heading (with Kalman filtering for smoothness)
+  // OPTIMIZED: Magnetometer at 250ms (was 100ms) with batched updates
   useEffect(() => {
     let isMounted = true;
 
     try {
-      // Faster updates for responsiveness, Kalman filter handles smoothing
-      Magnetometer.setUpdateInterval(100);
+      Magnetometer.setUpdateInterval(250); // Was 100ms - Kalman filter smooths anyway
       magnetometerSubscriptionRef.current = Magnetometer.addListener((data) => {
         if (!isMounted) return;
         const { x, y } = data;
         let angle = Math.atan2(y, x) * (180 / Math.PI);
         angle = 90 - angle;
         const rawHeading = ((angle % 360) + 360) % 360;
-        
-        // Apply Kalman filter for smooth heading (reduces jitter)
+
+        // Apply Kalman filter for smooth heading
         const smoothHeading = headingFilterRef.current.updateAngle(rawHeading);
-        setUserHeading(smoothHeading);
+        queueNavUpdate({ userHeading: smoothHeading });
       });
     } catch (error) {
       log.error('[WalkNav] Magnetometer error', error);
@@ -181,7 +211,7 @@ const WalkNavScreen = ({ route, navigation }) => {
         magnetometerSubscriptionRef.current = null;
       }
     };
-  }, []);
+  }, [queueNavUpdate]);
 
   // Auto-complete when last building is visited
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -2,7 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useRef } from "react"; // useState archived for v2 - was used for search
+import { useEffect, useRef } from "react"; // useState archived for v2 - was used for search
 import {
   Animated,
   Dimensions,
@@ -24,7 +24,7 @@ const EDGE = 16;
 const PILL_HEIGHT = 62;
 // ARCHIVED for v2 - Search functionality removed for v1 beta
 // const SEARCH_SIZE = 58;
-const TAB_COUNT = 4;
+const TAB_COUNT = 3;
 const BUBBLE_SIZE = 66;
 const BUBBLE_MOVE_SPRING = { speed: 50, bounciness: 7 };
 const BUBBLE_SCALE_UP_TIMING = { duration: 55, easing: Easing.out(Easing.cubic) };

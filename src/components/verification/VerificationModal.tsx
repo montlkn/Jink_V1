@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import { APP_COLORS } from '../../constants/appColors';
 
 interface VerificationModalProps {
@@ -49,6 +50,13 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
     }
   };
 
+  const onGestureEvent = (event: any) => {
+    const { translationY, velocityY } = event.nativeEvent;
+    if (translationY > 100 || (velocityY > 500 && translationY > 50)) {
+      onClose();
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -56,8 +64,10 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={styles.overlay}>
+          <PanGestureHandler onGestureEvent={onGestureEvent}>
+            <View style={styles.modalContainer}>
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.header}>
@@ -163,8 +173,10 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
               </Text>
             </TouchableOpacity>
           </ScrollView>
+            </View>
+          </PanGestureHandler>
         </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 };

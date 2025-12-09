@@ -10,7 +10,7 @@ function ensureListener() {
     return;
   }
 
-  DeviceMotion.setUpdateInterval(16);
+  DeviceMotion.setUpdateInterval(50); // ~20fps is plenty for subtle gyro movement
   subscription = DeviceMotion.addListener((measurement) => {
     const rotation = measurement?.rotation;
     if (!rotation) {

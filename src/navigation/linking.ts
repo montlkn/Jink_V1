@@ -16,9 +16,8 @@ export const linking: LinkingOptions<RootParams> = {
       [screens.Main]: {
         path: "",
         screens: {
-          [screens.Home]: "",
+          [screens.WalkStart]: "",
           [screens.Scan]: "scan",
-          [screens.WalkStart]: "walk/start",
           [screens.Passport]: "passport",
         },
       },

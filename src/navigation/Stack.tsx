@@ -1,13 +1,15 @@
+import { useAuth } from "@/auth/authProvider";
+import BottomTabNavigator from "@/navigation/BottomTabNavigator";
+import AuthCallbackScreen from "@/screens/Auth/AuthCallbackScreen";
+import AuthLoginScreen from "@/screens/Auth/LoginScreen";
+import { PassportProvider } from "@/state/PassportContext";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { linking } from "./linking";
 import { navRef } from "./nav";
 import { screens, type RootParams } from "./routes";
-import { useAuth } from "@/auth/authProvider";
-import BottomTabNavigator from "@/navigation/BottomTabNavigator";
-import AuthCallbackScreen from "@/screens/Auth/AuthCallbackScreen";
-import AuthLoginScreen from "@/screens/Auth/LoginScreen";
 import { ScreenLoaders } from "./screenLoaders";
+
 
 type AuthContextValue = {
   session: unknown;
@@ -25,16 +27,15 @@ export function AppStack() {
 
   return (
     <NavigationContainer ref={navRef} linking={linking}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!session ? (
-          <>
-            <Stack.Screen name={screens.AuthLogin} component={AuthLoginScreen} />
-            <Stack.Screen name={screens.AuthCallback} component={AuthCallbackScreen} />
-          </>
-        ) : (
-          <>
+      {!session ? (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name={screens.AuthLogin} component={AuthLoginScreen} />
+          <Stack.Screen name={screens.AuthCallback} component={AuthCallbackScreen} />
+        </Stack.Navigator>
+      ) : (
+        <PassportProvider>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name={screens.Main} component={BottomTabNavigator} />
-            <Stack.Screen name={screens.Home} getComponent={ScreenLoaders.Home} />
             <Stack.Screen name={screens.Quests} getComponent={ScreenLoaders.Quests} />
             <Stack.Screen
               name={screens.WalkSummary}
@@ -97,9 +98,9 @@ export function AppStack() {
               name={screens.QuizResults}
               getComponent={ScreenLoaders.QuizResults}
             />
-          </>
-        )}
-      </Stack.Navigator>
+          </Stack.Navigator>
+        </PassportProvider>
+      )}
     </NavigationContainer>
   );
 }

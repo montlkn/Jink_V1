@@ -1,8 +1,7 @@
 import { Canvas, useThree } from "@react-three/fiber/native";
 import React, { useEffect, useRef } from "react";
-import { ACESFilmicToneMapping, Group, SRGBColorSpace } from "three";
+import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
 import { useEnvMap } from "./env/envLoader";
-import { GyroLightRig } from "./GyroLightRig";
 import { RainbowLayer } from "./RainbowLayer";
 
 const ENV = require("../../../../assets/env/qwantani_moon_noon_puresky_1080.jpg");
@@ -12,18 +11,22 @@ type Props = {
   level: number;
   progress: number; // 0 to 1
   onPress?: () => void;
+  tintColor?: string; // Optional tint color for multiplier mode
 };
 
 type OrbContentProps = {
   envAsset: any;
+  tintColor?: string;
 };
 
-function OrbContent({ envAsset }: OrbContentProps) {
-  const envHolder = useRef<Group | null>(null);
-  const lightGroup = useRef<Group | null>(null);
+function OrbContent({ envAsset, tintColor }: OrbContentProps) {
   const materialRef = useRef<any>(null);
   const env = useEnvMap(envAsset);
   const { scene } = useThree();
+
+  // Use tint color if provided, otherwise default gold
+  const glassColor = tintColor || "#FFD700";
+  const attenuationCol = tintColor || "#FFD37A";
 
   // Feed PBR with the env once it exists
   useEffect(() => {
@@ -45,53 +48,38 @@ function OrbContent({ envAsset }: OrbContentProps) {
 
   return (
     <>
-      {/* Rotating light rig - controlled by gyroscope with extended range */}
-      <group ref={lightGroup}>
-        <GyroLightRig target={lightGroup} maxRadians={0.9} />
-        <ambientLight intensity={0.35} />
-        {/* Main key lights for sparkle highlights */}
-        <directionalLight position={[2, 2, 3]} intensity={7.5} />
-        <directionalLight position={[-3, 1, -2]} intensity={8.0} />
-        {/* Additional accent lights keep core sparkle but leave room for gyro contrast */}
-        {/* @ts-ignore - pointLight exists in R3F but types may be incomplete */}
-        <pointLight position={[1.5, 1, 2]} intensity={5.0} distance={5} decay={2} />
-        {/* @ts-ignore */}
-        <pointLight position={[-1, -1.5, 2]} intensity={4.5} distance={5} decay={2} />
-        {/* @ts-ignore - Extra colored lights for rainbow effect */}
-        <pointLight position={[0, 2, 1]} intensity={3.0} distance={4} decay={2} color="#FF69B4" />
-        {/* @ts-ignore */}
-        <pointLight position={[0, -2, 1]} intensity={3.0} distance={4} decay={2} color="#00CED1" />
-      </group>
+      {/* Static light rig - no gyro for performance */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[2, 2, 3]} intensity={6.0} />
+      <directionalLight position={[-2, 1, -2]} intensity={5.0} />
 
-      {/* Rotating orb group with extended gyro range */}
-      <group ref={envHolder}>
-        <GyroLightRig target={envHolder} maxRadians={0.9} />
-        {/* Rainbow refraction layer - reuse main orb shaders for identical look */}
+      {/* Static orb - no gyro animation for small UI element */}
+      <group>
         <RainbowLayer />
 
-        {/* Outer glass shell */}
+        {/* Outer glass shell - reduced poly count for performance */}
         <mesh renderOrder={10}>
-          <sphereGeometry args={[1, 128, 128]} />
+          <sphereGeometry args={[1, 32, 32]} />
           <meshPhysicalMaterial
             ref={materialRef}
-            color="#FFD700"
+            color={glassColor}
             envMap={env || undefined}
-            envMapIntensity={13.5}
-            roughness={0.015}
-            metalness={0.35}
+            envMapIntensity={10}
+            roughness={0.02}
+            metalness={0.3}
             clearcoat={1}
-            clearcoatRoughness={0.03}
-            specularIntensity={7.0}
+            clearcoatRoughness={0.05}
+            specularIntensity={5.0}
             specularColor="#ffe9b3"
             reflectivity={1.0}
-            opacity={0.32}
+            opacity={0.35}
             transparent
             depthWrite={false}
-            ior={1.58}
-            transmission={0.4}
-            thickness={1.1}
-            attenuationDistance={1.15}
-            attenuationColor="#FFD37A"
+            ior={1.5}
+            transmission={0.35}
+            thickness={1.0}
+            attenuationDistance={1.2}
+            attenuationColor={attenuationCol}
           />
         </mesh>
       </group>
@@ -101,6 +89,7 @@ function OrbContent({ envAsset }: OrbContentProps) {
 
 export default function XPGlassOrb({
   size = 70,
+  tintColor,
 }: Props) {
   return (
     <Canvas
@@ -113,7 +102,7 @@ export default function XPGlassOrb({
       }}
       // @ts-ignore - Pass multisample prop to underlying GLView
       multisample={false}
-      frameloop="always"
+      frameloop="demand" // Static orb - only render when props change
       style={{ width: size, height: size, backgroundColor: "transparent" }}
       dpr={1} // Fixed DPR to avoid multisampling
       onCreated={({ gl }: { gl: any }) => {
@@ -145,6 +134,7 @@ export default function XPGlassOrb({
     >
       <OrbContent
         envAsset={ENV}
+        tintColor={tintColor}
       />
     </Canvas>
   );

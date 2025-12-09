@@ -80,7 +80,7 @@ export default function WalkSummaryScreen() {
     if (walkLabel.trim()) {
       await handleSaveLabel();
     }
-    navigation.navigate(screens.Main, { screen: screens.Home });
+    navigation.navigate(screens.Main, { screen: screens.WalkStart });
   };
 
   const handleViewPastWalks = () => {

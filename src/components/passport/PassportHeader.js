@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PassportLogoutButton } from './PassportLogoutButton';
 
-const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout }) => {
+import { LinearGradient } from 'expo-linear-gradient';
+
+const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout, style }) => {
   const [idRef, setIdRef] = useState('DR-LOAD-ING');
 
   useEffect(() => {
@@ -12,60 +14,68 @@ const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout }) => {
   }, []);
 
   return (
-    <View style={styles.headerContainer}>
+    <LinearGradient
+      colors={['#ece9da', '#ece9da', 'rgba(236, 233, 218, 0)']}
+      locations={[0, 0.5, 1]}
+      style={[styles.headerContainer, style]}
+    >
+      {/* Top bar with status and logout */}
       <View style={styles.topBar}>
-        <View style={styles.indicator} />
-        <Text style={styles.systemText}>SYS READY</Text>
-      </View>
-      
-      <View style={styles.passportHeader}>
-        <View style={styles.passportInfo}>
-          <View style={styles.dataRow}>
-            <Text style={styles.passportLabel}>ID REF</Text>
-            <Text style={styles.passportNumber}>
-              {idRef}
-            </Text>
-          </View>
-          
-          {issueDate && (
-            <View style={styles.dataRow}>
-              <Text style={styles.passportLabel}>ISSUED</Text>
-              <Text style={styles.passportDate}>{issueDate}</Text>
-            </View>
-          )}
-
-          {totalBuildingsScanned !== undefined && (
-            <View style={styles.dataRow}>
-              <Text style={styles.passportLabel}>BUILDINGS</Text>
-              <Text style={styles.passportDate}>{totalBuildingsScanned} SCANNED</Text>
-            </View>
-          )}
+        <View style={styles.statusRow}>
+          <View style={styles.indicator} />
+          <Text style={styles.systemText}>SYS READY</Text>
         </View>
-        
         <PassportLogoutButton
           onPress={onLogout}
           style={styles.logoutButton}
         />
       </View>
       
-    </View>
+      {/* Passport info */}
+      <View style={styles.passportInfo}>
+        <View style={styles.dataRow}>
+          <Text style={styles.passportLabel}>ID REF</Text>
+          <Text style={styles.passportNumber}>
+            {idRef}
+          </Text>
+        </View>
+        
+        {issueDate && (
+          <View style={styles.dataRow}>
+            <Text style={styles.passportLabel}>ISSUED</Text>
+            <Text style={styles.passportDate}>{issueDate}</Text>
+          </View>
+        )}
+
+        {totalBuildingsScanned !== undefined && (
+          <View style={styles.dataRow}>
+            <Text style={styles.passportLabel}>BUILDINGS</Text>
+            <Text style={styles.passportDate}>{totalBuildingsScanned} SCANNED</Text>
+          </View>
+        )}
+      </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   headerContainer: {
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: 24, // Increased padding for better fade area
     paddingHorizontal: 20,
-    backgroundColor: '#ece9da',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    // Background handled by gradient
+    // Border removed for seamless fade
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
-    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 0, // Let container padding handle spacing
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   indicator: {
     width: 8,
@@ -79,17 +89,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 2,
   },
-  passportHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 16,
-  },
   passportInfo: {
-    gap: 8,
+    gap: 6,
   },
   dataRow: {
-    gap: 4,
+    gap: 2,
   },
   passportLabel: {
     fontSize: 10,
@@ -111,14 +115,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   logoutButton: {
-    // Styles handled by component, but can override here if needed
-  },
-  logoutText: {
-    color: theme.colors.primary,
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    // Styles handled by component
   },
 });
 

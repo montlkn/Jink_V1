@@ -135,11 +135,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 24, // Ensure container has height for MaskedView
   },
   maskCenter: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "transparent",
   },
   text: {
     fontWeight: "600",

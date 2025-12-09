@@ -149,14 +149,14 @@ function GlassOrbComponent({
         powerPreference: "high-performance",
       }}
       // @ts-ignore - Pass multisample prop to underlying GLView
-      // multisample={false} // Removed as per instruction
+      multisample={false}
       frameloop="always"
       style={{
         width: size,
         height: size,
-        // backgroundColor: "transparent" // Removed as per instruction
+        backgroundColor: "transparent",
       }}
-      // dpr={1} // Fixed DPR to avoid multisampling // Removed as per instruction
+      dpr={1}
       onCreated={({ gl }: { gl: any }) => {
         // Patch renderbufferStorageMultisample BEFORE any other operations
         const ctx = gl.getContext() as any;

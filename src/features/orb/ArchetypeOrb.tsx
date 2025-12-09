@@ -24,14 +24,13 @@ type ArchetypeOrbProps = {
   onPress?: () => void;
   interactive?: boolean;
   style?: StyleProp<ViewStyle>;
-  xpLevel?: number;
-  xpProgress?: number;
   lod?: string;
   showGlow?: boolean;
   glowOpacityMultiplier?: number;
   startupDuration?: number;
   transitionDuration?: number;
   onLoad?: () => void;
+  tintColor?: string;
 };
 
 type BlendPaletteEntry = {
@@ -54,6 +53,7 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
   interactive = true,
   style,
   showGlow = true,
+  tintColor,
 
   glowOpacityMultiplier = 1.0,
   startupDuration = 0,
@@ -72,8 +72,18 @@ const ArchetypeOrb: React.FC<ArchetypeOrbProps> = ({
 
   const colors = useMemo<BlendResult>(() => {
     const result = blendArchetypeColors(sanitizedData) as BlendResult;
+    
+    // If tintColor is provided, blend it with the archetype colors (30% tint, 70% original)
+    if (tintColor) {
+      return {
+        ...result,
+        colorA: tintColor, // Tint the primary glass color
+        // Keep colorB and colorC as archetype colors for depth
+      };
+    }
+    
     return result;
-  }, [sanitizedData]);
+  }, [sanitizedData, tintColor]);
 
   const [glowState, setGlowState] = useState<"default" | "hover" | "press">("default");
   const [isOrbReady, setIsOrbReady] = useState(false);
@@ -175,21 +185,24 @@ const styles = StyleSheet.create({
   },
 });
 
+// Threshold for percentage changes - only re-render if deviation > 5%
+const PERCENTAGE_CHANGE_THRESHOLD = 5;
+
 const areEqual = (
   prevProps: Readonly<ArchetypeOrbProps>,
   nextProps: Readonly<ArchetypeOrbProps>
 ) => {
   if (prevProps.size !== nextProps.size) return false;
   if (prevProps.interactive !== nextProps.interactive) return false;
-  if (prevProps.onPress !== nextProps.onPress) return false;
-  if (prevProps.xpLevel !== nextProps.xpLevel) return false;
-  if (prevProps.xpProgress !== nextProps.xpProgress) return false;
+  // Skip onPress comparison - function references often change but don't affect rendering
   if (prevProps.lod !== nextProps.lod) return false;
   if (prevProps.showGlow !== nextProps.showGlow) return false;
+  if (prevProps.glowOpacityMultiplier !== nextProps.glowOpacityMultiplier) return false;
   if (prevProps.startupDuration !== nextProps.startupDuration) return false;
   if (prevProps.transitionDuration !== nextProps.transitionDuration) return false;
+  if (prevProps.tintColor !== nextProps.tintColor) return false;
 
-  // Deep compare archetypeData
+  // Deep compare archetypeData with 5% threshold for percentage changes
   if (prevProps.archetypeData !== nextProps.archetypeData) {
     const prev = prevProps.archetypeData || [];
     const next = nextProps.archetypeData || [];
@@ -198,11 +211,14 @@ const areEqual = (
     for (let i = 0; i < prev.length; i++) {
       const p = prev[i];
       const n = next[i];
-      if (
-        p.color !== n.color ||
-        p.percentage !== n.percentage ||
-        p.score !== n.score
-      ) {
+
+      // Color changes always trigger re-render
+      if (p.color !== n.color) return false;
+
+      // Only re-render if percentage/score changed by more than 5%
+      const prevPct = Number(p.percentage ?? p.score ?? 0);
+      const nextPct = Number(n.percentage ?? n.score ?? 0);
+      if (Math.abs(prevPct - nextPct) > PERCENTAGE_CHANGE_THRESHOLD) {
         return false;
       }
     }

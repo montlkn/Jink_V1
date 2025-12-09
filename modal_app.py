@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 
 app = modal.App(name="aesthetic-profile-summary")
 
-# Build image
+# Build image with CLIP support for image matching
 node_image = (
     modal.Image.debian_slim()
     .apt_install("nodejs", "npm")
@@ -22,6 +22,10 @@ node_image = (
         "python-dotenv",
         "google-generativeai",
         "supabase>=2.4.1",
+        "torch",
+        "open_clip_torch",
+        "pillow",
+        "numpy",
     )
     .add_local_dir("apps/server", "/opt/server", copy=True)
     .run_commands("cd /opt/server && npm install --omit=dev")

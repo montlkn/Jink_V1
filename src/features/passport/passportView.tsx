@@ -1,13 +1,20 @@
 import PassportHeader from "@/components/passport/PassportHeader";
+import QuestCard from "@/components/quests/QuestCard";
+import QuestDetailModal from "@/components/quests/QuestDetailModal";
+import AestheticAuraSheet, { type AuraSegment } from "@/components/sheets/AestheticAuraSheet";
+import { getArchetypeColor } from "@/constants/archetypeColors";
 import {
-  achievementLedger,
-  passportLists as passportListContent,
-  stampCollection,
-  visaCarousel,
+    passportLists as passportListContent,
+    stampCollection,
+    visaCarousel
 } from "@/constants/passportContent";
+import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
+import { useAestheticProfile } from "@/hooks/useAestheticProfile";
 import { usePassportData } from "@/hooks/usePassportData";
+import { useQuestsData } from "@/hooks/useQuestsData";
 import { log } from "@/lib/log";
 import { screens, type RootParams } from "@/navigation/routes";
+import { useOrbTransition } from "@/state/orbTransitionContext";
 import { getStreakMultiplier } from "@/theme/designConstants";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { useNavigation } from "@react-navigation/native";
@@ -15,21 +22,21 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Dimensions,
-  ImageBackground,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Dimensions,
+    ImageBackground,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming
 } from "react-native-reanimated";
 import { passportActions } from "./mutations";
 import type { PassportUiData } from "./selectors";
@@ -81,6 +88,36 @@ function PassportSkeleton() {
 export function PassportView(): JSX.Element {
   const navigation = useNavigation<PassportNavigation>();
   const passportState = usePassportData();
+  const questsState = useQuestsData();
+  const { profile } = useAestheticProfile();
+  const { orbData } = useOrbTransition();
+  const [selectedQuest, setSelectedQuest] = useState<any>(null);
+  const [questModalVisible, setQuestModalVisible] = useState(false);
+  const [auraModalVisible, setAuraModalVisible] = useState(false);
+
+  // Debug: log profile to understand its structure
+  console.log('[PassportView] profile:', JSON.stringify(profile, null, 2));
+
+  // Prepare aura segments for modal - get top 3 from normalized_scores OR archetype_scores
+  const auraSegments: AuraSegment[] = useMemo(() => {
+    // Try normalized_scores first (from AestheticProfile type), fallback to archetype_scores
+    const profileAny = profile as any;
+    const scores = profile?.normalized_scores || profileAny?.archetype_scores;
+    if (!scores) {
+      console.log('[PassportView] No scores found in profile');
+      return [];
+    }
+    console.log('[PassportView] Building aura segments from:', Object.keys(scores));
+    return Object.entries(scores)
+      .map(([name, score]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1).replace('_', ' '),
+        percentage: Math.round((score as number) * 100),
+        score: Math.round((score as number) * 100),
+        color: getArchetypeColor(name),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3); // Top 3 only
+  }, [profile]);
 
   const handleLogout = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => null);
@@ -94,7 +131,8 @@ export function PassportView(): JSX.Element {
   const handleRefresh = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
     passportState.refresh();
-  }, [passportState]);
+    questsState.refresh();
+  }, [passportState, questsState]);
 
   const handleCardPress = useCallback(
     (category: string) => {
@@ -123,8 +161,22 @@ export function PassportView(): JSX.Element {
     [navigation]
   );
 
+  const handleQuestPress = useCallback((quest: any) => {
+    if (!quest) return;
+    setSelectedQuest(quest);
+    setQuestModalVisible(true);
+  }, []);
+
+  const handleStartQuest = useCallback(
+    (params?: RootParams[typeof screens.Quests]) => {
+      navigation.navigate(screens.Quests, params);
+    },
+    [navigation]
+  );
+
   const content = useMemo(() => {
-    if (passportState.status === "loading") {
+    // Show skeleton for idle, loading states
+    if (passportState.status === "idle" || passportState.status === "loading" || questsState.status === "loading") {
       return <PassportSkeleton />;
     }
 
@@ -140,8 +192,17 @@ export function PassportView(): JSX.Element {
       );
     }
 
-    return <PassportContent data={passportState.value} onCardPress={handleCardPress} />;
-  }, [handleCardPress, passportState, handleRefresh]);
+    return (
+      <PassportContent
+        data={passportState.value}
+        questsData={questsState.status === "ready" ? questsState.value : null}
+        onCardPress={handleCardPress}
+        onQuestPress={handleQuestPress}
+        onOrbPress={() => setAuraModalVisible(true)}
+        orbData={orbData || []}
+      />
+    );
+  }, [handleCardPress, handleQuestPress, passportState, questsState, handleRefresh, orbData]);
 
 
   const refreshControl =
@@ -155,22 +216,39 @@ export function PassportView(): JSX.Element {
 
   return (
     <View style={styles.container}>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={refreshControl}
+        showsVerticalScrollIndicator={false}
+        scrollIndicatorInsets={{ top: 200 }} 
+      >
+        {content}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
       {passportState.status === "ready" ? (
         <PassportHeader
+          style={styles.absoluteHeader}
           issueDate={passportState.value.issueDateLabel ?? undefined}
           totalBuildingsScanned={passportState.value.totalBuildingsScanned}
           onLogout={handleLogout}
         />
       ) : null}
-      
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={refreshControl}
-        showsVerticalScrollIndicator={false}
-      >
-        {content}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+
+      <QuestDetailModal
+        visible={questModalVisible}
+        onClose={() => setQuestModalVisible(false)}
+        quest={selectedQuest}
+        onStartQuest={handleStartQuest}
+        timeRemaining=""
+      />
+
+      <AestheticAuraSheet
+        visible={auraModalVisible}
+        segments={auraSegments}
+        onClose={() => setAuraModalVisible(false)}
+      />
     </View>
   );
 }
@@ -179,12 +257,16 @@ export function PassportView(): JSX.Element {
 
 type PassportContentProps = {
   data: PassportUiData;
+  questsData: any;
   onCardPress: (category: string) => void;
+  onQuestPress: (quest: any) => void;
+  onOrbPress: () => void;
+  orbData: any[];
 };
 
 // ... existing imports
 
-function PassportContent({ data, onCardPress }: PassportContentProps) {
+function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPress, orbData }: PassportContentProps) {
   // These state variables are prepared for future dropdown expansion feature
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_expanded, _setExpanded] = useState(false);
@@ -211,10 +293,7 @@ function PassportContent({ data, onCardPress }: PassportContentProps) {
   const _stampsPreview = stampSource.slice(0, 3);
   const stampCount = stampSource.length;
 
-  const achievementSource =
-    data.achievements.length > 0
-      ? data.achievements
-      : achievementLedger.map((achievement) => ({ id: achievement.id, name: achievement.title }));
+  const achievementSource = data.achievements;
   const achievementCount = achievementSource.length;
 
   const listSource =
@@ -223,132 +302,221 @@ function PassportContent({ data, onCardPress }: PassportContentProps) {
       : passportListContent.map((list) => ({ id: list.id, name: list.name }));
   const listCount = listSource.length;
 
+  // Extract quest data
+  const dailyQuest = questsData?.quests?.daily || {
+    type: 'daily',
+    title: "Daily Quest",
+    description: "Complete your daily objective",
+    xpReward: 100,
+    progress: 0,
+    total: 1,
+    additionalRewards: [],
+    completed: false,
+  };
+  const weeklyQuest = questsData?.quests?.weekly || {
+    type: 'weekly',
+    title: "Weekly Quest",
+    description: "Complete your weekly challenge",
+    xpReward: 500,
+    progress: 0,
+    total: 1,
+    additionalRewards: [],
+    completed: false,
+  };
+  // Use shared orb data from context (same as WalkStart screen)
+  const archetypeData = orbData || [];
+
   return (
     <View style={styles.dashboardGrid}>
+      {/* Orb Section */}
+      <View style={styles.orbSection}>
+        <ArchetypeOrb
+          archetypeData={archetypeData}
+          size={280}
+          interactive={true}
+          showGlow={true}
+          glowOpacityMultiplier={0.2}
+          onPress={onOrbPress}
+        />
+      </View>
+
+      {/* Daily Quest Card - Always visible */}
+      <View style={styles.questCardWrapper}>
+        <QuestCard
+          type="daily"
+          title={dailyQuest.title || "Daily Quest"}
+          description={dailyQuest.description || "Complete your daily objective"}
+          xpReward={dailyQuest.xpReward}
+          progress={dailyQuest.progress}
+          total={dailyQuest.total || 1}
+          additionalRewards={dailyQuest.additionalRewards || []}
+          completed={dailyQuest.completed}
+          onPress={() => onQuestPress(dailyQuest)}
+        />
+      </View>
+
+      {/* Weekly Quest Card - Always visible */}
+      <View style={styles.questCardWrapper}>
+        <QuestCard
+          type="weekly"
+          title={weeklyQuest.title || "Weekly Quest"}
+          description={weeklyQuest.description || "Complete your weekly challenge"}
+          xpReward={weeklyQuest.xpReward}
+          progress={weeklyQuest.progress}
+          total={weeklyQuest.total || 1}
+          additionalRewards={weeklyQuest.additionalRewards || []}
+          completed={weeklyQuest.completed}
+          onPress={() => onQuestPress(weeklyQuest)}
+        />
+      </View>
+
       {/* Bearer XP Status Section */}
-      <TouchableOpacity
-        onPress={() => _setShowXPModal(true)}
-        activeOpacity={0.9}
-      >
-        <ImageBackground
-          source={require("../../../assets/cards/bearer_status_card.png")}
-          style={{
-            width: '100%',
-            aspectRatio: 390/180,
-            padding: 0,
-            justifyContent: 'center',
-          }}
-          resizeMode="contain"
-        >
-
-          {/* Bearer Status: Text is baked into image for now, removing dynamic overlays to prevent duplication */}
-        </ImageBackground>
-      </TouchableOpacity>
-
-      {/* Grid Layout for Categories */}
-      <View style={styles.gridRow}>
-        {/* Stamps */}
+      <View style={styles.questCardWrapper}>
         <TouchableOpacity
-          style={{ width: '48%' }}
-          onPress={() => onCardPress("Stamps")}
-          activeOpacity={0.8}
+          onPress={() => _setShowXPModal(true)}
+          activeOpacity={0.9}
         >
           <ImageBackground
-             source={require("../../../assets/cards/stamps_card.png")}
-             style={{ width: '100%', aspectRatio: 186/140, padding: 0, justifyContent: 'center' }}
-             resizeMode="contain"
+            source={require("../../../assets/cards/bearer_status_card.png")}
+            style={{
+              width: '100%',
+              aspectRatio: 390/150,
+              padding: 0,
+              justifyContent: 'center',
+            }}
+            resizeMode="contain"
           >
-             <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{stampCount}</Text>
-             </View>
-          </ImageBackground>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{ width: '48%', marginLeft: 8 }}
-          onPress={() => onCardPress("Achievements")}
-          activeOpacity={0.8}
-        >
-          <ImageBackground
-             source={require("../../../assets/cards/awards_card.png")}
-             style={{ width: '100%', aspectRatio: 186/140, padding: 0, justifyContent: 'center' }}
-             resizeMode="contain"
-          >
-             <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{achievementCount}</Text>
-             </View>
+  
+            {/* Level Display */}
+            {/* Level Display */}
+            <View style={{ position: 'absolute', top: 50, left: 104 }}>
+              <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 30, color: '#111' }}>{data.level}</Text>
+            </View>
+  
+            {/* XP Progress Bar */}
+            <View style={{ position: 'absolute', bottom: 28, left: 24, right: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                 <Text style={{ fontFamily: 'Courier', fontSize: 10, fontWeight: 'bold', color: '#111', opacity: 0.6 }}>XP PROGRESS</Text>
+                 <Text style={{ fontFamily: 'Courier', fontSize: 10, fontWeight: 'bold', color: '#111', opacity: 0.6 }}>{Math.round(data.xpProgress * 100)}%</Text>
+              </View>
+              <View style={{ height: 6, width: '100%', backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 3, overflow: 'hidden' }}>
+                <View style={{ height: '100%', width: `${Math.round(data.xpProgress * 100)}%`, backgroundColor: '#111', borderRadius: 3 }} />
+              </View>
+            </View>
           </ImageBackground>
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.gridRow, { marginTop: 8 }]}>
-        {/* Lists */}
-        <TouchableOpacity
-          style={{ width: '48%' }}
-          onPress={() => onCardPress("Lists")}
-          activeOpacity={0.8}
-        >
-          <ImageBackground
-             source={require("../../../assets/cards/lists_card.png")}
-             style={{ width: '100%', aspectRatio: 186/140, padding: 0, justifyContent: 'center' }}
-             resizeMode="contain"
+      {/* Grid Layout for Categories */}
+      <View style={styles.questCardWrapper}>
+        <View style={styles.gridRow}>
+          {/* Stamps */}
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => onCardPress("Stamps")}
+            activeOpacity={0.8}
           >
-             <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{listCount}</Text>
-             </View>
-          </ImageBackground>
-        </TouchableOpacity>
+            <ImageBackground
+               source={require("../../../assets/cards/stamps_card.png")}
+               style={{ width: '100%', aspectRatio: 186/110, padding: 0, justifyContent: 'center' }}
+               resizeMode="contain"
+            >
+               <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{stampCount}</Text>
+               </View>
+            </ImageBackground>
+          </TouchableOpacity>
+  
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => onCardPress("Achievements")}
+            activeOpacity={0.8}
+          >
+            <ImageBackground
+               source={require("../../../assets/cards/awards_card.png")}
+               style={{ width: '100%', aspectRatio: 186/110, padding: 0, justifyContent: 'center' }}
+               resizeMode="contain"
+            >
+               <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{achievementCount}</Text>
+               </View>
+            </ImageBackground>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-        {/* Visas */}
-        <TouchableOpacity
-          style={{ width: '48%', marginLeft: 8 }}
-          onPress={() => onCardPress("Visas")}
-          activeOpacity={0.8}
-        >
-          <ImageBackground
-             source={require("../../../assets/cards/visas_card.png")}
-             style={{ width: '100%', aspectRatio: 186/140, padding: 0, justifyContent: 'center' }}
-             resizeMode="contain"
+      <View style={styles.questCardWrapper}>
+        <View style={styles.gridRow}>
+          {/* Lists */}
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => onCardPress("Lists")}
+            activeOpacity={0.8}
           >
-             <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{visaCarousel.length}</Text>
-             </View>
-          </ImageBackground>
-        </TouchableOpacity>
+            <ImageBackground
+               source={require("../../../assets/cards/lists_card.png")}
+               style={{ width: '100%', aspectRatio: 186/110, padding: 0, justifyContent: 'center' }}
+               resizeMode="contain"
+            >
+               <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{listCount}</Text>
+               </View>
+            </ImageBackground>
+          </TouchableOpacity>
+  
+          {/* Visas */}
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            onPress={() => onCardPress("Visas")}
+            activeOpacity={0.8}
+          >
+            <ImageBackground
+               source={require("../../../assets/cards/visas_card.png")}
+               style={{ width: '100%', aspectRatio: 186/110, padding: 0, justifyContent: 'center' }}
+               resizeMode="contain"
+            >
+               <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{visaCarousel.length}</Text>
+               </View>
+            </ImageBackground>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Past Jinks - Full Width */}
-      <TouchableOpacity
-        style={{ marginTop: 8 }}
-        onPress={() => onCardPress("Past Jinks")}
-        activeOpacity={0.8}
-      >
-          <ImageBackground
-             source={require("../../../assets/cards/past_walks_card.png")}
-             style={{ width: '100%', aspectRatio: 390/280, padding: 0}}
-             resizeMode="contain"
-          >
-             <View style={{ padding: 20, paddingTop: 40, width: '100%', height: '100%' }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 }}>
-                   <Text style={{ fontFamily: 'Courier', fontSize: 10, fontWeight: 'bold', color: '#111', opacity: 0.8 }}>{data.walks.length.toString().padStart(2, '0')}</Text>
-                </View>
-                
-                <View style={{ gap: 14 }}>
-                   {data.walks.slice(0, 5).map((walk: any) => (
-                     <View key={walk.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                       <Text style={{ fontFamily: 'Courier', fontSize: 10, color: '#111', opacity: 0.8 }}>
-                         {walk.date} | {walk.duration} | {walk.buildingCount} Buildings
-                       </Text>
-                       <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 12, color: '#111' }}>{walk.style}</Text>
-                     </View>
-                   ))}
-                   {data.walks.length === 0 && (
-                      <Text style={{ fontFamily: 'Courier', fontSize: 12, color: '#111', opacity: 0.6, textAlign: 'center', marginTop: 20 }}>NO ENTRIES RECORDED</Text>
-                   )}
-                </View>
-             </View>
-          </ImageBackground>
-      </TouchableOpacity>
+      <View style={styles.questCardWrapper}>
+        <TouchableOpacity
+          onPress={() => onCardPress("Past Jinks")}
+          style={{ width: '100%' }}
+          activeOpacity={0.8}
+        >
+            <ImageBackground
+               source={require("../../../assets/cards/past_walks_card.png")}
+               style={{ width: '100%', aspectRatio: 390/220, padding: 0}}
+               resizeMode="contain"
+            >
+               <View style={{ padding: 20, paddingTop: 40, width: '100%', height: '100%' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 }}>
+                     <Text style={{ fontFamily: 'Courier', fontSize: 10, fontWeight: 'bold', color: '#111', opacity: 0.8 }}>{data.walks.length.toString().padStart(2, '0')}</Text>
+                  </View>
+                  
+                  <View style={{ gap: 14 }}>
+                     {data.walks.slice(0, 5).map((walk: any) => (
+                       <View key={walk.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <Text style={{ fontFamily: 'Courier', fontSize: 10, color: '#111', opacity: 0.8 }}>
+                           {walk.date} | {walk.duration} | {walk.buildingCount} Buildings
+                         </Text>
+                         <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 12, color: '#111' }}>{walk.style}</Text>
+                       </View>
+                     ))}
+                     {data.walks.length === 0 && (
+                        <Text style={{ fontFamily: 'Courier', fontSize: 12, color: '#111', opacity: 0.6, textAlign: 'center', marginTop: 20 }}>NO ENTRIES RECORDED</Text>
+                     )}
+                  </View>
+               </View>
+            </ImageBackground>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -359,9 +527,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#ece9da" 
   },
   scrollContent: { 
-    paddingHorizontal: 20, 
-    paddingTop: 0, 
-    paddingBottom: 20 
+    paddingHorizontal: 12, 
+    paddingTop: 220, // Space for absolute header
+    paddingBottom: 16,
+    gap: 12,
+  },
+  absoluteHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   centered: {
     flex: 1,
@@ -396,7 +572,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   dashboardGrid: {
-    gap: 8,
+    gap: 12,
   },
   dataBlock: {
     backgroundColor: theme.colors.surface,
@@ -464,6 +640,7 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     flexDirection: "row",
+    gap: 12,
   },
   gridItem: {
     flex: 1,
@@ -529,5 +706,14 @@ const styles = StyleSheet.create({
   skeletonBlock: {
     backgroundColor: theme.colors.surface,
     borderRadius: 2,
+  },
+  orbSection: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 8,
+    overflow: "visible",
+  },
+  questCardWrapper: {
+    paddingHorizontal: 10, // Aligns solid card with visual width of image cards
   },
 });

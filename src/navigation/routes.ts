@@ -2,7 +2,6 @@ import type { BuildingDetail } from "@/constants/passportContent";
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
 export const screens = {
-  Home: "Home",
   Quests: "Quests",
   WalkSummary: "WalkSummary",
   AuthLogin: "Login",
@@ -44,7 +43,6 @@ type WalkFilters = {
 };
 
 export type MainTabParams = {
-  Home: undefined;
   ScanScreen: undefined;
   WalkStartScreen: { filters?: WalkFilters } | undefined;
   Passport: undefined;
@@ -58,7 +56,6 @@ type WalkNavParams = {
 };
 
 export type RootParams = {
-  Home: undefined;
   Quests: { focus?: string } | undefined;
   WalkSummary: {
     walkId: string;

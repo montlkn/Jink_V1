@@ -18,10 +18,10 @@ import { extractTopArchetypesFromScores } from "../utils/archetypeColorBlend";
 
 const DEFAULT_TRANSITION_DURATION = 250;
 const DEFAULT_EASING = Easing.out(Easing.cubic);
-const ORB_SIZE = 256;
+const ORB_SIZE = 280;
 const JINK_TARGET_SIZE = ORB_SIZE; // Ring radius on WalkStart
 const JINK_OFFSET_X = 0;
-const JINK_OFFSET_Y = 12; // Positive pushes orb downward on Jink
+const JINK_OFFSET_Y = 0; // Positive pushes orb downward on Jink
 const ORB_DATA_STORAGE_KEY = "arch-app/orbData.v1";
 
 // Calculate glow extent to match ArchetypeOrb
@@ -159,12 +159,15 @@ export const OrbTransitionProvider = ({ children }) => {
     });
   }, [homeOrbLayout, isTransitioning, progress]);
 
+  // Stable pinToJink function - avoids context recreation on every render
+  const pinToJink = useCallback((v) => setPinnedToJink(Boolean(v)), []);
+
   const contextValue = useMemo(
     () => ({
       registerHomeOrbLayout,
       setOrbData,
       startHomeToJinkTransition,
-      pinToJink: (v) => setPinnedToJink(Boolean(v)),
+      pinToJink,
       transitionProgress: progress,
       isTransitioning,
       orbData,
@@ -173,7 +176,7 @@ export const OrbTransitionProvider = ({ children }) => {
       registerHomeOrbLayout,
       setOrbData,
       startHomeToJinkTransition,
-      setPinnedToJink,
+      pinToJink,
       progress,
       isTransitioning,
       orbData,

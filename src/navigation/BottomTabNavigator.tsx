@@ -2,7 +2,6 @@ import { createBottomTabNavigator, type BottomTabNavigationOptions } from "@reac
 import LiquidGlassBottomTab from "./LiquidGlassBottomTab";
 import { screens, type MainTabParams } from "./routes";
 
-import HomeScreen from "@/screens/Home/HomeScreen";
 import PassportScreen from "@/screens/Passport/PassportScreen";
 import ScanScreen from "@/screens/Scan/ScanScreen";
 import WalkStartScreen from "@/screens/Walk/WalkStartScreen";
@@ -19,12 +18,8 @@ export default function BottomTabNavigator() {
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <LiquidGlassBottomTab {...props} />}
+      initialRouteName={screens.WalkStart}
     >
-      <Tab.Screen
-        name={screens.Home}
-        component={HomeScreen}
-        options={{ tabBarLabel: "Home", tabBarIcon: asIconOption("home-outline") }}
-      />
       <Tab.Screen
         name={screens.Scan}
         component={ScanScreen}

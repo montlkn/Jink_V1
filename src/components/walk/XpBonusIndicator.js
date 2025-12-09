@@ -19,21 +19,23 @@ const XpBonusIndicator = ({ multiplier, color }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.2)", // Subtle background for contrast (default)
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#2196F3", // Default blue
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   text: {
     color: "#fff",
-    fontSize: 16, // Much smaller
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "800",
     letterSpacing: 0.5,
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
 });
 

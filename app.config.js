@@ -38,12 +38,6 @@ module.exports = () => {
       ],
       "expo-asset",
       [
-        "react-native-maps",
-        {
-          androidGoogleMapsApiKey: googleMapsApiKey,
-        },
-      ],
-      [
         "@rnmapbox/maps",
         {
           RNMapboxMapsImpl: "mapbox",

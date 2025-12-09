@@ -2,6 +2,7 @@ import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect } from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import Animated, {
     interpolate,
     runOnJS,
@@ -67,14 +68,23 @@ export function FlipModal({ visible, onClose, children }: FlipModalProps): JSX.E
     };
   });
 
+  const onGestureEvent = (event: any) => {
+    const { translationY, velocityY } = event.nativeEvent;
+    if (translationY > 100 || (velocityY > 500 && translationY > 50)) {
+      onClose();
+    }
+  };
+
   if (!visible) return <></>;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <Animated.View style={[styles.modalOverlay, containerStyle]}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        
-        <View style={styles.cardContainer}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <PanGestureHandler onGestureEvent={onGestureEvent}>
+          <Animated.View style={[styles.modalOverlay, containerStyle]}>
+            <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
+            
+            <View style={styles.cardContainer} onStartShouldSetResponder={() => true}>
           {/* Front Side (Content) */}
           <Animated.View style={[styles.cardFace, styles.frontFace, frontAnimatedStyle]}>
             <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
@@ -92,7 +102,10 @@ export function FlipModal({ visible, onClose, children }: FlipModalProps): JSX.E
              </View>
           </Animated.View>
         </View>
-      </Animated.View>
+
+          </Animated.View>
+        </PanGestureHandler>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

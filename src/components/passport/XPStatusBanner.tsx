@@ -17,6 +17,9 @@ type Props = {
   level: number;
   xpForNextLevel: number;
   streakCount: number;
+  // Multiplier mode props
+  multiplier?: number; // If > 1.0, show multiplier instead of level
+  multiplierColor?: string; // Tint color for multiplier mode
 };
 
 const EXPANDED_WIDTH = 280;
@@ -28,6 +31,8 @@ export default function XPStatusBanner({
   level,
   xpForNextLevel,
   streakCount,
+  multiplier,
+  multiplierColor,
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const width = useSharedValue(COLLAPSED_WIDTH);
@@ -37,7 +42,13 @@ export default function XPStatusBanner({
   const progressPercent = currentXP / xpForNextLevel;
   const remainingXP = xpForNextLevel - currentXP;
 
+  // Check if we're in multiplier mode
+  const isMultiplierMode = multiplier !== undefined && multiplier > 1.0;
+
   const handlePress = () => {
+    // Don't expand in multiplier mode
+    if (isMultiplierMode) return;
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const nextState = !isExpanded;
     setIsExpanded(nextState);
@@ -71,12 +82,21 @@ export default function XPStatusBanner({
               size={HEIGHT}
               level={level}
               progress={progressPercent}
+              tintColor={isMultiplierMode ? multiplierColor : undefined}
             />
           </View>
-          {/* Level Overlay */}
+          {/* Level/Multiplier Overlay */}
           <View style={styles.centerContent} pointerEvents="none">
-            <Ionicons name="star" size={18} color="#FFD700" />
-            <Text style={styles.levelText}>{level}</Text>
+            {isMultiplierMode ? (
+              // Multiplier mode: show multiplier text only
+              <Text style={styles.multiplierText}>{multiplier}X</Text>
+            ) : (
+              // Normal mode: show star icon and level
+              <>
+                <Ionicons name="star" size={18} color="#FFD700" />
+                <Text style={styles.levelText}>{level}</Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -191,6 +211,14 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(255, 255, 255, 0.8)",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 4,
+  },
+  multiplierText: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#fff",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   detailsContainer: {
     flex: 1,

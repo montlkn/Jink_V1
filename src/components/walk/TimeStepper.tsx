@@ -8,12 +8,17 @@ type TimeStepperProps = {
   min?: number;
   max?: number;
   step?: number;
-  buttonSize?: number;
+  width?: number;
+  height?: number;
   opacity?: any; // Animated.Value
 };
 
+// Button dimensions - new SVGs are 135x113 with 83x61 button inside
+const BUTTON_WIDTH = 135;
+const BUTTON_HEIGHT = 113;
+
 // TimeButton component - handles SVG button rendering
-const TimeButton = ({ iconPath, onPress, size = 64 }: { iconPath: any; onPress: () => void; size?: number }) => {
+const TimeButton = ({ iconPath, onPress }: { iconPath: any; onPress: () => void }) => {
   const iconSource = useMemo(() => {
     try {
       const resolved = Image.resolveAssetSource(iconPath);
@@ -25,7 +30,7 @@ const TimeButton = ({ iconPath, onPress, size = 64 }: { iconPath: any; onPress: 
 
   // Try loading SvgUri dynamically
   const [SvgUri, setSvgUri] = useState<any>(null);
-  
+
   useEffect(() => {
     import('react-native-svg')
       .then(module => {
@@ -36,18 +41,13 @@ const TimeButton = ({ iconPath, onPress, size = 64 }: { iconPath: any; onPress: 
       });
   }, []);
 
-  // SVG is 100x100 in the source file, so calculate scale
-  const scale = size / 60;
-
   return (
-    <Pressable onPress={onPress} style={{ opacity: 0.5 }}>
-      <View style={{ width: size, height: size, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+    <Pressable onPress={onPress}>
+      <View style={{ width: BUTTON_WIDTH, height: BUTTON_HEIGHT, justifyContent: 'center', alignItems: 'center' }}>
         {iconSource && SvgUri ? (
-          <View style={{ transform: [{ scale }] }}>
-            <SvgUri uri={iconSource} width={100} height={100} />
-          </View>
+          <SvgUri uri={iconSource} width={BUTTON_WIDTH} height={BUTTON_HEIGHT} />
         ) : (
-          <View style={{ width: size, height: size, backgroundColor: '#E5E5E5', borderRadius: size / 2 }} />
+          <View style={{ width: 83, height: 61, backgroundColor: '#E5E5E5', borderRadius: 30 }} />
         )}
       </View>
     </Pressable>
@@ -60,7 +60,8 @@ export default function TimeStepper({
   min = 5,
   max = 95,
   step = 1,
-  buttonSize = 64,
+  width = 83,
+  height = 61,
   opacity,
 }: TimeStepperProps) {
   const handleDecrement = useCallback(() => {
@@ -78,39 +79,29 @@ export default function TimeStepper({
   }, [value, max, step, onChange]);
 
   return (
-    <>
+    <Animated.View style={[styles.container, opacity ? { opacity } : undefined]}>
       {/* Minus Button */}
-      <Animated.View style={[styles.minusButton, opacity ? { opacity } : undefined]}>
-        <TimeButton
-          iconPath={require('../../../assets/icons/Minus_Button.svg')}
-          onPress={handleDecrement}
-          size={buttonSize}
-        />
-      </Animated.View>
+      <TimeButton
+        iconPath={require('../../../assets/icons/walk/Minus_Button.svg')}
+        onPress={handleDecrement}
+      />
 
       {/* Plus Button */}
-      <Animated.View style={[styles.plusButton, opacity ? { opacity } : undefined]}>
-        <TimeButton
-          iconPath={require('../../../assets/icons/Plus_Button.svg')}
-          onPress={handleIncrement}
-          size={buttonSize}
-        />
-      </Animated.View>
-    </>
+      <TimeButton
+        iconPath={require('../../../assets/icons/walk/Plus_Button.svg')}
+        onPress={handleIncrement}
+      />
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  minusButton: {
-    position: "absolute",
-    left: 80,
-    top: 20,
-    alignSelf: "center",
-  },
-  plusButton: {
-    position: "absolute",
-    right: 80,
-    top: 20,
-    alignSelf: "center",
-  },
+  container: {
+    // No absolute positioning needed, parent controls layout
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 0,
+    zIndex: 20,
+  }
 });

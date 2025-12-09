@@ -1,4 +1,4 @@
-declare module "@/components/modals/AuraBreakdownModal" {
+declare module "@/components/sheets/AestheticAuraSheet" {
   export type AuraSegment = {
     name?: string;
     color?: string;
@@ -6,15 +6,15 @@ declare module "@/components/modals/AuraBreakdownModal" {
     score?: number;
   };
 
-  export type AuraBreakdownModalProps = {
+  export type AestheticAuraSheetProps = {
     visible: boolean;
     segments?: AuraSegment[];
     onClose?: () => void;
   };
 
-  declare function AuraBreakdownModal(
-    props: AuraBreakdownModalProps
+  declare function AestheticAuraSheet(
+    props: AestheticAuraSheetProps,
   ): JSX.Element | null;
 
-  export default AuraBreakdownModal;
+  export default AestheticAuraSheet;
 }

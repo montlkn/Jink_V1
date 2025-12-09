@@ -6,7 +6,6 @@ type Loader = () => ComponentType<any>;
 const createLoader = (load: () => ScreenModule): Loader => () => load().default;
 
 export const ScreenLoaders: Record<string, Loader> = {
-  Home: createLoader(() => require("@/screens/Home/HomeScreen")),
   Quests: createLoader(() => require("@/screens/Quests/QuestsScreen")),
   WalkSummary: createLoader(() => require("@/screens/Walk/WalkSummaryScreen")),
   Profile: createLoader(() => require("@/screens/Profile/ProfileScreen")),

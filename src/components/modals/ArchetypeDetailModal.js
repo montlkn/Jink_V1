@@ -6,10 +6,18 @@ import {
     Text,
     View
 } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import ModalCloseButton from './ModalCloseButton';
 
 const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
   if (!archetype) return null;
+
+  const onGestureEvent = (event) => {
+    const { translationY, velocityY } = event.nativeEvent;
+    if (translationY > 100 || (velocityY > 500 && translationY > 50)) {
+      onClose();
+    }
+  };
 
   return (
     <Modal
@@ -18,65 +26,69 @@ const ArchetypeDetailModal = ({ visible, archetype, onClose }) => {
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.header}>
-            <ModalCloseButton onPress={onClose} />
-            <Text style={styles.title}>{archetype.name.toUpperCase()}</Text>
-            <View style={{ width: 140 }} />
-          </View>
-          <View style={[styles.colorBar, { backgroundColor: archetype.color }]} />
-
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Core Concept */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Core Concept</Text>
-            <Text style={styles.conceptText}>{archetype.coreConcept}</Text>
-          </View>
-
-          {/* The Vibe */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>The Vibe</Text>
-            <View style={styles.vibeContainer}>
-              {archetype.vibe.map((vibe, index) => (
-                <View key={index} style={[styles.vibeTag, { borderColor: archetype.color }]}>
-                  <Text style={[styles.vibeText, { color: archetype.color }]}>{vibe}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Core Qualities */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Core Qualities</Text>
-            {archetype.coreQualities.map((quality, index) => (
-              <View key={index} style={styles.qualityItem}>
-                <View style={[styles.bullet, { backgroundColor: archetype.color }]} />
-                <Text style={styles.qualityText}>{quality}</Text>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={styles.overlay}>
+          <PanGestureHandler onGestureEvent={onGestureEvent}>
+            <View style={styles.modalContainer}>
+              <View style={styles.header}>
+                <ModalCloseButton onPress={onClose} />
+                <Text style={styles.title}>{archetype.name.toUpperCase()}</Text>
+                <View style={{ width: 140 }} />
               </View>
-            ))}
-          </View>
+              <View style={[styles.colorBar, { backgroundColor: archetype.color }]} />
 
-          {/* Urban Expression */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Urban Expression</Text>
-            <Text style={styles.urbanText}>{archetype.urbanExpression}</Text>
-          </View>
+              <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+              {/* Core Concept */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Core Concept</Text>
+                <Text style={styles.conceptText}>{archetype.coreConcept}</Text>
+              </View>
 
-          {/* Umbrella Movements */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Related Movements</Text>
-            <View style={styles.movementsContainer}>
-              {archetype.umbrellaMovements.map((movement, index) => (
-                <View key={index} style={styles.movementTag}>
-                  <Text style={styles.movementText}>{movement}</Text>
+              {/* The Vibe */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>The Vibe</Text>
+                <View style={styles.vibeContainer}>
+                  {archetype.vibe.map((vibe, index) => (
+                    <View key={index} style={[styles.vibeTag, { borderColor: archetype.color }]}>
+                      <Text style={[styles.vibeText, { color: archetype.color }]}>{vibe}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
+              </View>
+
+              {/* Core Qualities */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Core Qualities</Text>
+                {archetype.coreQualities.map((quality, index) => (
+                  <View key={index} style={styles.qualityItem}>
+                    <View style={[styles.bullet, { backgroundColor: archetype.color }]} />
+                    <Text style={styles.qualityText}>{quality}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Urban Expression */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Urban Expression</Text>
+                <Text style={styles.urbanText}>{archetype.urbanExpression}</Text>
+              </View>
+
+              {/* Umbrella Movements */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Related Movements</Text>
+                <View style={styles.movementsContainer}>
+                  {archetype.umbrellaMovements.map((movement, index) => (
+                    <View key={index} style={styles.movementTag}>
+                      <Text style={styles.movementText}>{movement}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
             </View>
-          </View>
-        </ScrollView>
+          </PanGestureHandler>
         </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 };

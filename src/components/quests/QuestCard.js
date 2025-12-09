@@ -60,7 +60,7 @@ const QuestCard = ({
             color={accentColor}
           />
           <Text style={[styles.questType, { color: accentColor }]}>
-            {isDaily ? 'DAILY' : 'WEEKLY'}
+            {isDaily ? 'DAILY QUEST' : 'WEEKLY QUEST'}
           </Text>
         </View>
         <View style={styles.timerBadge}>
@@ -113,7 +113,7 @@ const QuestCard = ({
 const styles = StyleSheet.create({
   card: {
     padding: 12,
-    marginBottom: 8,
+    // marginBottom: 8, // Removed to allow parent to control spacing via gap
     minHeight: 110,
     justifyContent: 'space-between',
     borderRadius: 12,

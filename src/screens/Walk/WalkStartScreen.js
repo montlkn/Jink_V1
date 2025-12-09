@@ -1,5 +1,8 @@
 import { useAuth } from "@/auth/authProvider";
+// eslint-disable-next-line no-restricted-imports
+import XPStatusBanner from "@/components/passport/XPStatusBanner";
 import { useAestheticProfile } from "@/hooks/useAestheticProfile";
+import { useQuestsData } from "@/hooks/useQuestsData";
 import { log } from "@/lib/log";
 import { screens } from "@/navigation/routes";
 // eslint-disable-next-line no-restricted-imports
@@ -13,18 +16,15 @@ import { startWalk } from '@/services/gateways';
 // eslint-disable-next-line no-restricted-imports
 import { getCachedLocation } from "@/services/locationCacheService";
 import { fetchUserScannedBuildings, filterVisitedBuildings } from '@/utils/visitedBuildingsUtils';
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
-import { FilterMenu } from "../../components/common/FilterMenu";
-import MultiplierGlow from "../../components/glow/MultiplierGlow";
+import { Alert, Animated, LayoutAnimation, Platform, StyleSheet, Text, UIManager, View } from "react-native";
+import { TactileButton } from "../../components/tactile/TactileButton";
 import StreamingInstructionText from "../../components/walk/StreamingInstructionText";
-import TimerDisplay from "../../components/walk/TimerDisplay";
 import TimeSlider from "../../components/walk/TimeSlider";
-import TimeStepper from "../../components/walk/TimeStepper";
-import XpBonusIndicator from "../../components/walk/XpBonusIndicator";
 import ArchetypeOrb from "../../features/orb/ArchetypeOrb";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { DESIGNER_REPUBLIC_THEME } from "../../theme/designer_republic";
@@ -40,16 +40,17 @@ if (Platform.OS === 'android') {
 const WalkStartScreen = ({ navigation, route }) => {
   const { pinToJink, orbData, startHomeToJinkTransition } = useOrbTransition();
   const { profile } = useAestheticProfile();
+  const questsData = useQuestsData();
   const { session } = useAuth();
   const [time, setTime] = useState(45);
-  const [location, setLocation] = useState(null); // Start null to indicate loading
+  const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
-  const [shouldRenderOrb, setShouldRenderOrb] = useState(false); // Defer 3D rendering for performance
-  const [includeVisited, setIncludeVisited] = useState(false); // Toggle for including previously visited buildings
-  const [showFilterMenu, setShowFilterMenu] = useState(false); // Show/hide filter menu
+  const [includeVisited, setIncludeVisited] = useState(false);
   const hapticsCancelRef = useRef(null);
 
+  // Orb fade animation - keeps orb mounted, just fades opacity
+  const orbOpacity = useRef(new Animated.Value(0)).current;
 
   // Start at 0.5 so content is visible immediately on mount (no flash of invisible content)
   const entryProgress = useRef(new Animated.Value(0.5)).current;
@@ -64,78 +65,19 @@ const WalkStartScreen = ({ navigation, route }) => {
     });
   }, []);
 
-  const sliderScale = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 0.4, 1],
-        outputRange: [0.85, 0.95, 1],
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
-  const timerOpacity = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 0.6, 1],
-        outputRange: [0.7, 0.9, 1],  // Start at 70% opacity - visible immediately
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
-  const sliderOpacity = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 0.5, 1],
-        outputRange: [0.6, 0.85, 1],  // Start at 60% opacity - visible immediately
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
-  const instructionOpacity = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 0.7, 1],
-        outputRange: [0.5, 0.75, 1],  // Start at 50% opacity - visible immediately
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
-  const timerTranslateY = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [-14, 0],
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
-  const sliderTranslateY = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [12, 0],
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
-  const instructionTranslateY = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [16, 0],
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
-  const stepperOpacity = useMemo(
-    () =>
-      entryProgress.interpolate({
-        inputRange: [0, 0.15, 1],
-        outputRange: [0, 1, 1],
-        extrapolate: "clamp",
-      }),
-    [entryProgress]
-  );
+  // OPTIMIZED: Single useMemo for all entry animations instead of 8 separate ones
+  const entryAnimations = useMemo(() => ({
+    uiOpacity: entryProgress.interpolate({
+      inputRange: [0, 0.6, 1],
+      outputRange: [0, 1, 1],
+      extrapolate: "clamp",
+    }),
+    uiTranslateY: entryProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [20, 0],
+      extrapolate: "clamp",
+    }),
+  }), [entryProgress]);
 
 
   // Calculate XP bonus based on current time selection
@@ -188,33 +130,38 @@ const WalkStartScreen = ({ navigation, route }) => {
 
   useFocusEffect(
     useCallback(() => {
-      const focusStart = performance.now();
-      log.info('[WalkStart] Screen focused, starting animation');
-      
+      log.info('[WalkStart] Screen focused, starting animations');
+
+      // Reset and start entry animation
       entryProgress.stopAnimation();
-      entryProgress.setValue(0.5);  // Start at 50% - content visible immediately!
+      entryProgress.setValue(0.5);
 
-      const animation = Animated.timing(entryProgress, {
-        toValue: 1,
-        duration: 150,  // Reduced to 150ms for sub-250ms total time
-        useNativeDriver: true,
-      });
+      // Fade in orb smoothly
+      orbOpacity.stopAnimation();
 
-      animation.start(() => {
-        const animEnd = performance.now();
-        log.info('[WalkStart] Animation complete', {
-          totalTime: `${(animEnd - focusStart).toFixed(1)}ms`
-        });
-        // Defer orb rendering until after animation for performance
-        setShouldRenderOrb(true);
-      });
+      // Parallel animations: entry progress + orb fade in
+      Animated.parallel([
+        Animated.timing(entryProgress, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(orbOpacity, {
+          toValue: 1,
+          duration: 400, // Slower fade for smoother feel
+          useNativeDriver: true,
+        }),
+      ]).start();
 
       return () => {
-        animation.stop();
-        entryProgress.stopAnimation();
-        setShouldRenderOrb(false); // Clean up on unmount
+        // Fade out orb when leaving (don't unmount)
+        Animated.timing(orbOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
       };
-    }, [entryProgress])
+    }, [entryProgress, orbOpacity])
   );
 
   useFocusEffect(
@@ -298,14 +245,6 @@ const WalkStartScreen = ({ navigation, route }) => {
     fetchLocation();
   }, []);
 
-  const handleFilterPress = useCallback(() => {
-    setShowFilterMenu(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
-
-  const handleFilterSelect = useCallback((value) => {
-    setIncludeVisited(value);
-  }, []);
 
   const handleStartWalk = useCallback(async () => {
     if (isFetching) return;
@@ -359,6 +298,7 @@ const WalkStartScreen = ({ navigation, route }) => {
       log.info("[walkStart] Fetched buildings for route generation", {
         count: nearbyPlaces.length,
         targetDuration: time,
+        searchRadius: `${walkRadiusKm.toFixed(2)}km`,
       });
 
       // Buildings from fetchNearbyBuildingsFromDB already have correct field names
@@ -444,7 +384,6 @@ const WalkStartScreen = ({ navigation, route }) => {
       }
 
 
-      // Create walk session with route tier metadata
       let walkSession;
       try {
         walkSession = await startWalk({
@@ -499,108 +438,132 @@ const WalkStartScreen = ({ navigation, route }) => {
     }
   }, [isFetching, location, navigation, pinToJink, startLaunchHaptics, time, profile, session?.user?.id, includeVisited]);
 
+
+  // Helper for Stepper
+  const adjustTime = (delta) => {
+    setTime(prev => {
+      const newVal = prev + delta;
+      return Math.min(95, Math.max(5, newVal));
+    });
+  };
+
   return (
     <View style={styles.safeArea}>
       <View style={styles.container}>
-        <Animated.View style={[styles.timerDisplay, { opacity: timerOpacity, transform: [{ translateY: timerTranslateY }] }]}>
-          {xpBonus.multiplier > 1.0 && (
-            <View style={styles.xpBonusContainer}>
-              <XpBonusIndicator multiplier={xpBonus.multiplier} color={xpBonus.color} />
-            </View>
-          )}
-          
-          {/* Timer Display */}
-          <TimerDisplay value={time} />
-          
-          {/* Time Stepper Buttons */}
-          <TimeStepper 
-            value={time} 
-            onChange={setTime} 
-            min={5} 
-            max={95} 
-            buttonSize={64}
-            opacity={stepperOpacity}
-          />
-        </Animated.View>
-        
-        {/* Filter Button - Top Right */}
-        <Pressable 
-          style={styles.filterButton}
-          onPress={handleFilterPress}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.filterIcon}>{includeVisited ? "⊙" : "◎"}</Text>
-        </Pressable>
-
-        {/* Filter Menu */}
-        <FilterMenu
-          visible={showFilterMenu}
-          onClose={() => setShowFilterMenu(false)}
-          title="Filter Options"
-          options={[
-            { label: "Include Visited Buildings", value: true },
-            { label: "Exclude Visited Buildings", value: false },
-          ]}
-          selectedValue={includeVisited}
-          onSelect={handleFilterSelect}
-        />
-        
-        <Animated.View
+        <Animated.View 
           style={[
-            styles.sliderOrbWrapper,
-            {
-              opacity: sliderOpacity,
-              transform: [{ scale: sliderScale }, { translateY: sliderTranslateY }],
-            },
-          ]}
+            styles.uiLayer, 
+            { opacity: entryAnimations.uiOpacity, transform: [{ translateY: entryAnimations.uiTranslateY }] }
+          ]} 
           pointerEvents="box-none"
         >
-
-          {/* Local orb under slider - only render after screen animation */}
-          <View style={styles.orbWrapper} pointerEvents="none">
-            {shouldRenderOrb && (
-              <ArchetypeOrb
-                archetypeData={orbData}
-                size={256}
-                interactive={false}
-                lod="standard"
-                showGlow={true}
-                glowOpacityMultiplier={0.05}
-              />
-            )}
+          {/* Header Row */}
+          <View style={styles.headerRow}>
+             <View style={styles.xpIndicatorWrapper}>
+                <XPStatusBanner
+                  currentXP={questsData.status === "ready" ? questsData.value.xp.xp : 0}
+                  level={questsData.status === "ready" ? questsData.value.xp.level : 1}
+                  xpForNextLevel={questsData.status === "ready" ? questsData.value.xp.xpForNextLevel : 100}
+                  streakCount={0}
+                  multiplier={xpBonus.multiplier > 1.0 ? xpBonus.multiplier : undefined}
+                  multiplierColor={xpBonus.multiplier > 1.0 ? xpBonus.color : undefined}
+                />
+             </View>
+             <TactileButton
+                style={styles.mapButton}
+                onPress={() => Alert.alert("Coming Soon", "Map view integration in progress.")}
+                intensity={40}
+             >
+                <Ionicons name="map-outline" size={24} color="#000" />
+             </TactileButton>
           </View>
 
-          {/* Reactor Glow behind slider */}
-          <View style={styles.glowContainer} pointerEvents="none">
-            <MultiplierGlow 
-              color={xpBonus.multiplier > 1.0 ? xpBonus.color : null} 
-              size={600} 
-            />
+          {/* Center Controls: Stepper + Slider + Orb */}
+          <View style={styles.centerControls}>
+             {/* Stepper Buttons */}
+             <View style={styles.stepperRow}>
+                <TactileButton 
+                  onPress={() => adjustTime(-5)} 
+                  style={styles.stepperButton}
+                  intensity={20}
+                >
+                   <Text style={styles.stepperText}>-</Text>
+                </TactileButton>
+
+                <TactileButton 
+                  onPress={() => adjustTime(5)} 
+                  style={styles.stepperButton}
+                  intensity={20}
+                >
+                   <Text style={styles.stepperText}>+</Text>
+                </TactileButton>
+             </View>
+
+             {/* Slider Area */}
+             <View style={styles.sliderContainer}>
+                {/* Visual Layer: Orb + Text */}
+                <View style={styles.centerVisuals} pointerEvents="none">
+                   {/* Orb Underlay */}
+                   <Animated.View style={[styles.orbWrapper, { opacity: orbOpacity }]}>
+                     <ArchetypeOrb
+                        archetypeData={orbData}
+                        size={190}
+                        interactive={false}
+                        lod="low"
+                        showGlow={false}
+                        glowOpacityMultiplier={0.05}
+                     />
+                   </Animated.View>
+                   
+                   {/* Huge Time Text Overlay */}
+                   <Text style={[styles.bigTimeText, { color: xpBonus.color }]}>{time}</Text>
+                </View>
+
+                {/* Interactive Slider */}
+                <TimeSlider
+                  min={5}
+                  max={95}
+                  initialValue={time}
+                  setValue={setTime}
+                  onPress={handleStartWalk}
+                  color={xpBonus.color}
+                />
+             </View>
           </View>
-          <TimeSlider
-            min={5}
-            max={95}
-            initialValue={time}
-            setValue={setTime}
-            onPress={handleStartWalk}
-          />
-        </Animated.View>
-        <Animated.View
-          style={[
-            styles.instructionTextWrapper,
-            { opacity: instructionOpacity, transform: [{ translateY: instructionTranslateY }] },
-          ]}
-        >
-          <StreamingInstructionText
-            text={isFetching ? "Generating your jink..." : locationLoading ? "Acquiring location..." : "Press orb to start jink"}
-            duration={2600}
-            baseColor="#111"
-            baseOpacity={isFetching ? 0.18 : 0.22}
-            highlightColor="#fff"
-            fontSize={16}
-            letterSpacing={1}
-            style={styles.instructionText}
-          />
+
+          
+          {/* Footer Controls: Toggles + Instruction */}
+          <View style={styles.footerControls}>
+             <View style={styles.toggleRow}>
+               <TactileButton 
+                  onPress={() => setIncludeVisited(true)} 
+                  style={[styles.toggleButton, includeVisited && styles.toggleActive]}
+                  intensity={includeVisited ? 60 : 30}
+               >
+                  <Text style={[styles.toggleText, includeVisited && styles.toggleTextActive]}>Some Old</Text>
+               </TactileButton>
+
+               <TactileButton 
+                  onPress={() => setIncludeVisited(false)} 
+                  style={[styles.toggleButton, !includeVisited && styles.toggleActive]}
+                  intensity={!includeVisited ? 60 : 30}
+               >
+                  <Text style={[styles.toggleText, !includeVisited && styles.toggleTextActive]}>All New</Text>
+               </TactileButton>
+             </View>
+
+             <StreamingInstructionText
+                text={isFetching ? "Generating your jink..." : locationLoading ? "Acquiring location..." : "Press orb to start jink"}
+                duration={2600}
+                baseColor="#111"
+                baseOpacity={isFetching ? 0.18 : 0.22}
+                highlightColor="#fff"
+                fontSize={14}
+                letterSpacing={1.5}
+                style={styles.instructionText}
+             />
+          </View>
+
         </Animated.View>
       </View>
     </View>
@@ -610,85 +573,129 @@ const WalkStartScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: DESIGNER_REPUBLIC_THEME.colors.background,  // Match theme, not white
+    backgroundColor: DESIGNER_REPUBLIC_THEME.colors.background,
   },
   container: {
     flex: 1,
     alignItems: "center",
-    paddingTop: 40,
-    paddingBottom: 56,
   },
-  sliderOrbWrapper: {
-    position: "absolute",
+  uiLayer: {
+    flex: 1,
+    width: '100%',
+    paddingTop: 60, // Safe area top
+    justifyContent: 'space-between',
+    paddingBottom: 20,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    alignItems: 'flex-start',
+    zIndex: 10,
+  },
+  xpIndicatorWrapper: {
+    alignItems: 'flex-start',
+    overflow: 'visible',
+  },
+  mapButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 16, // Squircle-ish
+  },
+  
+  centerControls: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    maxHeight: 500, // Constrain height to keep things tight
+    // marginTop: -20,
+  },
+  stepperRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 200,
+    marginBottom: 20,
+    zIndex: 20,
+  },
+  stepperButton: {
+    width: 90,
+    height: 50,
+    borderRadius: 25,
+  },
+  stepperText: {
+    fontSize: 24,
+    fontWeight: '300',
+    color: '#333',
+  },
+  
+  sliderContainer: {
+    width: 300,
+    height: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerVisuals: {
+    position: 'absolute',
     top: 0,
+    left: 0,
+    right: 0,
     bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 28, // Match JINK_OFFSET_Y
-    zIndex: 100, // Ensure TimeSlider PNG is above orb
-  },
-  glowContainer: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timerDisplay: {
-    position: "absolute",
-    top: 120, // Moved down to make room for XP badge
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    overflow: "visible", // Allow XP indicator to extend above
-  },
-  xpBonusContainer: {
-    position: "absolute",
-    top: -16, // Position above timer with clear spacing, but still visible
-    marginBottom: 12,
-    alignSelf: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   orbWrapper: {
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
   },
-  instructionTextWrapper: {
-    position: "absolute",
-    bottom: 140,
-    left: 0,
-    right: 0,
-    alignItems: "center",
+  bigTimeText: {
+    fontSize: 64,
+    fontWeight: '800',
+    position: 'absolute',
+    top: 40, // Adjust based on visual center above orb
+    zIndex: 5,
+    textShadowColor: 'rgba(255,255,255,0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+
+  footerControls: {
+    alignItems: 'center',
+    gap: 20,
+    marginBottom: 20,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  toggleButton: {
+    width: 140,
+    height: 50,
+    borderRadius: 25,
+  },
+  toggleActive: {
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    letterSpacing: 0.5,
+  },
+  toggleTextActive: {
+    color: '#333',
   },
   instructionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 1,
-    color: "#111",
   },
-  filterButton: {
-    position: "absolute",
-    top: 60,
-    right: 20,
-    width: 44,
-    height: 44,
+
+  bottomBarContainer: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  filterIcon: {
-    fontSize: 24,
-    color: '#111',
-    fontWeight: '600',
+    marginBottom: 10,
   },
 });
 

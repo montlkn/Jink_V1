@@ -1,10 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 const clampValue = (value) => {
   const numeric = Number(value);
   if (Number.isNaN(numeric)) return 0;
-  return Math.max(0, Math.min(90, Math.round(numeric)));
+  return Math.max(0, Math.min(99, Math.round(numeric)));
 };
 
 const formatValue = (value, minDigits) =>

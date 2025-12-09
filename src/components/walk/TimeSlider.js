@@ -1,47 +1,87 @@
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Image, PanResponder, StyleSheet, Text, View } from "react-native";
-import Svg, { Circle, G } from "react-native-svg";
+import { PanResponder, StyleSheet, View } from "react-native";
+import Animated, { Easing, useAnimatedProps, withTiming } from "react-native-reanimated";
+import Svg, { Circle, Defs, G, LinearGradient, Path, Stop } from "react-native-svg";
 
 const SIZE = 290;
-const SVG_PAD = 36; // padding around SVG to prevent label clipping
+const SVG_PAD = 36;
 const CONTAINER_SIZE = SIZE + SVG_PAD * 2;
+const HIT_AREA_PADDING = 40; 
+const HIT_AREA_SIZE = CONTAINER_SIZE + HIT_AREA_PADDING * 2;
 const CENTER = SIZE / 2;
-const STROKE_WIDTH = 15;
-const RADIUS = CENTER - STROKE_WIDTH;
-const CONTAINER_CENTER = CONTAINER_SIZE / 2;
-const TRACK_INNER_RADIUS = RADIUS - STROKE_WIDTH * 0.5;
-const PRESS_MOVE_THRESHOLD = 16;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-const FULL_ROTATION = 360;
+const STROKE_WIDTH = 40; // Thicker for tactile feel
+const RADIUS = CENTER - STROKE_WIDTH / 2 - 10; // Adjust radius to fit
+const HIT_AREA_CENTER = HIT_AREA_SIZE / 2;
 
-const getPolarFromEvent = ({ locationX, locationY }) => {
-  const dx = locationX - CONTAINER_CENTER;
-  const dy = locationY - CONTAINER_CENTER;
-  const distance = Math.hypot(dx, dy);
-  const radians = Math.atan2(dy, dx);
-  const degrees = (radians * 180) / Math.PI;
-  const angle = (degrees + 90 + FULL_ROTATION) % FULL_ROTATION;
-  return { angle, distance };
+// Omega Geometry
+const START_ANGLE_DEG = 30;    // Top-RIGHT
+const END_ANGLE_DEG = -30;     // Top-LEFT
+const ARC_SPAN = 300;          // CLOCKWISE
+
+// Convert angle (where 0=top) to SVG cartesian coords
+const angleToPoint = (angleDeg, r = RADIUS) => {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: CENTER + Math.cos(rad) * r,
+    y: CENTER + Math.sin(rad) * r,
+  };
 };
 
+const getAngleFromTouch = (x, y) => {
+  const dx = x - HIT_AREA_CENTER;
+  const dy = y - HIT_AREA_CENTER;
+  let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+  angle = angle + 90;
+  if (angle > 180) angle -= 360;
+  if (angle < -180) angle += 360;
+  return angle;
+};
+
+const createArcPath = (startAngle, endAngle, radius = RADIUS) => {
+  const start = angleToPoint(startAngle, radius);
+  const end = angleToPoint(endAngle, radius);
+  
+  let cwSpan = endAngle - startAngle;
+  if (cwSpan < 0) cwSpan += 360;
+  
+  const largeArc = cwSpan > 180 ? 1 : 0;
+  const sweep = 1; 
+  return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`;
+};
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 const TimeSlider = ({
-  min = 0,
-  max = 90,
-  initialValue = 0,
+  min = 5,
+  max = 95,
+  initialValue = 45,
   setValue,
   onPress,
-  centerLabel = "",
+  color = "#FFFFFF",
 }) => {
   const range = Math.max(max - min, 1);
   const clampedValue = Math.min(max, Math.max(min, initialValue ?? min));
-  const progress = (clampedValue - min) / range;
-  // const dashOffset = CIRCUMFERENCE * (1 - progress); // No longer needed for SVG background
-  const angleRadians = progress * 2 * Math.PI - Math.PI / 2;
-  const thumbX = CENTER + Math.cos(angleRadians) * RADIUS;
-  const thumbY = CENTER + Math.sin(angleRadians) * RADIUS;
+  const progress = (clampedValue - min) / range; 
 
-  const lastAngleRef = useRef(progress * FULL_ROTATION);
+  // Current angle
+  let rawAngle = START_ANGLE_DEG + progress * ARC_SPAN;
+  if (rawAngle > 180) rawAngle -= 360;
+  if (rawAngle < -180) rawAngle += 360;
+  const currentAngle = rawAngle;
+  const thumbPos = angleToPoint(currentAngle);
+
+  // Background Track Path (Full Omega)
+  // Note: createArcPath goes from Start to End clockwise.
+  // For the background, we want the full span.
+  // START_ANGLE_DEG (30) -> END_ANGLE_DEG (-30) is 300 degrees.
+  const bgPath = useMemo(() => createArcPath(START_ANGLE_DEG, END_ANGLE_DEG), []);
+
+  // Progress Path
+  const progressPath = createArcPath(START_ANGLE_DEG, currentAngle);
+
+
   const gestureValueRef = useRef(clampedValue);
   const lastNotifiedValueRef = useRef(Math.round(clampedValue));
   const trackingActiveRef = useRef(false);
@@ -49,25 +89,56 @@ const TimeSlider = ({
   const initialTouchRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const angleFromValue = progress * FULL_ROTATION;
-    lastAngleRef.current = angleFromValue;
     gestureValueRef.current = clampedValue;
     lastNotifiedValueRef.current = Math.round(clampedValue);
-  }, [clampedValue, progress]);
+  }, [clampedValue]);
 
-  const clampToRange = useCallback(
-    (value) => Math.min(max, Math.max(min, value)),
+  const animatedProps = useAnimatedProps(() => {
+    return {
+      stroke: withTiming(color, { duration: 150, easing: Easing.out(Easing.ease) }),
+    };
+  }, [color]);
+
+  const clampValue = useCallback(
+    (v) => Math.min(max, Math.max(min, v)),
     [max, min]
   );
+  
+  const prevAngleRef = useRef(START_ANGLE_DEG + (clampedValue - min) / range * ARC_SPAN);
 
-  const updateGestureValue = useCallback(
-    (rawValue, shouldNotify = true) => {
-      const clamped = clampToRange(rawValue);
+  const angleToValue = useCallback(
+    (angle, prevAngle) => {
+      let clampedAngle = angle;
+      if (angle > END_ANGLE_DEG && angle < START_ANGLE_DEG) {
+        let prevFromStart = prevAngle - START_ANGLE_DEG;
+        if (prevFromStart < 0) prevFromStart += 360;
+        if (prevFromStart < ARC_SPAN / 2) {
+          clampedAngle = START_ANGLE_DEG;
+        } else {
+          clampedAngle = END_ANGLE_DEG;
+        }
+      }
+      
+      let angleFromStart = clampedAngle - START_ANGLE_DEG;
+      if (angleFromStart < 0) {
+        angleFromStart += 360;
+      }
+      
+      const angleProgress = angleFromStart / ARC_SPAN;
+      return { value: min + angleProgress * range, clampedAngle };
+    },
+    [min, range]
+  );
+
+  const updateFromAngle = useCallback(
+    (angle, notify = true) => {
+      const { value: rawValue, clampedAngle } = angleToValue(angle, prevAngleRef.current);
+      const clamped = clampValue(rawValue);
       gestureValueRef.current = clamped;
+      prevAngleRef.current = clampedAngle;
       const rounded = Math.round(clamped);
-      const hasChanged = rounded !== lastNotifiedValueRef.current;
-      if (hasChanged) {
-        // Haptic on notch hits while dragging
+      
+      if (rounded !== lastNotifiedValueRef.current) {
         if (trackingActiveRef.current) {
           try {
             if (rounded % 15 === 0) {
@@ -75,16 +146,15 @@ const TimeSlider = ({
             } else if (rounded % 5 === 0) {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
-          } catch (_error) {}
+          } catch (_e) {}
         }
         lastNotifiedValueRef.current = rounded;
-        if (shouldNotify && setValue) {
+        if (notify && setValue) {
           setValue(rounded);
         }
       }
-      return clamped;
     },
-    [clampToRange, setValue]
+    [angleToValue, clampValue, setValue]
   );
 
   const panResponder = useMemo(
@@ -93,55 +163,53 @@ const TimeSlider = ({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: (event) => {
-          const { angle, distance } = getPolarFromEvent(event.nativeEvent);
-          initialTouchRef.current = {
-            x: event.nativeEvent.locationX,
-            y: event.nativeEvent.locationY,
-          };
-          const isTracking = distance >= TRACK_INNER_RADIUS;
-          trackingActiveRef.current = isTracking;
-          pressEligibleRef.current = !isTracking;
-          lastAngleRef.current = angle;
-          if (isTracking) {
-            const rawValue = min + (angle / FULL_ROTATION) * range;
-            updateGestureValue(rawValue);
-          } else {
-            // Immediate haptic feedback for center press
+          const { locationX, locationY } = event.nativeEvent;
+          const dx = locationX - HIT_AREA_CENTER;
+          const dy = locationY - HIT_AREA_CENTER;
+          const distance = Math.hypot(dx, dy);
+
+          initialTouchRef.current = { x: locationX, y: locationY };
+          const ORB_RADIUS = 95;
+          const isInCenter = distance < ORB_RADIUS;
+          const isOnTrack = !isInCenter;
+
+          trackingActiveRef.current = isOnTrack;
+          pressEligibleRef.current = isInCenter;
+
+          if (isOnTrack) {
+            const angle = getAngleFromTouch(locationX, locationY);
+            updateFromAngle(angle);
+            try {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            } catch (_e) {}
+          } else if (isInCenter) {
             try {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            } catch (_error) {}
+            } catch (_e) {}
           }
         },
         onPanResponderMove: (event) => {
           if (!trackingActiveRef.current) {
             if (pressEligibleRef.current) {
-              const dx =
-                event.nativeEvent.locationX - initialTouchRef.current.x;
-              const dy =
-                event.nativeEvent.locationY - initialTouchRef.current.y;
-              if (Math.hypot(dx, dy) > PRESS_MOVE_THRESHOLD) {
+              const dx = event.nativeEvent.locationX - initialTouchRef.current.x;
+              const dy = event.nativeEvent.locationY - initialTouchRef.current.y;
+              if (Math.hypot(dx, dy) > 16) {
                 pressEligibleRef.current = false;
               }
             }
             return;
           }
-          const { angle } = getPolarFromEvent(event.nativeEvent);
-          let delta = angle - lastAngleRef.current;
-          if (delta > 180) {
-            delta -= 360;
-          } else if (delta < -180) {
-            delta += 360;
-          }
-          lastAngleRef.current = angle;
-          const currentValue = gestureValueRef.current;
-          const rawNext = currentValue + (delta / FULL_ROTATION) * range;
-          updateGestureValue(rawNext);
+          const angle = getAngleFromTouch(
+            event.nativeEvent.locationX,
+            event.nativeEvent.locationY
+          );
+          updateFromAngle(angle);
         },
         onPanResponderRelease: () => {
           if (pressEligibleRef.current && onPress) {
             try {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-            } catch (_error) {}
+            } catch (_e) {}
             onPress();
           }
           trackingActiveRef.current = false;
@@ -153,71 +221,74 @@ const TimeSlider = ({
           pressEligibleRef.current = false;
         },
       }),
-    [min, onPress, range, updateGestureValue]
+    [onPress, updateFromAngle]
   );
 
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
-      <View style={styles.circleContainer} {...panResponder.panHandlers}>
-        {/* Background PNG Track */}
-        <View style={StyleSheet.absoluteFill}>
-          <Image
-            source={require("../../../assets/icons/walk/timeslider.png")}
-            style={{ width: CONTAINER_SIZE, height: CONTAINER_SIZE }}
-            resizeMode="contain"
-          />
+      <View style={styles.hitArea} {...panResponder.panHandlers}>
+        <View style={styles.circleContainer}>
+          <Svg
+            width={CONTAINER_SIZE}
+            height={CONTAINER_SIZE}
+            style={StyleSheet.absoluteFill}
+          >
+            <Defs>
+              <LinearGradient id="knobGradient" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor="rgba(255,255,255,0.9)" />
+                <Stop offset="1" stopColor="rgba(255,255,255,0.4)" />
+              </LinearGradient>
+              <LinearGradient id="trackGradient" x1="0" y1="0" x2="0" y2="1">
+                 <Stop offset="0" stopColor="rgba(255,255,255,0.15)" />
+                 <Stop offset="1" stopColor="rgba(255,255,255,0.05)" />
+              </LinearGradient>
+            </Defs>
+
+            <G transform={`translate(${SVG_PAD}, ${SVG_PAD})`}>
+              {/* Background Track - Tactile/Matte style */}
+              <Path
+                d={bgPath}
+                stroke="url(#trackGradient)"
+                strokeWidth={STROKE_WIDTH}
+                strokeLinecap="round"
+                fill="none"
+              />
+
+              {/* Progress Arc */}
+              <AnimatedPath
+                d={progressPath}
+                animatedProps={animatedProps}
+                strokeWidth={STROKE_WIDTH}
+                strokeLinecap="round"
+                fill="none"
+                opacity={0.8}
+              />
+
+              {/* Tactile Knob */}
+              <Circle
+                cx={thumbPos.x}
+                cy={thumbPos.y}
+                r={22}
+                fill="url(#knobGradient)"
+                stroke="rgba(255,255,255,0.6)"
+                strokeWidth={1.5}
+                shadowColor="#000"
+                shadowOpacity={0.2}
+                shadowRadius={4}
+                shadowOffset={{width: 0, height: 2}}
+              />
+              {/* Indent in knob */}
+              <AnimatedCircle
+                cx={thumbPos.x}
+                cy={thumbPos.y}
+                r={6}
+                 // Match indent color to active color for nice detail
+                animatedProps={animatedProps} 
+                fillOpacity={0.8}
+              />
+            </G>
+          </Svg>
         </View>
-
-        {/* Thumb Overlay */}
-        {/* Thumb Overlay */}
-        {/* Thumb Overlay */}
-        <Svg
-          width={CONTAINER_SIZE}
-          height={CONTAINER_SIZE}
-          style={StyleSheet.absoluteFill}
-        >
-          <G transform={`translate(${SVG_PAD}, ${SVG_PAD})`}>
-            {/* Completion Stroke */}
-            <Circle
-              cx={CENTER}
-              cy={CENTER}
-              r={RADIUS}
-              stroke="#FFFFFF"
-              strokeWidth={STROKE_WIDTH}
-              strokeDasharray={`${CIRCUMFERENCE * progress} ${CIRCUMFERENCE}`}
-              strokeDashoffset={0}
-              strokeLinecap="butt"
-              fill="transparent"
-              rotation="-90"
-              origin={`${CENTER}, ${CENTER}`}
-              opacity={0.6}
-            />
-
-            {/* Invisible larger hit area for better touch accuracy */}
-            <Circle cx={thumbX} cy={thumbY} r={24} fill="transparent" />
-            
-            {/* Visual Thumb */}
-            <Circle 
-              cx={thumbX} 
-              cy={thumbY} 
-              r={14} 
-              fill="#000" 
-              stroke="#fff" 
-              strokeWidth={2}
-              shadowColor="#000"
-              shadowOffset={{ width: 0, height: 2 }}
-              shadowOpacity={0.3}
-              shadowRadius={3}
-            />
-            <Circle cx={thumbX} cy={thumbY} r={6} fill="#fff" />
-          </G>
-        </Svg>
-
-        {centerLabel ? (
-          <View pointerEvents="none" style={styles.valueContainer}>
-            <Text style={styles.valueSubText}>{centerLabel}</Text>
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -227,34 +298,18 @@ const styles = StyleSheet.create({
   wrapper: {
     alignItems: "center",
   },
+  hitArea: {
+    width: HIT_AREA_SIZE,
+    height: HIT_AREA_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+    pointerEvents: "auto",
+  },
   circleContainer: {
     width: CONTAINER_SIZE,
     height: CONTAINER_SIZE,
     alignItems: "center",
     justifyContent: "center",
-    pointerEvents: "auto",
-  },
-  valueContainer: {
-    position: "absolute",
-    alignItems: "center",
-  },
-  valueSubText: {
-    fontSize: 16,
-    color: "#555",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginTop: 4,
-  },
-  labelRow: {
-    width: SIZE,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  rangeLabel: {
-    fontSize: 16,
-    color: "#888",
-    fontWeight: "600",
   },
 });
 

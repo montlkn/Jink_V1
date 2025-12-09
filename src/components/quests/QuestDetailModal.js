@@ -1,6 +1,5 @@
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import {
     Dimensions,
     Modal,
@@ -56,7 +55,7 @@ const QuestDetailModal = ({
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
-          <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+
 
           <PanGestureHandler onGestureEvent={onGestureEvent}>
             <View style={[styles.modalContainer, { borderColor: accentColor }]}>

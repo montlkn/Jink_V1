@@ -211,6 +211,7 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [summaryPending, setSummaryPending] = useState(false);
   const [summaryAnimationKey, setSummaryAnimationKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [highlightedArchetype] = useState(null);
@@ -221,6 +222,12 @@ const ProfileDetailScreen = ({ navigation }) => {
   const initialArchetypeRef = useRef(null);
   const summaryRefreshAttempts = useRef(0);
   const route = useRoute();
+  
+  // Use ref to access latest summary in loadUserProfile without adding it as a dependency
+  const aiSummaryRef = useRef(aiSummary);
+  useEffect(() => {
+    aiSummaryRef.current = aiSummary;
+  }, [aiSummary]);
 
   const commitSummary = useCallback((valueOrUpdater) => {
     setAiSummary((prev) => {
@@ -416,7 +423,7 @@ const ProfileDetailScreen = ({ navigation }) => {
       // If still no AI summary, compose a local deterministic write‑up
       if (
         !resolvedSummary &&
-        (!aiSummary || aiSummary.placeholder) &&
+        (!aiSummaryRef.current || aiSummaryRef.current.placeholder) &&
         !willAutogen
       ) {
         log.debug('[profile-screen] Using fallback summary');
@@ -434,7 +441,7 @@ const ProfileDetailScreen = ({ navigation }) => {
     commitSummary,
     refreshSummaryWithGuardrails,
     fallbackToLocalSummary,
-    aiSummary,
+    // aiSummary removed to prevent infinite loop
   ]);
 
   useEffect(() => {
@@ -630,18 +637,51 @@ const ProfileDetailScreen = ({ navigation }) => {
   const donutSize = 300;
   const centerOrbSize = 80;
 
+  // Removed loading spinner - show skeleton inline instead
+  // The page now loads immediately with placeholders
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>LOADING PROFILE...</Text>
+        <View style={styles.header}>
+           <PassportBackButton onPress={() => navigation.goBack()} />
+           <Text style={styles.headerTitle}>AESTHETIC PROFILE</Text>
+           <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.centered}>
+           <ActivityIndicator size="large" color={theme.colors.primary} />
+           <Text style={styles.loadingText}>LOADING AURA...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (error || !profile) {
+  // Handle case where profile is null (user hasn't taken quiz yet or data is missing)
+  if (!profile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <PassportBackButton onPress={() => navigation.goBack()} />
+          <Text style={styles.headerTitle}>AESTHETIC PROFILE</Text>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>PROFILE NOT FOUND</Text>
+          <Text style={[styles.description, { textAlign: 'center', marginTop: 8, marginBottom: 24, opacity: 0.7 }]}>
+            Take the aesthetic quiz to reveal your unique profile and archetype.
+          </Text>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate(screens.OnboardingQuiz)} 
+            style={[styles.retryButton, { backgroundColor: theme.colors.text, borderColor: theme.colors.text }]}
+          >
+            <Text style={[styles.retryText, { color: theme.colors.surface }]}>TAKE THE QUIZ</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -1192,9 +1232,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
   },
   highlightedRow: {
     backgroundColor: theme.colors.background,

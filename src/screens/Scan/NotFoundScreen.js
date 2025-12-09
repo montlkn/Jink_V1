@@ -85,7 +85,7 @@ export default function NotFoundScreen({ route, navigation }) {
   };
 
   const goHome = () => {
-    navigation.navigate(screens.Main, { screen: screens.Home });
+    navigation.navigate(screens.Main, { screen: screens.WalkStart });
   };
 
   // Photo capture handlers
