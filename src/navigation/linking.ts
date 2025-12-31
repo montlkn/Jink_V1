@@ -31,7 +31,6 @@ export const linking: LinkingOptions<RootParams> = {
       [screens.PassportListDetail]: "passport/list/:listId?",
       // [screens.Search]: "search", // ARCHIVED for v2 - Search removed for v1 beta
       [screens.ScanContribution]: "scan/contribute",
-      [screens.WalkSetup]: "walk/setup",
       [screens.WalkNav]: "walk/nav",
       [screens.BuildingModule]: "walk/building",
       [screens.BuildingInfo]: "scan/building",

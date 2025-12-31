@@ -10,18 +10,21 @@ interface TactileButtonProps {
   intensity?: number;
   scaleTo?: number;
   disabled?: boolean;
+  variant?: "raised" | "inset";
 }
 
 /**
  * A pressable Tactile element with scale animation and haptics.
+ * Uses embossed/inset styling by default for a "pressed into surface" look.
  */
 export const TactileButton: React.FC<TactileButtonProps> = ({
   children,
   onPress,
   style,
-  intensity = 30,
-  scaleTo = 0.95,
+  intensity = 20,
+  scaleTo = 0.97,
   disabled = false,
+  variant = "inset",
 }) => {
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -59,7 +62,11 @@ export const TactileButton: React.FC<TactileButtonProps> = ({
       style={{ opacity: disabled ? 0.6 : 1 }}
     >
       <Animated.View style={[{ transform: [{ scale }] }]}>
-        <TactileView style={[styles.container, style]} intensity={intensity}>
+        <TactileView 
+          style={[styles.container, style]} 
+          intensity={intensity}
+          variant={variant}
+        >
            <View style={styles.center}>
              {children}
            </View>

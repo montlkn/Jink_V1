@@ -13,13 +13,13 @@ export const getWalkDurationBonus = (minutes) => {
   const COLORS = {
     RED: '#dc143c',      // Crimson/Red - 2.0x multiplier zones
     ORANGE: '#ff8c00',   // Orange - 1.2x multiplier zones
-    CYAN: '#00ffff',     // Cyan/Aqua - no bonus zones (1.0x)
+    BLACK: '#000000',    // Black - no bonus zones (1.0x)
     GREEN: '#32cd32',    // Lime Green - 1.5x multiplier zones
   };
 
   // Time-based multiplier tiers
   if (minutes >= 5 && minutes <= 10) {
-    return { multiplier: 1.0, color: COLORS.CYAN, tier: 'none' };
+    return { multiplier: 1.0, color: COLORS.BLACK, tier: 'none' };
   }
   if (minutes >= 10 && minutes < 15) {
     return { multiplier: 1.2, color: COLORS.ORANGE, tier: 'low' };
@@ -46,12 +46,12 @@ export const getWalkDurationBonus = (minutes) => {
     return { multiplier: 1.2, color: COLORS.ORANGE, tier: 'low' };
   }
   if (minutes >= 85 && minutes <= 90) {
-    return { multiplier: 1.0, color: COLORS.CYAN, tier: 'none' };
+    return { multiplier: 1.0, color: COLORS.BLACK, tier: 'none' };
   }
   if (minutes > 90 && minutes <= 95) {
     return { multiplier: 2.0, color: COLORS.RED, tier: 'high' };
   }
 
   // Default fallback
-  return { multiplier: 1.0, color: COLORS.CYAN, tier: 'none' };
+  return { multiplier: 1.0, color: COLORS.BLACK, tier: 'none' };
 };

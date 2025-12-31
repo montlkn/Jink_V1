@@ -4,9 +4,7 @@ import QuestDetailModal from "@/components/quests/QuestDetailModal";
 import AestheticAuraSheet, { type AuraSegment } from "@/components/sheets/AestheticAuraSheet";
 import { getArchetypeColor } from "@/constants/archetypeColors";
 import {
-    passportLists as passportListContent,
-    stampCollection,
-    visaCarousel
+    passportLists as passportListContent
 } from "@/constants/passportContent";
 import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
 import { useAestheticProfile } from "@/hooks/useAestheticProfile";
@@ -102,19 +100,49 @@ export function PassportView(): JSX.Element {
   const auraSegments: AuraSegment[] = useMemo(() => {
     // Try normalized_scores first (from AestheticProfile type), fallback to archetype_scores
     const profileAny = profile as any;
-    const scores = profile?.normalized_scores || profileAny?.archetype_scores;
+    const normalizedScores = profile?.normalized_scores;
+    const rawScores = profileAny?.archetype_scores;
+    
+    const scores = normalizedScores || rawScores;
+    
     if (!scores) {
       console.log('[PassportView] No scores found in profile');
       return [];
     }
-    console.log('[PassportView] Building aura segments from:', Object.keys(scores));
+    
+    const isNormalized = !!normalizedScores;
+    console.log('[PassportView] Building aura segments from:', Object.keys(scores), 'isNormalized:', isNormalized);
+    
+    // Calculate total for raw scores to compute percentage
+    let totalScore = 1;
+    if (!isNormalized) {
+        totalScore = Object.values(scores).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0) || 1;
+    }
+
     return Object.entries(scores)
-      .map(([name, score]) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1).replace('_', ' '),
-        percentage: Math.round((score as number) * 100),
-        score: Math.round((score as number) * 100),
-        color: getArchetypeColor(name),
-      }))
+      .map(([name, val]) => {
+        const scoreVal = Number(val) || 0;
+        
+        let percentage = 0;
+        let displayScore = 0;
+        
+        if (isNormalized) {
+            // Value is 0.0 - 1.0
+            percentage = Math.round(scoreVal * 100);
+            displayScore = Math.round(scoreVal * 100); // Use percentage as score for normalized data
+        } else {
+            // Value is raw score
+            percentage = Math.round((scoreVal / totalScore) * 100);
+            displayScore = Math.round(scoreVal);
+        }
+
+        return {
+            name: name.charAt(0).toUpperCase() + name.slice(1).replace('_', ' '),
+            percentage: percentage,
+            score: displayScore,
+            color: getArchetypeColor(name),
+        };
+      })
       .sort((a, b) => b.score - a.score)
       .slice(0, 3); // Top 3 only
   }, [profile]);
@@ -241,7 +269,6 @@ export function PassportView(): JSX.Element {
         onClose={() => setQuestModalVisible(false)}
         quest={selectedQuest}
         onStartQuest={handleStartQuest}
-        timeRemaining=""
       />
 
       <AestheticAuraSheet
@@ -288,13 +315,10 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _strokeDashoffset = circumference - (data.xpProgress) * circumference;
 
-  const stampSource = data.stamps.length > 0 ? data.stamps : stampCollection.map((stamp) => ({ id: stamp.id, name: stamp.title }));
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _stampsPreview = stampSource.slice(0, 3);
-  const stampCount = stampSource.length;
-
-  const achievementSource = data.achievements;
-  const achievementCount = achievementSource.length;
+  // Use real counts from database queries
+  const stampCount = data.stampCount;
+  const achievementCount = data.achievementCount;
+  const visaCount = data.visaCount;
 
   const listSource =
     data.lists.length > 0
@@ -476,7 +500,7 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
                resizeMode="contain"
             >
                <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{visaCarousel.length}</Text>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{visaCount}</Text>
                </View>
             </ImageBackground>
           </TouchableOpacity>

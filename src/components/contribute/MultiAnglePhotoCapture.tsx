@@ -7,17 +7,17 @@
  * - XP rewards increase with more angles
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Image,
+    Modal,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { APP_COLORS } from '../../constants/appColors';
 
 interface CapturedPhoto {
@@ -49,8 +49,9 @@ export const MultiAnglePhotoCapture: React.FC<MultiAnglePhotoCaptureProps> = ({
   initialPhoto,
 }) => {
   console.log('[MultiAnglePhotoCapture] Component rendering, visible:', visible);
-  const [permission, requestPermission] = useCameraPermissions();
-  console.log('[MultiAnglePhotoCapture] Permission state:', permission);
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('back');
+  console.log('[MultiAnglePhotoCapture] Permission state:', hasPermission);
   const [capturedPhotos, setCapturedPhotos] = useState<CapturedPhoto[]>(
     initialPhoto
       ? [{ uri: initialPhoto, angle: 'front', timestamp: Date.now() }]
@@ -60,8 +61,15 @@ export const MultiAnglePhotoCapture: React.FC<MultiAnglePhotoCaptureProps> = ({
   const [isCapturing, setIsCapturing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  const cameraRef = useRef<CameraView>(null);
+  const cameraRef = useRef<Camera>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // Request permission on mount if needed
+  useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission, requestPermission]);
 
   // Pulse animation for capture button
   React.useEffect(() => {
@@ -92,14 +100,11 @@ export const MultiAnglePhotoCapture: React.FC<MultiAnglePhotoCaptureProps> = ({
 
     setIsCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: false,
-      });
+      const photo = await cameraRef.current.takePhoto();
 
-      if (photo?.uri) {
+      if (photo?.path) {
         const newPhoto: CapturedPhoto = {
-          uri: photo.uri,
+          uri: `file://${photo.path}`,
           angle: currentAngle.id,
           timestamp: Date.now(),
         };
@@ -144,7 +149,7 @@ export const MultiAnglePhotoCapture: React.FC<MultiAnglePhotoCaptureProps> = ({
   console.log('[MultiAnglePhotoCapture] Visible, checking permission...');
 
   // Permission request screen
-  if (!permission?.granted) {
+  if (!hasPermission || !device) {
     console.log('[MultiAnglePhotoCapture] Permission not granted, showing permission screen');
     return (
       <Modal visible={visible} animationType="slide">
@@ -262,10 +267,13 @@ export const MultiAnglePhotoCapture: React.FC<MultiAnglePhotoCaptureProps> = ({
 
         {/* Camera view */}
         <View style={styles.cameraContainer}>
-          <CameraView
+          <Camera
             ref={cameraRef}
             style={styles.camera}
-            facing="back"
+            device={device}
+            isActive={visible && !showPreview}
+            photo={true}
+            photoQualityBalance="speed"
           >
             {/* Framing guide overlay */}
             <View style={styles.framingGuide}>
@@ -274,7 +282,7 @@ export const MultiAnglePhotoCapture: React.FC<MultiAnglePhotoCaptureProps> = ({
               <View style={[styles.framingCorner, styles.framingCornerBL]} />
               <View style={[styles.framingCorner, styles.framingCornerBR]} />
             </View>
-          </CameraView>
+          </Camera>
         </View>
 
         {/* XP indicator */}

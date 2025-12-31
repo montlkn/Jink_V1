@@ -27,11 +27,16 @@ export const ScreenLoaders: Record<string, Loader> = {
     require("@/screens/Scan/ContributionScreen")
   ),
   WalkStart: createLoader(() => require("@/screens/Walk/WalkStartScreen")),
-  WalkSetup: createLoader(() => require("@/screens/Walk/WalkSetupScreen")),
   WalkNav: createLoader(() => require("@/screens/Walk/WalkNavScreen")),
   BuildingModule: createLoader(() => require("@/screens/Walk/BuildingModule")),
   BuildingInfo: createLoader(() =>
     require("@/screens/Scan/BuildingInfoScreen")
+  ),
+  RelatedBuildings: createLoader(() =>
+    require("@/screens/Scan/RelatedBuildingsScreen")
+  ),
+  SimilarBuildings: createLoader(() =>
+    require("@/screens/Scan/SimilarBuildingsScreen")
   ),
   NotFound: createLoader(() => require("@/screens/Scan/NotFoundScreen")),
   PastWalksNolli: createLoader(() =>

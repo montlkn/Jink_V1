@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # Configuration
     INPUT_DIR = "/Users/lucienmount/Downloads/nolli_smoke/pngs"
     OUTPUT_PATH = "/Users/lucienmount/Arch_App_V2/architecture-app/assets/textures/nolli_smoke_spritesheet.png"
-    FRAMES_PER_ROW = 10  # Adjust based on your needs
+    FRAMES_PER_ROW = 12  # Adjust based on your needs
     
     print("=== Nolli Smoke Sprite Sheet Generator ===\n")
     

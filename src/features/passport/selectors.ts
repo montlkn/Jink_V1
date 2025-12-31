@@ -43,6 +43,9 @@ export type PassportUiData = {
   dailyStreak: number;
   streakMultiplier: number;
   totalBuildingsScanned: number;
+  stampCount: number;
+  achievementCount: number;
+  visaCount: number;
 };
 
 type BuildPassportParams = {
@@ -111,6 +114,9 @@ export function toPassportUi(
     dailyStreak,
     streakMultiplier,
     totalBuildingsScanned: snapshot.totalBuildingsScanned || 0,
+    stampCount: snapshot.stampCount,
+    achievementCount: snapshot.achievementCount,
+    visaCount: snapshot.visaCount,
   };
 }
 

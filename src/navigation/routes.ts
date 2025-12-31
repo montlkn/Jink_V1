@@ -20,10 +20,11 @@ export const screens = {
   Scan: "ScanScreen",
   ScanContribution: "ContributionScreen",
   WalkStart: "WalkStartScreen",
-  WalkSetup: "WalkSetupScreen",
   WalkNav: "WalkNavScreen",
   BuildingModule: "BuildingModule",
   BuildingInfo: "BuildingInfo",
+  RelatedBuildings: "RelatedBuildings",
+  SimilarBuildings: "SimilarBuildings",
   NotFound: "NotFound",
   PastWalksNolli: "PastWalksNolli",
   NolliSkia: "NolliSkia",
@@ -98,10 +99,24 @@ export type RootParams = {
   } | undefined;
   ContributionScreen: undefined;
   WalkStartScreen: { filters?: WalkFilters } | undefined;
-  WalkSetupScreen: undefined;
   WalkNavScreen: WalkNavParams;
   BuildingModule: { building: Record<string, unknown> };
-  BuildingInfo: { buildingData: BuildingDetail } | undefined;
+  BuildingInfo: {
+    buildingData: BuildingDetail;
+    skipAestheticTracking?: boolean;
+    fromScan?: boolean;
+  } | undefined;
+  RelatedBuildings: {
+    filterType: "architect" | "style" | "materials" | "type" | "use";
+    filterValue: string;
+    currentLat?: number;
+    currentLng?: number;
+    excludeBin?: string;
+    originBuilding?: string;
+  };
+  SimilarBuildings: {
+    buildingData: BuildingDetail;
+  };
   NotFound: {
     message?: string;
     buildingBIN?: string | null;

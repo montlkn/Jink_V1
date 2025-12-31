@@ -29,7 +29,6 @@ export {
   type UpdateStreakResult,
 } from "./supabaseGateway";
 export { getGeminiModel, getGeminiClient, resetGeminiClient } from "./aiGateway";
-export { httpGateway, httpClient } from "./http";
 export {
   fetchPassport,
   fetchPassportProfile,

@@ -50,10 +50,14 @@ const WalkStartScreen = ({ navigation, route }) => {
   const hapticsCancelRef = useRef(null);
 
   // Orb fade animation - keeps orb mounted, just fades opacity
-  const orbOpacity = useRef(new Animated.Value(0)).current;
+  // Start at 1 so orb is visible on initial mount
+  const orbOpacity = useRef(new Animated.Value(1)).current;
 
-  // Start at 0.5 so content is visible immediately on mount (no flash of invisible content)
-  const entryProgress = useRef(new Animated.Value(0.5)).current;
+  // Start at 1 so content is visible immediately on mount (no flash of invisible content)
+  const entryProgress = useRef(new Animated.Value(1)).current;
+
+  // Track if this is the first mount
+  const isFirstMount = useRef(true);
   
   // Performance tracking
   const screenMountTime = useRef(performance.now());
@@ -130,14 +134,28 @@ const WalkStartScreen = ({ navigation, route }) => {
 
   useFocusEffect(
     useCallback(() => {
-      log.info('[WalkStart] Screen focused, starting animations');
+      log.info('[WalkStart] Screen focused, starting animations', { isFirstMount: isFirstMount.current });
 
-      // Reset and start entry animation
+      // On first mount, everything is already visible (values start at 1)
+      // Only animate on subsequent navigations back to this screen
+      if (isFirstMount.current) {
+        isFirstMount.current = false;
+        // Already visible, nothing to animate
+        return () => {
+          // Fade out orb when leaving
+          Animated.timing(orbOpacity, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+          }).start();
+        };
+      }
+
+      // Re-navigation: Reset and animate in
       entryProgress.stopAnimation();
       entryProgress.setValue(0.5);
-
-      // Fade in orb smoothly
       orbOpacity.stopAnimation();
+      orbOpacity.setValue(0);
 
       // Parallel animations: entry progress + orb fade in
       Animated.parallel([
@@ -148,7 +166,7 @@ const WalkStartScreen = ({ navigation, route }) => {
         }),
         Animated.timing(orbOpacity, {
           toValue: 1,
-          duration: 400, // Slower fade for smoother feel
+          duration: 400,
           useNativeDriver: true,
         }),
       ]).start();
@@ -483,7 +501,7 @@ const WalkStartScreen = ({ navigation, route }) => {
              {/* Stepper Buttons */}
              <View style={styles.stepperRow}>
                 <TactileButton 
-                  onPress={() => adjustTime(-5)} 
+                  onPress={() => adjustTime(-1)} 
                   style={styles.stepperButton}
                   intensity={20}
                 >
@@ -491,7 +509,7 @@ const WalkStartScreen = ({ navigation, route }) => {
                 </TactileButton>
 
                 <TactileButton 
-                  onPress={() => adjustTime(5)} 
+                  onPress={() => adjustTime(1)} 
                   style={styles.stepperButton}
                   intensity={20}
                 >
@@ -499,9 +517,21 @@ const WalkStartScreen = ({ navigation, route }) => {
                 </TactileButton>
              </View>
 
-             {/* Slider Area */}
+             {/* Slider Area - TimeSlider is the interactive base layer */}
              <View style={styles.sliderContainer}>
-                {/* Visual Layer: Orb + Text */}
+                {/* Interactive Slider - FIRST so it's at the bottom of the z-stack */}
+                <View style={styles.sliderWrapper}>
+                  <TimeSlider
+                    min={5}
+                    max={95}
+                    initialValue={time}
+                    setValue={setTime}
+                    onPress={handleStartWalk}
+                    color={xpBonus.color}
+                  />
+                </View>
+
+                {/* Visual Layer: Orb + Text - ON TOP but non-interactive */}
                 <View style={styles.centerVisuals} pointerEvents="none">
                    {/* Orb Underlay */}
                    <Animated.View style={[styles.orbWrapper, { opacity: orbOpacity }]}>
@@ -514,20 +544,10 @@ const WalkStartScreen = ({ navigation, route }) => {
                         glowOpacityMultiplier={0.05}
                      />
                    </Animated.View>
-                   
+
                    {/* Huge Time Text Overlay */}
                    <Text style={[styles.bigTimeText, { color: xpBonus.color }]}>{time}</Text>
                 </View>
-
-                {/* Interactive Slider */}
-                <TimeSlider
-                  min={5}
-                  max={95}
-                  initialValue={time}
-                  setValue={setTime}
-                  onPress={handleStartWalk}
-                  color={xpBonus.color}
-                />
              </View>
           </View>
 
@@ -582,9 +602,9 @@ const styles = StyleSheet.create({
   uiLayer: {
     flex: 1,
     width: '100%',
-    paddingTop: 60, // Safe area top
+    paddingTop: 60,
     justifyContent: 'space-between',
-    paddingBottom: 20,
+    paddingBottom: 0, // Footer handles its own spacing
   },
   headerRow: {
     flexDirection: 'row',
@@ -600,6 +620,7 @@ const styles = StyleSheet.create({
   mapButton: {
     width: 50,
     height: 50,
+    top: 12,
     borderRadius: 16, // Squircle-ish
   },
   
@@ -607,8 +628,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    maxHeight: 500, // Constrain height to keep things tight
-    // marginTop: -20,
   },
   stepperRow: {
     flexDirection: 'row',
@@ -621,6 +640,16 @@ const styles = StyleSheet.create({
     width: 90,
     height: 50,
     borderRadius: 25,
+    // Enhanced recessed look
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 1,
+    borderRightWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.25)',
+    borderLeftColor: 'rgba(0, 0, 0, 0.2)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.6)',
+    borderRightColor: 'rgba(255, 255, 255, 0.4)',
   },
   stepperText: {
     fontSize: 24,
@@ -629,17 +658,18 @@ const styles = StyleSheet.create({
   },
   
   sliderContainer: {
-    width: 300,
-    height: 300,
+    width: 370, // Match TimeSlider HIT_AREA_SIZE (290 + 40*2 = 370)
+    height: 370,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sliderWrapper: {
+    // The slider handles its own hit area sizing
     alignItems: 'center',
     justifyContent: 'center',
   },
   centerVisuals: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -649,11 +679,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   bigTimeText: {
-    fontSize: 64,
+    fontSize: 45,
     fontWeight: '800',
-    position: 'absolute',
-    top: 40, // Adjust based on visual center above orb
-    zIndex: 5,
+    top: -110,
+    // Centered in the visual container (on top of orb)
     textShadowColor: 'rgba(255,255,255,0.5)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
@@ -661,8 +690,8 @@ const styles = StyleSheet.create({
 
   footerControls: {
     alignItems: 'center',
-    gap: 20,
-    marginBottom: 20,
+    gap: 16,
+    paddingBottom: 120, // Space to clear bottom tab bar
   },
   toggleRow: {
     flexDirection: 'row',
@@ -687,15 +716,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   instructionText: {
-    fontSize: 14,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-
-  bottomBarContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginTop: 8,
   },
 });
 

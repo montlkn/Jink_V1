@@ -2,17 +2,17 @@ import { useAuth } from '@/auth/authProvider';
 import { questsActions } from '@/features/quests';
 import { log } from '@/lib/log';
 import { screens } from "@/navigation/routes";
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { Accelerometer, Magnetometer } from 'expo-sensors';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import BreathingGlow from '../../components/glow/BreathingGlow';
 import ArchetypeOrb from '../../features/orb/ArchetypeOrb';
 import {
-  PositionFusion,
-  calculatePositionConfidence,
-  detectMovementType,
+    PositionFusion,
+    calculatePositionConfidence,
+    detectMovementType,
 } from '../../utils/sensorFusion';
 // eslint-disable-next-line no-restricted-imports
 import { fetchBuildingBySearch, fetchContributedBuildingBySearch, fetchNearbyBuildingsFromDB } from '@/services/buildingService';
@@ -20,11 +20,34 @@ import { fetchBuildingBySearch, fetchContributedBuildingBySearch, fetchNearbyBui
 import { verifyBuilding } from '@/services/buildingVerificationService';
 // eslint-disable-next-line no-restricted-imports
 import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';
+// eslint-disable-next-line no-restricted-imports
+import { fetchContributionsByLocation } from '@/services/contributionsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ScanScreen({ navigation, route }) {
   const { session } = useAuth();
-  const [permission, requestPermission] = useCameraPermissions();
+  
+  // Vision Camera hooks for device selection and permissions
+  const { hasPermission, requestPermission } = useCameraPermission();
+  
+  // Get multi-cam device with ultra-wide + wide for lens switching
+  const device = useCameraDevice('back', {
+    physicalDevices: ['ultra-wide-angle-camera', 'wide-angle-camera'],
+  });
+  
+  // Camera zoom state - controls which physical lens is used
+  // minZoom = ultra-wide, neutralZoom = wide (1x)
+  const [zoom, setZoom] = useState(1); // Start at 1x (neutralZoom)
+  const minZoom = device?.minZoom ?? 1;
+  const maxZoom = Math.min(device?.maxZoom ?? 1, 5); // Cap at 5x
+  const neutralZoom = device?.neutralZoom ?? 1;
+  
+  // Calculate current lens label based on zoom
+  const currentLensLabel = useMemo(() => {
+    if (zoom < neutralZoom) return '0.5x';
+    if (zoom >= 2) return '2x';
+    return '1x';
+  }, [zoom, neutralZoom]);
 
   // BATCHED sensor state - single state object instead of 7 separate ones
   const [sensorState, setSensorState] = useState({
@@ -71,6 +94,31 @@ export default function ScanScreen({ navigation, route }) {
       frameRequestId.current = requestAnimationFrame(flushSensorUpdates);
     }
   }, [flushSensorUpdates]);
+
+  // Toggle between ultra-wide (minZoom) and wide (neutralZoom) lenses
+  const toggleLens = useCallback(() => {
+    if (zoom < neutralZoom) {
+      // Currently on ultra-wide, switch to wide
+      setZoom(neutralZoom);
+      log.info('[scan] Switched to wide lens (1x)', { zoom: neutralZoom });
+    } else {
+      // Currently on wide, switch to ultra-wide
+      setZoom(minZoom);
+      log.info('[scan] Switched to ultra-wide lens (0.5x)', { zoom: minZoom });
+    }
+  }, [zoom, minZoom, neutralZoom]);
+
+  // Handle camera initialization
+  const handleCameraInitialized = useCallback(() => {
+    log.info('[scan] Camera initialized', { 
+      minZoom, 
+      maxZoom, 
+      neutralZoom,
+      physicalDevices: device?.physicalDevices 
+    });
+    // Start at neutral zoom (1x)
+    setZoom(neutralZoom);
+  }, [minZoom, maxZoom, neutralZoom, device?.physicalDevices]);
 
   // Initialize sensor fusion on mount
   useEffect(() => {
@@ -208,12 +256,6 @@ export default function ScanScreen({ navigation, route }) {
     };
   }, [queueSensorUpdate]);
 
-  useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
-  }, [permission, requestPermission]);
-
   // Fetch nearby buildings for cone of vision verification (verification mode only)
   useEffect(() => {
     if (!verificationMode || !sensorState.position) return;
@@ -250,10 +292,17 @@ export default function ScanScreen({ navigation, route }) {
     let photo = null; // Declare in outer scope so it's accessible in error handling
 
     try {
-      photo = await cameraRef.current.takePictureAsync({
-        quality: 0.5,
-        skipProcessing: true,
+      // Vision-camera uses takePhoto() instead of takePictureAsync()
+      const capturedPhoto = await cameraRef.current.takePhoto({
+        qualityPrioritization: 'speed',
       });
+      
+      // Vision-camera returns {path} instead of {uri}
+      photo = {
+        uri: `file://${capturedPhoto.path}`,
+        width: capturedPhoto.width,
+        height: capturedPhoto.height,
+      };
 
       // Use multi-tier verification system
       if (verificationMode && expectedBuilding) {
@@ -688,15 +737,16 @@ export default function ScanScreen({ navigation, route }) {
             }
           }
 
-          // Then try the backend API for synced contributions
-          const contributionsResponse = await fetch(
-            `${BACKEND_URL}/api/contributions/by-location?gps_lat=${position.latitude}&gps_lng=${position.longitude}&radius_meters=50`
+          // Use direct Supabase lookup instead of Modal API
+          const contributions = await fetchContributionsByLocation(
+            position.latitude,
+            position.longitude,
+            50 // 50 meter radius
           );
-          const contributionsData = await contributionsResponse.json();
 
-          if (contributionsData.contributions && contributionsData.contributions.length > 0) {
+          if (contributions && contributions.length > 0) {
             // Found user-contributed data! Show it to the user
-            const contribution = contributionsData.contributions[0];
+            const contribution = contributions[0];
             log.info('[scan] Found user contribution for this location', contribution);
 
             // Navigate to BuildingInfo with contributed data
@@ -756,28 +806,41 @@ export default function ScanScreen({ navigation, route }) {
     }
   };
 
-  if (!permission) {
+  // Request permission on mount if not granted
+  useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission, requestPermission]);
+
+  if (!hasPermission) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.text}>Requesting camera permission...</Text>
       </View>
     );
   }
 
-  if (!permission.granted) {
+  if (device == null) {
     return (
       <View style={styles.container}>
-        <Text style={styles.text}>Camera permission required</Text>
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={styles.text}>Loading camera...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <CameraView
+      <Camera
         ref={cameraRef}
-        style={styles.camera}
-        facing="back"
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={true}
+        photo={true}
+        zoom={zoom}
+        onInitialized={handleCameraInitialized}
       />
 
       {/* Verification Mode Banner */}
@@ -814,6 +877,24 @@ export default function ScanScreen({ navigation, route }) {
           {gpsAccuracy && gpsAccuracy > 25 ? ' ⚠️ Low' : ''}
         </Text>
       </View>
+
+      {/* Lens Switcher - toggles between ultra-wide and wide */}
+      {Platform.OS === 'ios' && device?.physicalDevices?.length > 1 && (
+        <View style={styles.lensPanel}>
+          <TouchableOpacity 
+            style={styles.lensButton}
+            onPress={toggleLens}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.lensButtonText}>
+              {currentLensLabel}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.lensHint}>
+            {zoom < neutralZoom ? 'Ultra Wide' : 'Wide'}
+          </Text>
+        </View>
+      )}
 
       {/* Crosshair */}
       <View style={styles.crosshair}>
@@ -1006,5 +1087,37 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
     marginTop: 4,
+  },
+  // Lens switcher styles
+  lensPanel: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 12,
+  },
+  lensButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lensButtonDisabled: {
+    opacity: 0.4,
+  },
+  lensButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  lensHint: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 10,
+    marginTop: 6,
+    textAlign: 'center',
   },
 });

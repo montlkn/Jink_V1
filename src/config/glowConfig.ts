@@ -4,7 +4,7 @@
 import type { PresetConfig } from "react-native-animated-glow";
 
 /**
- * Warm golden glow for HomeTasteLine card
+ * Warm golden glow for card components
  */
 export const showtime: PresetConfig = {
     states: [

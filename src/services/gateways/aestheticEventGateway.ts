@@ -59,11 +59,23 @@ export async function createAestheticEvent(
       }
     }
 
+    // Validate and truncate building_bbl if needed (safety check)
+    const buildingBbl = params.buildingBbl
+      ? params.buildingBbl.substring(0, 20) // Match new VARCHAR(20) limit
+      : undefined;
+
+    if (params.buildingBbl && params.buildingBbl.length > 20) {
+      log.warn("[aestheticEventGateway] Truncating long building_bbl", {
+        original: params.buildingBbl,
+        truncated: buildingBbl,
+      });
+    }
+
     const eventData = {
       user_id: params.userId,
       event_type: params.eventType,
       event_subtype: params.eventSubtype,
-      building_bbl: params.buildingBbl,
+      building_bbl: buildingBbl,
       building_aesthetic_profile: buildingAestheticProfile,
       payload: params.payload || {},
       aesthetic_vector: params.aestheticVector,

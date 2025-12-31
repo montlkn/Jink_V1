@@ -22,6 +22,7 @@ module.exports = () => {
     scheme,
     version: "1.0.0",
     orientation: "portrait",
+    icon: "./assets/icon.png",
     plugins: [
       [
         "expo-location",
@@ -34,6 +35,12 @@ module.exports = () => {
         "expo-camera",
         {
           cameraPermission: "Allow $(PRODUCT_NAME) to access your camera to scan buildings.",
+        },
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          cameraPermissionText: "$(PRODUCT_NAME) needs access to your camera to scan buildings and switch between lenses.",
         },
       ],
       "expo-asset",
@@ -71,6 +78,10 @@ module.exports = () => {
         : {}),
     },
     android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/icon.png",
+        backgroundColor: "#ffffff",
+      },
       permissions: [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",

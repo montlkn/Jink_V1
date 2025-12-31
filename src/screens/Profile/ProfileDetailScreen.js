@@ -1,9 +1,8 @@
 import ArchetypeOrb from '@/features/orb/ArchetypeOrb';
 import { PassportBackButton } from '@/features/passport';
 import {
-    fetchSummary,
+    getAestheticSummary,
     getUserAestheticProfile,
-    regenerateSummary,
 } from '@/features/profile';
 import { log } from '@/lib/log';
 import { screens } from '@/navigation/routes';
@@ -32,17 +31,10 @@ import SegmentModal from '../../components/modals/SegmentModal';
 import AnimatedSummaryText from '../../components/profile/AnimatedSummaryText';
 import { getArchetypeColor } from '../../constants/archetypeColors';
 import { getArchetypeInfo, prepareChartData } from '../../services/aestheticScoringService';
-import { composeLocalSummary } from '../../services/ai/localSummary';
+// localSummary no longer needed - using client-side Gemini now
 import { getDetailedArchetypeInfo } from '../../services/archetypeDetailService';
 
-const REQUIRED_PROMPT_VERSION = 'prompt-v2';
-const MAX_SUMMARY_REFRESH_ATTEMPTS = 2;
-const SUMMARY_GUARDRAILS = [
-  { pattern: /saved posts?/i, reason: 'mentions saved posts' },
-  { pattern: /instagram/i, reason: 'mentions Instagram' },
-  { pattern: /followers?/i, reason: 'mentions followers' },
-  { pattern: /social (?:feed|graph)/i, reason: 'references social feed' },
-];
+// Summary is now generated client-side with caching - no Modal needed
 
 function normalizeSummaryText(text = '') {
   const cleaned = text
@@ -78,58 +70,9 @@ function normalizeSummaryText(text = '') {
   return result;
 }
 
-function formatSourceModelLabel(sourceModel) {
-  if (!sourceModel || typeof sourceModel !== 'string') return null;
-  const parts = sourceModel.split(/[-_]/).filter(Boolean);
-  if (parts.length === 0) return sourceModel;
-  return parts
-    .map((part) => {
-      if (!part) return part;
-      if (part.toUpperCase() === part) return part;
-      return part.charAt(0).toUpperCase() + part.slice(1);
-    })
-    .join(' ');
-}
-
-function evaluateSummaryResponse(payload) {
-  const sanitizedKeyPhrases = sanitizeKeyPhrases(
-    payload?.summary?.keyPhrases || payload?.summary?.key_phrases
-  );
-
-  const summary = payload?.summary
-    ? {
-        ...payload.summary,
-        text: normalizeSummaryText(payload.summary.text || ''),
-        keyPhrases: sanitizedKeyPhrases,
-      }
-    : null;
-
-  const meta = payload?.meta
-    ? {
-        ...payload.meta,
-        sourceModelLabel: formatSourceModelLabel(payload.meta.sourceModel),
-      }
-    : null;
-
-  const guardrailMatches = summary
-    ? SUMMARY_GUARDRAILS.filter(({ pattern }) => pattern.test(summary.text))
-    : [];
-
-  return {
-    summary,
-    meta,
-    guardrailViolation: guardrailMatches.length > 0,
-    guardrailReasons: guardrailMatches.map(({ reason }) => reason),
-  };
-}
-
-function buildPlaceholderSummary(message) {
-  return {
-    text: message,
-    generatedAt: null,
-    placeholder: true,
-  };
-}
+// Removed formatSourceModelLabel - not used
+// Removed evaluateSummaryResponse - not used
+// Removed buildPlaceholderSummary - not used
 
 function sanitizeKeyPhrases(value) {
   if (!Array.isArray(value)) return [];
@@ -208,7 +151,6 @@ const ProfileDetailScreen = ({ navigation }) => {
   const { session } = useAuth();
   const [profile, setProfile] = useState(null);
   const [aiSummary, setAiSummary] = useState(null);
-  const [summaryPending, setSummaryPending] = useState(false);
   const [summaryAnimationKey, setSummaryAnimationKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   // eslint-disable-next-line no-unused-vars
@@ -220,14 +162,8 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [selectedSegment, setSelectedSegment] = useState(null);
   const scrollViewRef = useRef();
   const initialArchetypeRef = useRef(null);
-  const summaryRefreshAttempts = useRef(0);
+  // summaryRefreshAttempts removed - client-side caching handles this
   const route = useRoute();
-  
-  // Use ref to access latest summary in loadUserProfile without adding it as a dependency
-  const aiSummaryRef = useRef(aiSummary);
-  useEffect(() => {
-    aiSummaryRef.current = aiSummary;
-  }, [aiSummary]);
 
   const commitSummary = useCallback((valueOrUpdater) => {
     setAiSummary((prev) => {
@@ -240,194 +176,49 @@ const ProfileDetailScreen = ({ navigation }) => {
     });
   }, [setSummaryAnimationKey]);
 
-  const fallbackToLocalSummary = useCallback((profileData) => {
-    if (!profileData) {
-      commitSummary(buildPlaceholderSummary('Refreshing your aesthetic profile…'));
-      setSummaryPending(false);
-      return;
-    }
+  // Removed triggerManualRegeneration - not used
 
-    const local = composeLocalSummary({
-      primary_archetype: profileData.primary_archetype,
-      secondary_archetype: profileData.secondary_archetype,
-      archetype_scores: profileData.archetype_scores,
-    });
-
-    if (local?.text) {
-      const primaryInfoData = profileData?.primary_archetype
-        ? getArchetypeInfo(profileData.primary_archetype)
-        : null;
-      const secondaryInfoData = profileData?.secondary_archetype
-        ? getArchetypeInfo(profileData.secondary_archetype)
-        : null;
-      const fallbackPhrases = sanitizeKeyPhrases([
-        ...((primaryInfoData?.vibe || []).slice(0, 3) || []),
-        ...((secondaryInfoData?.vibe || []).slice(0, 2) || []),
-      ]);
-
-      commitSummary({
-        ...local,
-        text: normalizeSummaryText(local.text),
-        placeholder: false,
-        keyPhrases: fallbackPhrases,
-      });
-    } else {
-      commitSummary(buildPlaceholderSummary('We could not personalize your profile just yet.'));
-    }
-
-    setSummaryPending(false);
-  }, [commitSummary]);
-
-  const triggerManualRegeneration = useCallback(async (profileData) => {
-    if (!profileData) return false;
-
-    summaryRefreshAttempts.current += 1;
-
-    try {
-      log.debug('[profile-screen] Requesting manual summary regeneration');
-      await regenerateSummary();
-
-      const refreshed = await fetchSummary(false);
-      const evaluation = evaluateSummaryResponse(refreshed);
-
-      if (evaluation.summary && !evaluation.guardrailViolation) {
-        commitSummary(evaluation.summary);
-        setSummaryPending(false);
-        return true;
-      }
-
-      if (evaluation.guardrailViolation) {
-        log.debug(
-          '[profile-screen] Manual regeneration violated guardrails:',
-          evaluation.guardrailReasons.join(', ') || 'unknown'
-        );
-      }
-    } catch (regenErr) {
-      log.warn('AI summary manual regeneration failed:', regenErr.message);
-    }
-
-    return false;
-  }, [commitSummary]);
-
-  const refreshSummaryWithGuardrails = useCallback(async (profileData) => {
-    if (!profileData) {
-      setSummaryPending(false);
-      return;
-    }
-
-    summaryRefreshAttempts.current += 1;
-
-    try {
-      log.debug(`[profile-screen] Autogen summary attempt #${summaryRefreshAttempts.current}`);
-      const autogen = await fetchSummary(true);
-      const evaluation = evaluateSummaryResponse(autogen);
-
-      if (evaluation.summary && !evaluation.guardrailViolation) {
-        commitSummary(evaluation.summary);
-        setSummaryPending(false);
-        return;
-      }
-
-      if (evaluation.guardrailViolation) {
-        log.debug(
-          '[profile-screen] Autogen summary guardrail violation:',
-          evaluation.guardrailReasons.join(', ') || 'unknown'
-        );
-      }
-    } catch (autogenErr) {
-      log.warn('AI summary autogen skipped:', autogenErr.message);
-    }
-
-    if (summaryRefreshAttempts.current < MAX_SUMMARY_REFRESH_ATTEMPTS) {
-      const regenerated = await triggerManualRegeneration(profileData);
-      if (regenerated) {
-        return;
-      }
-    }
-
-    fallbackToLocalSummary(profileData);
-  }, [commitSummary, fallbackToLocalSummary, triggerManualRegeneration]);
-
+  // Simplified: Load profile with client-side Gemini + AsyncStorage cache
   const loadUserProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false);
       return;
     }
 
-    commitSummary((prev) =>
-      prev?.text
-        ? prev
-        : { text: '', generatedAt: null, placeholder: false, keyPhrases: [] }
-    );
     try {
       log.debug('[profile-screen] Loading profile detail…');
       const userProfile = await getUserAestheticProfile(session.user.id);
       setProfile(userProfile);
       setLoading(false);
 
-      let resolvedSummary = null;
-      let willAutogen = false;
-      summaryRefreshAttempts.current = 0;
-
+      // Get summary from cache or generate with client-side Gemini
+      // This is FAST - uses AsyncStorage cache, only calls Gemini if needed
       try {
-        const initial = await fetchSummary(false);
-        const evaluation = evaluateSummaryResponse(initial);
-
-        if (evaluation.summary && !evaluation.guardrailViolation) {
-          commitSummary(evaluation.summary);
-          resolvedSummary = evaluation.summary;
-          setSummaryPending(false);
-        } else if (evaluation.guardrailViolation) {
-          log.debug(
-            '[profile-screen] Cached summary violated guardrails:',
-            evaluation.guardrailReasons.join(', ') || 'unknown'
-          );
-          commitSummary((prev) =>
-            prev && !prev.placeholder
-              ? prev
-              : buildPlaceholderSummary('Personalizing your aesthetic profile…')
-          );
-          setSummaryPending(true);
-        }
-
-        const summarySourceModel = evaluation.meta?.sourceModel || '';
-        const hasRequiredPrompt =
-          typeof summarySourceModel === 'string' &&
-          summarySourceModel.includes(REQUIRED_PROMPT_VERSION);
-
-        const shouldAutogen =
-          !evaluation.summary ||
-          evaluation.guardrailViolation ||
-          evaluation.meta?.needsUpdate ||
-          !hasRequiredPrompt;
-        if (shouldAutogen) {
-          willAutogen = true;
-          if (!resolvedSummary) {
-            commitSummary((prev) =>
-              prev && !prev.placeholder
-                ? prev
-                : buildPlaceholderSummary('Personalizing your aesthetic profile…')
-            );
-          }
-          setSummaryPending(true);
-          void refreshSummaryWithGuardrails(userProfile);
-        } else {
-          setSummaryPending(false);
-        }
+        const summary = await getAestheticSummary(session.user.id, userProfile);
+        
+        log.debug('[profile-screen] Summary loaded', { 
+          cached: !!summary.archetypeHash,
+          generatedAt: summary.generatedAt 
+        });
+        
+        commitSummary({
+          text: normalizeSummaryText(summary.text),
+          keyPhrases: sanitizeKeyPhrases(summary.keyPhrases),
+          generatedAt: summary.generatedAt,
+          placeholder: false,
+        });
       } catch (summaryErr) {
-        log.warn('Could not fetch AI summary:', summaryErr.message);
-        setSummaryPending(false);
-        // Non-critical: continue without AI summary
-      }
-
-      // If still no AI summary, compose a local deterministic write‑up
-      if (
-        !resolvedSummary &&
-        (!aiSummaryRef.current || aiSummaryRef.current.placeholder) &&
-        !willAutogen
-      ) {
-        log.debug('[profile-screen] Using fallback summary');
-        fallbackToLocalSummary(userProfile);
+        log.warn('Could not load AI summary:', summaryErr.message);
+        // Fallback: use basic info from archetype
+        const primaryInfoData = userProfile?.primary_archetype
+          ? getArchetypeInfo(userProfile.primary_archetype)
+          : null;
+        commitSummary({
+          text: primaryInfoData?.tagline || 'Your aesthetic profile is being personalized.',
+          keyPhrases: primaryInfoData?.vibe?.slice(0, 3) || [],
+          generatedAt: null,
+          placeholder: true,
+        });
       }
 
       setError(null);
@@ -436,13 +227,7 @@ const ProfileDetailScreen = ({ navigation }) => {
       setError(err.message);
       setLoading(false);
     }
-  }, [
-    session,
-    commitSummary,
-    refreshSummaryWithGuardrails,
-    fallbackToLocalSummary,
-    // aiSummary removed to prevent infinite loop
-  ]);
+  }, [session, commitSummary]);
 
   useEffect(() => {
     loadUserProfile();
@@ -767,20 +552,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.summaryCard}>
             <Text style={styles.sectionTitle}>YOUR AESTHETIC PROFILE</Text>
-            {summaryPending && (
-              <View style={styles.summaryPendingRow}>
-                <ActivityIndicator
-                  size="small"
-                  color={theme.colors.text}
-                  style={styles.summarySpinner}
-                />
-                <Text style={styles.pendingLabel}>
-                  {aiSummary?.placeholder
-                    ? 'PERSONALIZING YOUR PROFILE...'
-                    : 'REFRESHING SIGNALS...'}
-                </Text>
-              </View>
-            )}
+            {/* Spinner removed - blinking cursor in AnimatedSummaryText handles loading */}
             <AnimatedSummaryText
               text={summaryText}
               placeholder={summaryPlaceholder}

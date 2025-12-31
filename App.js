@@ -13,7 +13,6 @@ import { flushEventQueue } from "@/services/gateways/aestheticEventGateway";
 import { initLocationCache } from "@/services/locationCacheService";
 import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
-import * as ScreenOrientation from "expo-screen-orientation";
 import "expo-three";
 import { useEffect } from "react";
 import { AppState } from "react-native";
@@ -168,11 +167,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    // Lock orientation to portrait
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch((err) => {
-      console.warn("[App] Failed to lock orientation:", err);
-    });
-
+    // Preload orb assets
     Asset.loadAsync(ORB_ASSETS).catch((error) => {
       console.warn("[App] Failed to preload orb assets", error);
     });

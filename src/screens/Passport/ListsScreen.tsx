@@ -1,12 +1,21 @@
 import { passportLists, type PassportListDefinition } from "@/constants/passportContent";
-import { PassportBackButton, PassportEditButton } from "@/features/passport";
+import {
+    CreateListModal,
+    PassportBackButton,
+    PassportEditButton,
+    createList,
+    deleteList,
+    getAllListsMetadata,
+    type ListMetadata,
+} from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     FlatList,
     SafeAreaView,
@@ -71,14 +80,72 @@ function ListCard({ item, editMode, onPress, onDelete }: ListCardProps) {
   );
 }
 
+// Convert ListMetadata to PassportListDefinition format for display
+function metadataToListDefinition(metadata: ListMetadata): PassportListDefinition {
+  return {
+    id: metadata.id,
+    name: metadata.name,
+    tagline: metadata.tagline,
+    prompt: "",
+    mood: metadata.mood,
+    buildings: metadata.previewBuildings.map((name, index) => ({
+      id: `preview_${index}`,
+      name,
+      address: "",
+      style: "",
+      year: "",
+      summary: "",
+    })),
+  };
+}
+
 export default function ListsScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
-  const [lists, setLists] = useState<PassportListDefinition[]>(passportLists);
+  const [lists, setLists] = useState<PassportListDefinition[]>([]);
+  const [storedListIds, setStoredListIds] = useState<Set<string>>(new Set());
   const [editMode, setEditMode] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Load lists from storage on focus
+  useFocusEffect(
+    useCallback(() => {
+      loadLists();
+    }, [])
+  );
+
+  const loadLists = async () => {
+    try {
+      setLoading(true);
+      const storedLists = await getAllListsMetadata();
+      const storedIds = new Set(storedLists.map((l) => l.id));
+      setStoredListIds(storedIds);
+
+      // Combine stored lists with hardcoded passportLists (for backwards compatibility)
+      const storedAsDefinitions = storedLists.map(metadataToListDefinition);
+
+      // Filter out any passportLists that might have been saved (by ID match)
+      const hardcodedOnly = passportLists.filter((p) => !storedIds.has(p.id));
+
+      setLists([...storedAsDefinitions, ...hardcodedOnly]);
+    } catch (error) {
+      console.error("[ListsScreen] Error loading lists:", error);
+      setLists(passportLists);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleEdit = useCallback(() => {
     setEditMode((prev) => !prev);
   }, []);
+
+  const handleCreateList = useCallback(async (name: string, tagline: string, mood: string) => {
+    const newList = await createList({ name, tagline, mood });
+    await loadLists();
+    // Navigate to the new list
+    navigation.navigate(screens.PassportListDetail, { listId: newList.id });
+  }, [navigation]);
 
 
 
@@ -99,6 +166,18 @@ export default function ListsScreen(): JSX.Element {
         return;
       }
 
+      // Check if this is a stored list (can be deleted) or hardcoded (cannot)
+      const isStoredList = storedListIds.has(listId);
+
+      if (!isStoredList) {
+        Alert.alert(
+          "CANNOT DELETE",
+          "This is a default list and cannot be deleted.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
       Alert.alert(
         "DELETE LIST?",
         `Remove "${target.name}" from your passport? This action cannot be undone.`,
@@ -107,14 +186,15 @@ export default function ListsScreen(): JSX.Element {
           {
             text: "DELETE",
             style: "destructive",
-            onPress: () => {
-              setLists((current) => current.filter((list) => list.id !== listId));
+            onPress: async () => {
+              await deleteList(listId);
+              await loadLists();
             },
           },
         ]
       );
     },
-    [lists]
+    [lists, storedListIds]
   );
 
   return (
@@ -133,14 +213,26 @@ export default function ListsScreen(): JSX.Element {
           />
         </View>
       </View>
-      
+
       {editMode ? <Text style={styles.editModeText}>SELECT TO DELETE</Text> : null}
 
-      {lists.length === 0 ? (
+      {loading ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={theme.colors.accent} />
+        </View>
+      ) : lists.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="albums-outline" size={36} color={theme.colors.muted} />
-          <Text style={styles.emptyTitle}>NO DATA</Text>
-          <Text style={styles.emptyCopy}>CREATE NEW LIST</Text>
+          <Text style={styles.emptyTitle}>NO LISTS YET</Text>
+          <Text style={styles.emptyCopy}>Create your first list</Text>
+          <TouchableOpacity
+            style={styles.emptyCreateButton}
+            onPress={() => setShowCreateModal(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={18} color={theme.colors.background} />
+            <Text style={styles.emptyCreateText}>CREATE LIST</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -155,6 +247,24 @@ export default function ListsScreen(): JSX.Element {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Floating Add Button */}
+      {!loading && lists.length > 0 && !editMode && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => setShowCreateModal(true)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={28} color={theme.colors.background} />
+        </TouchableOpacity>
+      )}
+
+      {/* Create List Modal */}
+      <CreateListModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={handleCreateList}
+      />
     </SafeAreaView>
   );
 }
@@ -325,11 +435,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     letterSpacing: 1,
   },
-  emptyState: {
-    marginTop: 48,
+  loadingState: {
+    flex: 1,
     alignItems: "center",
-    gap: 10,
+    justifyContent: "center",
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
     paddingHorizontal: 32,
+    paddingBottom: 60,
   },
   emptyTitle: {
     fontSize: 16,
@@ -342,5 +459,37 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     textAlign: "center",
     letterSpacing: 1,
+  },
+  emptyCreateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  emptyCreateText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: theme.colors.background,
+    letterSpacing: 1,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

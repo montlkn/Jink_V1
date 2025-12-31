@@ -71,7 +71,6 @@ export function AppStack() {
               getComponent={ScreenLoaders.ScanContribution}
             />
             <Stack.Screen name={screens.WalkStart} getComponent={ScreenLoaders.WalkStart} />
-            <Stack.Screen name={screens.WalkSetup} getComponent={ScreenLoaders.WalkSetup} />
             <Stack.Screen name={screens.WalkNav} getComponent={ScreenLoaders.WalkNav} />
             <Stack.Screen
               name={screens.BuildingModule}
@@ -80,6 +79,14 @@ export function AppStack() {
             <Stack.Screen
               name={screens.BuildingInfo}
               getComponent={ScreenLoaders.BuildingInfo}
+            />
+            <Stack.Screen
+              name={screens.RelatedBuildings}
+              getComponent={ScreenLoaders.RelatedBuildings}
+            />
+            <Stack.Screen
+              name={screens.SimilarBuildings}
+              getComponent={ScreenLoaders.SimilarBuildings}
             />
             <Stack.Screen name={screens.NotFound} getComponent={ScreenLoaders.NotFound} />
             <Stack.Screen

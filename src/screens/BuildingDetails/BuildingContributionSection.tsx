@@ -3,32 +3,20 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { VerificationBadge } from '../../components/verification/VerificationBadge';
 import { VerificationModal } from '../../components/verification/VerificationModal';
 import { APP_COLORS } from "../../constants/appColors";
-
-interface BuildingContribution {
-  id: number;
-  address?: string;
-  architect?: string;
-  year_built?: number;
-  style?: string;
-  notes?: string;
-  mat_prim?: string;
-  mat_secondary?: string;
-  mat_tertiary?: string;
-  source_url?: string;
-  source_type?: string;
-  source_description?: string;
-  verified_count: number;
-  disputed_count: number;
-  reliability_score: number;
-  user_id: string;
-}
+import {
+    fetchBuildingContributions,
+    fetchEditSuggestions as fetchEditSuggestionsFromService,
+    verifyContribution,
+    voteOnEditSuggestion,
+    type BuildingContribution,
+} from '../../services/contributionsService';
 
 interface BuildingContributionSectionProps {
   buildingBIN: string;
   currentUserId: string;
 }
 
-const API_BASE = 'https://lucienmount--nyc-scan-api-fastapi-app.modal.run/api';
+// NO MODAL - using direct Supabase via contributionsService
 
 export const BuildingContributionSection: React.FC<BuildingContributionSectionProps> = ({
   buildingBIN,
@@ -41,41 +29,34 @@ export const BuildingContributionSection: React.FC<BuildingContributionSectionPr
   const [editSuggestions, setEditSuggestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchContributions = useCallback(async () => {
+  const loadContributions = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/buildings/${buildingBIN}/contributions`);
-      const data = await response.json();
-
-      if (data.success) {
-        setContributions(data.contributions);
-        setEditSuggestions(data.edit_suggestions || []);
+      const result = await fetchBuildingContributions(buildingBIN);
+      
+      if (result.success) {
+        setContributions(result.contributions);
+      } else {
+        console.log('[ContributionSection] No contributions found for this building');
+        setContributions([]);
       }
     } catch (err) {
-      console.error('[ContributionSection] Failed to fetch:', err);
+      console.warn('[ContributionSection] Failed to fetch:', err);
+      setContributions([]);
     } finally {
       setLoading(false);
     }
   }, [buildingBIN]);
 
   useEffect(() => {
-    fetchContributions();
-  }, [fetchContributions]);
+    loadContributions();
+  }, [loadContributions]);
 
   const handleVerify = async (
     contributionId: number,
     verificationType: 'verified' | 'disputed'
   ) => {
     try {
-      const response = await fetch(`${API_BASE}/contributions/${contributionId}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: currentUserId,
-          verification_type: verificationType,
-        }),
-      });
-
-      const result = await response.json();
+      const result = await verifyContribution(contributionId, currentUserId, verificationType);
 
       if (result.success) {
         Alert.alert(
@@ -84,9 +65,9 @@ export const BuildingContributionSection: React.FC<BuildingContributionSectionPr
         );
 
         // Refresh contributions
-        await fetchContributions();
+        await loadContributions();
       } else {
-        Alert.alert('Error', 'You cannot verify your own contribution');
+        Alert.alert('Error', result.error || 'You cannot verify your own contribution');
       }
     } catch (error) {
       console.error('Verification failed:', error);
@@ -112,10 +93,9 @@ export const BuildingContributionSection: React.FC<BuildingContributionSectionPr
     );
   };
 
-  const fetchEditSuggestions = async (contributionId: number) => {
+  const loadEditSuggestions = async (contributionId: number) => {
     try {
-      const response = await fetch(`${API_BASE}/contributions/${contributionId}/edit-suggestions`);
-      const result = await response.json();
+      const result = await fetchEditSuggestionsFromService(contributionId);
 
       if (result.success) {
         setEditSuggestions(result.suggestions);
@@ -128,16 +108,7 @@ export const BuildingContributionSection: React.FC<BuildingContributionSectionPr
 
   const voteOnEdit = async (suggestionId: number, voteType: 'for' | 'against') => {
     try {
-      const response = await fetch(`${API_BASE}/edit-suggestions/${suggestionId}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: currentUserId,
-          vote_type: voteType,
-        }),
-      });
-
-      const result = await response.json();
+      const result = await voteOnEditSuggestion(suggestionId, currentUserId, voteType);
 
       if (result.success) {
         if (result.auto_accepted) {
@@ -148,7 +119,7 @@ export const BuildingContributionSection: React.FC<BuildingContributionSectionPr
 
         // Refresh edit suggestions
         if (selectedContribution) {
-          await fetchEditSuggestions(selectedContribution.id);
+          await loadEditSuggestions(selectedContribution.id);
         }
       }
     } catch (error) {
@@ -198,7 +169,7 @@ export const BuildingContributionSection: React.FC<BuildingContributionSectionPr
 
             {/* Edit Suggestions Badge */}
             <TouchableOpacity
-              onPress={() => fetchEditSuggestions(contribution.id)}
+              onPress={() => loadEditSuggestions(contribution.id)}
               style={styles.editBadge}
             >
               <Text style={styles.editBadgeText}>✏️ Suggest Edit</Text>

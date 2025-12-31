@@ -4,15 +4,15 @@
  */
 
 export const ARCHETYPES = [
-  'classicist',
-  'romantic',
-  'stylist',
-  'modernist',
-  'industrialist',
-  'visionary',
-  'pop_culturalist',
-  'vernacularist',
-  'austerist',
+  "classicist",
+  "romantic",
+  "stylist",
+  "modernist",
+  "industrialist",
+  "visionary",
+  "pop_culturalist",
+  "vernacularist",
+  "austerist",
 ] as const;
 
 export type Archetype = typeof ARCHETYPES[number];
@@ -29,24 +29,30 @@ export type Archetype = typeof ARCHETYPES[number];
 export const ACTION_WEIGHTS: Record<string, number> = {
   // HIGH SIGNALS
   quiz_answer: 10,
-  'building_scan:first_time': 10,
+  "building_scan:first_time": 10,
 
   // MEDIUM SIGNALS
-  'building_scan:repeat': 3,
+  "building_scan:repeat": 3,
   building_like: 6,
   building_save: 7,
   route_complete: 5,
 
   // LOW SIGNALS (positive)
-  dwell_time_60s: 5,           // Extended engagement
-  'dwell_time_60s+': 5,        // Extended engagement (alt format)
-  dwell_time_30s: 3,           // Moderate engagement
-  dwell_time_15s: 2,           // Brief engagement
-  detail_view: 3,              // Opening building details
+  dwell_60: 5, // Extended engagement (60+ seconds)
+  dwell_time_60s: 5, // Extended engagement (legacy)
+  "dwell_time_60s+": 5, // Extended engagement (legacy alt format)
+  dwell_30: 3, // Moderate engagement
+  dwell_time_30s: 3, // Moderate engagement (legacy)
+  dwell_15: 2, // Brief engagement
+  dwell_time_15s: 2, // Brief engagement (legacy)
+  detail_view: 3, // Opening building details
 
   // LOW SIGNALS (negative)
-  quick_dismiss: -1,           // Skipped during walk
-  building_unlike: -3,         // Explicit negative signal
+  quick_dismiss: -1, // Skipped during walk
+  like: 6, // User liked building
+  unlike: -3, // User unliked building
+  // building_like already defined in MEDIUM SIGNALS
+  building_unlike: -3, // Explicit negative signal (legacy)
 
   // FUTURE (not implemented yet)
   add_note: 6,
@@ -61,9 +67,9 @@ export const ACTION_WEIGHTS: Record<string, number> = {
  * This causes older interactions to have less influence, with important archetypes decaying slower
  */
 export const DECAY_CONFIG = {
-  alpha: 0.5,                    // Aggressiveness of decay
-  minDecay: 0.05,                // Minimum decay value (5%)
-  importanceExponent: 0.25,      // How much importance affects decay
+  alpha: 0.5, // Aggressiveness of decay
+  minDecay: 0.05, // Minimum decay value (5%)
+  importanceExponent: 0.25, // How much importance affects decay
 };
 
 /**
@@ -72,11 +78,11 @@ export const DECAY_CONFIG = {
  * Used to boost weight when user encounters unexpected or significant buildings
  */
 export const CONTEXTUAL_CONFIG = {
-  surpriseLowThreshold: 0.3,       // alignment < 0.3 (very different)
-  surpriseHighThreshold: 0.8,      // alignment > 0.8 (very similar)
-  surpriseLowMultiplier: 1.8,      // Boost for very different buildings
-  surpriseHighMultiplier: 0.7,     // Reduce for very similar buildings
-  surpriseNormalMultiplier: 1.0,   // Default for normal alignment
+  surpriseLowThreshold: 0.3, // alignment < 0.3 (very different)
+  surpriseHighThreshold: 0.8, // alignment > 0.8 (very similar)
+  surpriseLowMultiplier: 1.8, // Boost for very different buildings
+  surpriseHighMultiplier: 0.7, // Reduce for very similar buildings
+  surpriseNormalMultiplier: 1.0, // Default for normal alignment
 };
 
 /**
@@ -99,12 +105,12 @@ export const REC_WEIGHTS = {
  * - consistencyBonus = (1 - entropy/ln(9)) * 15
  */
 export const CONFIDENCE_CONFIG = {
-  baseMultiplier: 1.5,           // Confidence increase per action
-  baseMax: 70,                   // Maximum base confidence
-  diversityMultiplier: 10,       // Bonus per distinct action type
-  consistencyMax: 15,            // Maximum consistency bonus
-  lowerBound: 10,                // Minimum confidence for new users
-  upperBound: 95,                // Maximum confidence cap
+  baseMultiplier: 1.5, // Confidence increase per action
+  baseMax: 70, // Maximum base confidence
+  diversityMultiplier: 10, // Bonus per distinct action type
+  consistencyMax: 15, // Maximum consistency bonus
+  lowerBound: 10, // Minimum confidence for new users
+  upperBound: 95, // Maximum confidence cap
 };
 
 /**
@@ -115,7 +121,7 @@ export const CONFIDENCE_CONFIG = {
 export const BATCH_THRESHOLDS = {
   minEvents: 10, // Flush queue when this many events accumulated
   maxWaitSeconds: 30, // Flush queue after this many seconds (if min not reached)
-  immediateEventTypes: ['quiz_answer'] as const, // Events that bypass batching
+  immediateEventTypes: ["quiz_answer"] as const, // Events that bypass batching
 };
 
 /**
@@ -124,7 +130,7 @@ export const BATCH_THRESHOLDS = {
  * Rewards exploring the same architectural style in depth
  */
 export const SESSION_CONFIG = {
-  windowMinutes: 90,              // Session window duration
+  windowMinutes: 90, // Session window duration
 };
 
 /**
@@ -133,9 +139,9 @@ export const SESSION_CONFIG = {
  * +1.5 for 3+ same-style scans, +5.0 for 10+ in a 90-min session
  */
 export const SEQUENCE_CONFIG = {
-  threeStyleBonus: 1.5,           // Bonus for 3+ same-style scans
-  tenStyleBonus: 5.0,             // Bonus for 10+ same-style scans
-  sessionWindowMinutes: 90,       // Time window for sequence detection
+  threeStyleBonus: 1.5, // Bonus for 3+ same-style scans
+  tenStyleBonus: 5.0, // Bonus for 10+ same-style scans
+  sessionWindowMinutes: 90, // Time window for sequence detection
 };
 
 /**

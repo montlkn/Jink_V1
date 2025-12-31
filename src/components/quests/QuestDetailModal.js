@@ -1,5 +1,6 @@
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
 import {
     Dimensions,
     Modal,
@@ -10,6 +11,7 @@ import {
     View,
 } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import { getTimeUntilMidnight, getTimeUntilMonday } from '../../utils/questTimers';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -18,11 +20,27 @@ const QuestDetailModal = ({
   onClose,
   quest,
   onStartQuest,
-  timeRemaining,
 }) => {
-  if (!quest) return null;
+  const [liveTimeRemaining, setLiveTimeRemaining] = useState('');
 
-  const isDaily = quest.type === 'daily';
+  const isDaily = quest?.type === 'daily';
+
+  // Live timer effect
+  useEffect(() => {
+    if (!visible || !quest) return;
+
+    const updateTimer = () => {
+      const time = isDaily ? getTimeUntilMidnight() : getTimeUntilMonday();
+      setLiveTimeRemaining(time.formatted);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [visible, quest, isDaily]);
+
+  if (!quest) return null;
   const accentColor = isDaily ? theme.colors.primary : theme.colors.secondary;
 
   // Determine destination based on quest type
@@ -82,7 +100,7 @@ const QuestDetailModal = ({
             {/* Timer */}
             <View style={styles.timerContainer}>
               <Ionicons name="time-outline" size={14} color={theme.colors.surface} />
-              <Text style={styles.timerText}>RESETS IN {timeRemaining}</Text>
+              <Text style={styles.timerText}>RESETS IN {liveTimeRemaining}</Text>
             </View>
           </View>
 
@@ -218,19 +236,19 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 0,
     alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 4,
     opacity: 0.5,
   },
   modalHeader: {
     paddingTop: 0,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   questTypeBadge: {
     flexDirection: 'row',
@@ -251,7 +269,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: theme.colors.surface,
-    marginBottom: 8,
+    marginBottom: 4,
     fontFamily: theme.typography.fontFamily.bold,
     textTransform: 'uppercase',
   },
@@ -267,17 +285,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier',
   },
   modalContent: {
-    padding: 20,
+    padding: 16,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 10,
     fontWeight: 'bold',
     color: theme.colors.muted,
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: 8,
     textTransform: 'uppercase',
   },
   description: {
@@ -307,8 +325,8 @@ const styles = StyleSheet.create({
   rewardItem: {
     flexDirection: 'row',
     backgroundColor: theme.colors.background,
-    padding: 12,
-    marginBottom: 12,
+    padding: 8,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
@@ -345,12 +363,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   xpBenefitsSection: {
-    marginBottom: 100,
+    marginBottom: 80,
   },
   infoBox: {
     flexDirection: 'row',
     backgroundColor: theme.colors.background,
-    padding: 12,
+    padding: 8,
     borderLeftWidth: 2,
     borderLeftColor: theme.colors.primary,
     alignItems: 'center',
@@ -378,7 +396,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: 16,
     backgroundColor: theme.colors.surface,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
@@ -387,7 +405,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderRadius: 12,
   },
   startButtonText: {

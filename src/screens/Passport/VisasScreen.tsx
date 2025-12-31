@@ -1,11 +1,18 @@
+import { useAuth } from '@/auth/authProvider';
 import { visaCarousel } from "@/constants/passportContent";
-import { InfoMenu, PassportBackButton, PassportInfoButton, SecurityPattern } from "@/features/passport";
+import {
+    InfoMenu,
+    PassportBackButton,
+    PassportInfoButton,
+    SecurityPattern,
+    fetchUserVisas,
+} from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
     Dimensions,
     SafeAreaView,
@@ -97,8 +104,41 @@ function VisaCard({ item, index, scrollX }: { item: (typeof visaCarousel)[number
 
 export default function VisasScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
+  const { session } = useAuth() as any;
   const scrollX = useSharedValue(0);
   const [showInfoMenu, setShowInfoMenu] = useState(false);
+  const [userVisas, setUserVisas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchUserVisas(session.user.id)
+        .then((visas) => {
+          // Transform DB visas to match carousel format
+          const transformedVisas = visas.map((v: any, idx: number) => ({
+            id: v.id,
+            neighborhood: v.visa?.neighborhood || 'Unknown',
+            title: v.visa?.title || 'Neighborhood Visa',
+            requirement: `${v.visa?.requirement || 10}+ buildings explored`,
+            description: v.visa?.description || 'You have become familiar with this neighborhood.',
+            grantedAt: new Date(v.granted_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            accent: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'][idx % 5],
+          }));
+          setUserVisas(transformedVisas);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error('[VisasScreen] Failed to fetch visas', err);
+          setLoading(false);
+        });
+    }
+  }, [session?.user?.id]);
+
+  const displayVisas = userVisas.length > 0 ? userVisas : visaCarousel;
 
   const onScroll = useAnimatedScrollHandler((event) => {
     scrollX.value = event.contentOffset.x;
@@ -123,20 +163,32 @@ export default function VisasScreen(): JSX.Element {
       </View>
 
       <View style={styles.carouselWrapper}>
-        <Animated.FlatList
-          data={visaCarousel}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={ITEM_SIZE}
-          decelerationRate="fast"
-          contentContainerStyle={styles.carousel}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          renderItem={({ item, index }) => (
-            <VisaCard item={item} index={index} scrollX={scrollX} />
-          )}
-        />
+        {loading ? (
+          <Text style={styles.loadingText}>Loading visas...</Text>
+        ) : displayVisas.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={64} color={theme.colors.muted} />
+            <Text style={styles.emptyTitle}>NO VISAS YET</Text>
+            <Text style={styles.emptyText}>
+              Explore neighborhoods by scanning 10+ buildings in an area to earn your first visa.
+            </Text>
+          </View>
+        ) : (
+          <Animated.FlatList
+            data={displayVisas}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={ITEM_SIZE}
+            decelerationRate="fast"
+            contentContainerStyle={styles.carousel}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            renderItem={({ item, index }) => (
+              <VisaCard item={item} index={index} scrollX={scrollX} />
+            )}
+          />
+        )}
       </View>
 
       <InfoMenu
@@ -284,5 +336,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 2,
+  },
+  loadingText: {
+    fontFamily: theme.typography.fontFamily.regular,
+    fontSize: 14,
+    color: theme.colors.muted,
+    textAlign: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    gap: 16,
+  },
+  emptyTitle: {
+    fontFamily: theme.typography.fontFamily.bold,
+    fontSize: 18,
+    fontWeight: '900',
+    color: theme.colors.text,
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontFamily: theme.typography.fontFamily.regular,
+    fontSize: 14,
+    color: theme.colors.muted,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

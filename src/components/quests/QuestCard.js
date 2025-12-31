@@ -141,12 +141,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   timerBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    backgroundColor: 'rgba(0,0,0,0.2)', // Slight dark background for timer
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(0,0,0,0.35)', // More visible dark background for timer
+    borderRadius: 4,
   },
   timerText: {
-    fontSize: 8,
+    fontSize: 10,
     fontWeight: 'bold',
     color: '#FFFFFF',
     fontFamily: 'Courier',

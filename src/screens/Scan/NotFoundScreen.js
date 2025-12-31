@@ -5,8 +5,7 @@ import { questsActions } from "@/features/quests";
 import { screens } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME } from "@/theme/designer_republic";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     Alert,
     Animated,
@@ -20,6 +19,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const API_BASE = "https://lucienmount--nyc-scan-api-fastapi-app.modal.run/api";
@@ -47,13 +47,22 @@ export default function NotFoundScreen({ route, navigation }) {
   const [showRewardOverlay, setShowRewardOverlay] = useState(false);
   const [earnedXP, setEarnedXP] = useState(0);
 
-  // Photo capture state
-  const [permission, requestPermission] = useCameraPermissions();
+  // Vision Camera hooks
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('back');
+  
   const [capturedPhotos, setCapturedPhotos] = useState(
     capturedPhotoUri ? [{ uri: capturedPhotoUri, angle: "front", timestamp: Date.now() }] : []
   );
   const [currentAngleIndex, setCurrentAngleIndex] = useState(capturedPhotoUri ? 1 : 0);
   const cameraRef = useRef(null);
+  
+  // Request permission on mount if needed
+  useEffect(() => {
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission, requestPermission]);
 
   // Form state
   const [address, setAddress] = useState("");
@@ -93,15 +102,14 @@ export default function NotFoundScreen({ route, navigation }) {
     if (!cameraRef.current) return;
 
     try {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: false,
+      const capturedPhoto = await cameraRef.current.takePhoto({
+        qualityPrioritization: 'speed',
       });
 
-      if (photo?.uri) {
+      if (capturedPhoto?.path) {
         const currentAngle = ANGLE_GUIDES[currentAngleIndex];
         const newPhoto = {
-          uri: photo.uri,
+          uri: `file://${capturedPhoto.path}`,
           angle: currentAngle.id,
           timestamp: Date.now(),
         };
@@ -401,7 +409,7 @@ export default function NotFoundScreen({ route, navigation }) {
 
   // Photo capture screen
   const renderPhotoCapture = () => {
-    if (!permission?.granted) {
+    if (!hasPermission || !device) {
       return (
         <View style={styles.content}>
           <Text style={styles.title}>CAMERA ACCESS</Text>
@@ -448,7 +456,13 @@ export default function NotFoundScreen({ route, navigation }) {
 
         {/* Camera view */}
         <View style={styles.cameraViewContainer}>
-          <CameraView ref={cameraRef} style={styles.camera} facing="back" />
+          <Camera 
+            ref={cameraRef} 
+            style={styles.camera} 
+            device={device}
+            isActive={true}
+            photo={true}
+          />
         </View>
 
         {/* XP indicator */}

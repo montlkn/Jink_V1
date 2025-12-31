@@ -41,6 +41,10 @@ export type BuildingDetail = {
   use?: string;
   type?: string;
   description?: string;
+  bin?: string;
+  latitude?: number;
+  longitude?: number;
+  bbl?: string;
 };
 
 export type PassportListDefinition = {
@@ -250,6 +254,9 @@ export const passportLists: PassportListDefinition[] = [
         year: "1930",
         summary:
           "Iconic crown with radiating metal arches and automotive gargoyles.",
+        bin: "1036156",
+        latitude: 40.75163538,
+        longitude: -73.97536488,
       },
       {
         id: "ge",
@@ -258,15 +265,21 @@ export const passportLists: PassportListDefinition[] = [
         style: "Art Deco",
         year: "1931",
         summary: "Red brick tower with limestone tracery and spire lantern.",
+        bin: "1034847",
+        latitude: 40.7564,
+        longitude: -73.9715,
       },
       {
         id: "30rock",
         name: "30 Rockefeller Plaza",
-        address: "45 Rockefeller Plaza",
+        address: "30 Rockefeller Plaza",
         style: "Art Deco",
-        year: "1933",
+        year: "1932",
         summary:
           "Massed limestone with sculpted reliefs and soaring observation deck.",
+        bin: "1076262",
+        latitude: 40.75904189690943,
+        longitude: -73.97937111357182,
       },
       {
         id: "citybank",
@@ -276,6 +289,9 @@ export const passportLists: PassportListDefinition[] = [
         year: "1931",
         summary:
           "Tiered ziggurat silhouette with bronze doors and stylized eagles.",
+        bin: "1000958",
+        latitude: 40.7069,
+        longitude: -74.0097,
       },
       {
         id: "walker",
@@ -284,6 +300,9 @@ export const passportLists: PassportListDefinition[] = [
         style: "Art Deco",
         year: "1929",
         summary: "Chelsea telegraph HQ reborn with terracotta chevron panels.",
+        bin: "1011858",
+        latitude: 40.7407,
+        longitude: -73.9975,
       },
     ],
   },

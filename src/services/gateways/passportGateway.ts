@@ -28,6 +28,9 @@ export type PassportSnapshot = {
   dailyStreak: number;
   lastActivityDate?: string;
   totalBuildingsScanned: number;
+  stampCount: number;
+  achievementCount: number;
+  visaCount: number;
 };
 
 export async function fetchPassportProfile(
@@ -87,6 +90,25 @@ export async function fetchPassport(userId: string): Promise<PassportSnapshot> {
     );
   }
 
+  // Fetch real counts from database tables
+  let stampCount = 0;
+  let achievementCount = 0;
+  let visaCount = 0;
+
+  try {
+    const [stampsResult, achievementsResult, visasResult] = await Promise.all([
+      supabase.from('user_stamps').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      supabase.from('user_achievements').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+      supabase.from('user_visas').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    ]);
+
+    stampCount = stampsResult.count ?? 0;
+    achievementCount = achievementsResult.count ?? 0;
+    visaCount = visasResult.count ?? 0;
+  } catch (error) {
+    console.warn('[passportGateway] Failed to fetch real counts', error);
+  }
+
   return {
     xpTotal,
     level,
@@ -97,6 +119,9 @@ export async function fetchPassport(userId: string): Promise<PassportSnapshot> {
     dailyStreak: profile.daily_streak_count ?? 0,
     lastActivityDate: profile.last_activity_date,
     totalBuildingsScanned,
+    stampCount,
+    achievementCount,
+    visaCount,
   };
 }
 

@@ -1,6 +1,17 @@
 import { APP_COLORS } from "@/constants/appColors";
 import { passportLists, type BuildingDetail } from "@/constants/passportContent";
-import { InfoMenu, PassportBackButton, PassportInfoButton } from "@/features/passport";
+import {
+    AddBuildingModal,
+    InfoMenu,
+    PassportBackButton,
+    PassportInfoButton,
+    addBuildingToList,
+    getListWithBuildings,
+    removeBuildingFromList,
+    updateListMetadata,
+    updateListOrder,
+    type BuildingSearchResult,
+} from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +20,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import DraggableFlatList, { type RenderItemParams } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
 
@@ -86,43 +97,142 @@ function BuildingCard({ building, index, drag, isActive, onDelete, onPress }: Bu
 type Route = RouteProp<RootParams, typeof screens.PassportListDetail>;
 type Navigation = NativeStackNavigationProp<RootParams>;
 
+// Helper to check if a list ID is from storage (not hardcoded)
+function isStoredListId(listId: string): boolean {
+  return listId.startsWith("list_");
+}
+
+// Convert BuildingSearchResult to BuildingDetail
+function searchResultToBuildingDetail(result: BuildingSearchResult): BuildingDetail {
+  return {
+    id: result.id || result.bin,
+    bin: result.bin,
+    name: result.name,
+    address: result.address,
+    style: result.style || "",
+    year: result.year || "",
+    summary: "",
+    architect: result.architect,
+    materials: result.materials,
+    latitude: result.latitude,
+    longitude: result.longitude,
+  };
+}
+
 export default function ListDetailScreen(): JSX.Element {
   const navigation = useNavigation<Navigation>();
   const route = useRoute<Route>();
 
-  const list = useMemo(() => {
-    if (!route.params?.listId) {
-      return passportLists[0];
-    }
-    const match = passportLists.find((entry) => entry.id === route.params?.listId);
-    return match ?? passportLists[0];
-  }, [route.params?.listId]);
+  const listId = route.params?.listId ?? "";
+  const isStoredList = isStoredListId(listId);
 
-  const [buildings, setBuildings] = useState<BuildingDetail[]>(list.buildings);
-  const [listName, setListName] = useState(list.name);
-  const [listTagline, setListTagline] = useState(list.tagline);
-  const [listMood, setListMood] = useState(list.mood);
+  // For hardcoded lists, use passportLists
+  const hardcodedList = useMemo(() => {
+    if (isStoredList) return null;
+    const match = passportLists.find((entry) => entry.id === listId);
+    return match ?? passportLists[0];
+  }, [listId, isStoredList]);
+
+  const [buildings, setBuildings] = useState<BuildingDetail[]>(hardcodedList?.buildings ?? []);
+  const [listName, setListName] = useState(hardcodedList?.name ?? "");
+  const [listTagline, setListTagline] = useState(hardcodedList?.tagline ?? "");
+  const [listMood, setListMood] = useState(hardcodedList?.mood ?? "");
   const [isEditing, setIsEditing] = useState(false);
   const [showInfoMenu, setShowInfoMenu] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [loading, setLoading] = useState(isStoredList);
 
+  const loadStoredList = useCallback(async () => {
+    try {
+      setLoading(true);
+      const storedList = await getListWithBuildings(listId);
+      if (storedList) {
+        setListName(storedList.name);
+        setListTagline(storedList.tagline);
+        setListMood(storedList.mood);
+        setBuildings(storedList.buildings);
+      }
+    } catch (error) {
+      console.error("[ListDetailScreen] Error loading list:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [listId]);
+
+  // Load stored list data
   useEffect(() => {
-    setBuildings(list.buildings);
-  }, [list]);
+    if (isStoredList) {
+      loadStoredList();
+    }
+  }, [isStoredList, listId, loadStoredList]);
+
+  // Sync hardcoded list when it changes
+  useEffect(() => {
+    if (hardcodedList) {
+      setBuildings(hardcodedList.buildings);
+      setListName(hardcodedList.name);
+      setListTagline(hardcodedList.tagline);
+      setListMood(hardcodedList.mood);
+    }
+  }, [hardcodedList]);
 
   const handleInfo = useCallback(() => {
     setShowInfoMenu(true);
   }, []);
 
-  const handleDelete = useCallback((buildingId: string) => {
-    setBuildings((current) => current.filter((building) => building.id !== buildingId));
-  }, []);
+  const handleDelete = useCallback(async (buildingId: string) => {
+    setBuildings((current) => current.filter((building) => building.id !== buildingId && building.bin !== buildingId));
 
-  const handleDragEnd = useCallback(({ data }: { data: BuildingDetail[] }) => {
+    // Persist for stored lists
+    if (isStoredList) {
+      await removeBuildingFromList(listId, buildingId);
+    }
+  }, [isStoredList, listId]);
+
+  const handleDragEnd = useCallback(async ({ data }: { data: BuildingDetail[] }) => {
     setBuildings(data);
-  }, []);
+
+    // Persist for stored lists
+    if (isStoredList) {
+      await updateListOrder(listId, data);
+    }
+  }, [isStoredList, listId]);
+
+  const handleAddBuilding = useCallback(async (searchResult: BuildingSearchResult): Promise<boolean> => {
+    if (!isStoredList) {
+      // Can't add to hardcoded lists
+      return false;
+    }
+
+    const building = searchResultToBuildingDetail(searchResult);
+    const added = await addBuildingToList(listId, building);
+
+    if (added) {
+      setBuildings((current) => [...current, building]);
+    }
+
+    return added;
+  }, [isStoredList, listId]);
+
+  // Get existing building IDs for duplicate checking
+  const existingBuildingIds = useMemo(() => {
+    return buildings.map((b) => b.bin || b.id).filter(Boolean) as string[];
+  }, [buildings]);
+
+  // Save metadata when editing ends
+  const handleEditingEnd = useCallback(async () => {
+    setIsEditing(false);
+    if (isStoredList) {
+      await updateListMetadata(listId, {
+        name: listName,
+        tagline: listTagline,
+        mood: listMood,
+      });
+    }
+  }, [isStoredList, listId, listName, listTagline, listMood]);
 
   const handleBuildingPress = useCallback((building: BuildingDetail) => {
-    navigation.navigate(screens.BuildingInfo, { buildingData: building });
+    navigation.navigate(screens.BuildingInfo, { buildingData: building, skipAestheticTracking: true });
   }, [navigation]);
 
   const renderBuilding = useCallback(
@@ -152,7 +262,16 @@ export default function ListDetailScreen(): JSX.Element {
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>{listName}</Text>
           </View>
-          <View style={styles.headerRight}>
+          <View style={styles.headerRightGroup}>
+            {isStoredList && (
+              <TouchableOpacity
+                style={styles.headerAddButton}
+                onPress={() => setShowAddModal(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add" size={22} color={theme.colors.accent} />
+              </TouchableOpacity>
+            )}
             <PassportInfoButton
               onPress={handleInfo}
               accessibilityLabel="Learn about this list"
@@ -160,28 +279,54 @@ export default function ListDetailScreen(): JSX.Element {
           </View>
         </View>
 
-        <DraggableFlatList
-          data={buildings}
-          keyExtractor={(item) => item.id}
-          renderItem={renderBuilding}
-          onDragEnd={handleDragEnd}
-          activationDistance={12}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.accent} />
+          </View>
+        ) : (
+          <DraggableFlatList
+            data={buildings}
+            keyExtractor={(item) => item.id}
+            renderItem={renderBuilding}
+            onDragEnd={handleDragEnd}
+            activationDistance={12}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="business-outline" size={48} color={theme.colors.muted} />
+                <Text style={styles.emptyText}>NO BUILDINGS YET</Text>
+                <Text style={styles.emptySubtext}>
+                  {isStoredList ? "Tap + to add buildings to this list" : "This list is empty"}
+                </Text>
+                {isStoredList && (
+                  <TouchableOpacity
+                    style={styles.emptyAddButton}
+                    onPress={() => setShowAddModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="add" size={18} color={theme.colors.background} />
+                    <Text style={styles.emptyAddText}>ADD BUILDING</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            }
+            ListHeaderComponent={
             <View>
               <View style={styles.heroCard}>
                 <View style={styles.heroHeader}>
                   <Text style={styles.heroLabel}>SUBJECT</Text>
-                  <TouchableOpacity
-                    style={styles.editToggle}
-                    onPress={() => setIsEditing(!isEditing)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.editToggleText, isEditing && styles.editToggleTextActive]}>
-                      {isEditing ? "DONE" : "EDIT"}
-                    </Text>
-                  </TouchableOpacity>
+                  {isStoredList && (
+                    <TouchableOpacity
+                      style={styles.editToggle}
+                      onPress={() => isEditing ? handleEditingEnd() : setIsEditing(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.editToggleText, isEditing && styles.editToggleTextActive]}>
+                        {isEditing ? "DONE" : "EDIT"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {isEditing ? (
@@ -234,13 +379,22 @@ export default function ListDetailScreen(): JSX.Element {
             </View>
           }
           ListFooterComponent={<View style={{ height: 40 }} />}
-        />
+          />
+        )}
 
         <InfoMenu
           visible={showInfoMenu}
           onClose={() => setShowInfoMenu(false)}
           title="LIST DETAILS"
           content="Each list is a curated itinerary. Long-press any building tile to drag it to a new position."
+        />
+
+        {/* Add Building Modal */}
+        <AddBuildingModal
+          visible={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onAddBuilding={handleAddBuilding}
+          existingBuildingIds={existingBuildingIds}
         />
       </SafeAreaView>
     </GestureHandlerRootView>
@@ -269,9 +423,20 @@ const styles = StyleSheet.create({
     width: 44,
     alignItems: "flex-start",
   },
-  headerRight: {
-    width: 44,
-    alignItems: "flex-end",
+  headerRightGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerAddButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitleContainer: {
     flex: 1,
@@ -450,5 +615,43 @@ const styles = StyleSheet.create({
     width: 64,
     backgroundColor: theme.colors.primary,
     marginBottom: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    letterSpacing: 1,
+  },
+  emptySubtext: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    textAlign: "center",
+  },
+  emptyAddButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  emptyAddText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: theme.colors.background,
+    letterSpacing: 1,
   },
 });

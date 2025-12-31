@@ -1,25 +1,51 @@
 import * as Haptics from "expo-haptics";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { PanResponder, StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedProps, withTiming } from "react-native-reanimated";
-import Svg, { Circle, Defs, G, LinearGradient, Path, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from "react-native-svg";
 
 const SIZE = 290;
-const SVG_PAD = 36;
+const SVG_PAD = 40;
 const CONTAINER_SIZE = SIZE + SVG_PAD * 2;
 const HIT_AREA_PADDING = 40; 
 const HIT_AREA_SIZE = CONTAINER_SIZE + HIT_AREA_PADDING * 2;
 const CENTER = SIZE / 2;
-const STROKE_WIDTH = 40; // Thicker for tactile feel
-const RADIUS = CENTER - STROKE_WIDTH / 2 - 10; // Adjust radius to fit
+const STROKE_WIDTH = 45; // Wide track to accommodate details
+const RADIUS = CENTER - STROKE_WIDTH / 2 - 10;
 const HIT_AREA_CENTER = HIT_AREA_SIZE / 2;
 
 // Omega Geometry
-const START_ANGLE_DEG = 30;    // Top-RIGHT
-const END_ANGLE_DEG = -30;     // Top-LEFT
-const ARC_SPAN = 300;          // CLOCKWISE
+const START_ANGLE_DEG = 30;
+const END_ANGLE_DEG = -30;
+const ARC_SPAN = 300;
 
-// Convert angle (where 0=top) to SVG cartesian coords
+// Zone definitions relative to 0-100 range
+// 5-10: 1.0x (Cyan)
+// 10-15: 1.2x (Orange)
+// 15-25: 1.5x (Green)
+// 25-40: 2.0x (Red)
+// 40-50: 1.2x (Orange)
+// 50-60: 1.5x (Green)
+// 60-70: 2.0x (Red)
+// 70-80: 1.5x (Green)
+// 80-85: 1.2x (Orange)
+// 85-90: 1.0x (Cyan)
+// 90-95: 2.0x (Red)
+
+const ZONES = [
+  { min: 5, max: 10,  color: "#303030", label: "1.0x" }, // Black/Dark Grey
+  { min: 10, max: 15, color: "#ff8c00", label: "1.2x" }, // Orange
+  { min: 15, max: 25, color: "#32cd32", label: "1.5x" }, // Green
+  { min: 25, max: 40, color: "#dc143c", label: "2.0x" }, // Red
+  { min: 40, max: 50, color: "#ff8c00", label: "1.2x" }, // Orange
+  { min: 50, max: 60, color: "#32cd32", label: "1.5x" }, // Green
+  { min: 60, max: 70, color: "#dc143c", label: "2.0x" }, // Red
+  { min: 70, max: 80, color: "#32cd32", label: "1.5x" }, // Green
+  { min: 80, max: 85, color: "#ff8c00", label: "1.2x" }, // Orange
+  { min: 85, max: 90, color: "#303030", label: "1.0x" }, // Black/Dark Grey
+  { min: 90, max: 95, color: "#dc143c", label: "2.0x" }, // Red
+];
+
 const angleToPoint = (angleDeg, r = RADIUS) => {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
   return {
@@ -38,6 +64,7 @@ const getAngleFromTouch = (x, y) => {
   return angle;
 };
 
+// Start angle, end angle, radius
 const createArcPath = (startAngle, endAngle, radius = RADIUS) => {
   const start = angleToPoint(startAngle, radius);
   const end = angleToPoint(endAngle, radius);
@@ -51,7 +78,6 @@ const createArcPath = (startAngle, endAngle, radius = RADIUS) => {
 };
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const TimeSlider = ({
   min = 5,
@@ -65,22 +91,17 @@ const TimeSlider = ({
   const clampedValue = Math.min(max, Math.max(min, initialValue ?? min));
   const progress = (clampedValue - min) / range; 
 
-  // Current angle
   let rawAngle = START_ANGLE_DEG + progress * ARC_SPAN;
   if (rawAngle > 180) rawAngle -= 360;
   if (rawAngle < -180) rawAngle += 360;
   const currentAngle = rawAngle;
   const thumbPos = angleToPoint(currentAngle);
 
-  // Background Track Path (Full Omega)
-  // Note: createArcPath goes from Start to End clockwise.
-  // For the background, we want the full span.
-  // START_ANGLE_DEG (30) -> END_ANGLE_DEG (-30) is 300 degrees.
+  // Full unified background groove
   const bgPath = useMemo(() => createArcPath(START_ANGLE_DEG, END_ANGLE_DEG), []);
-
-  // Progress Path
+  
+  // Progress overlay
   const progressPath = createArcPath(START_ANGLE_DEG, currentAngle);
-
 
   const gestureValueRef = useRef(clampedValue);
   const lastNotifiedValueRef = useRef(Math.round(clampedValue));
@@ -224,6 +245,72 @@ const TimeSlider = ({
     [onPress, updateFromAngle]
   );
 
+  // Render colored zones inside the groove
+  const renderZones = () => {
+    return ZONES.map((zone, i) => {
+      // Calculate start and end angles for this zone
+      const range = max - min;
+      const startProg = Math.max(0, (zone.min - min) / range);
+      const endProg = Math.min(1, (zone.max - min) / range);
+      
+      const startA = START_ANGLE_DEG + startProg * ARC_SPAN;
+      const endA = START_ANGLE_DEG + endProg * ARC_SPAN;
+      
+      // Handle wrapping if needed (though our range is < 360)
+      let s = startA;
+      let e = endA;
+      if (s > 180) s -= 360;
+      if (e > 180) e -= 360;
+      
+      const path = createArcPath(s, e);
+      // Determine label pos (midpoint)
+      const midProg = (startProg + endProg) / 2;
+      const midA = START_ANGLE_DEG + midProg * ARC_SPAN;
+      let midWrapped = midA;
+      if (midWrapped > 180) midWrapped -= 360;
+      const labelPos = angleToPoint(midWrapped, RADIUS + 32); // Push label outside track
+
+      return (
+        <G key={`zone-${i}`}>
+          {/* Zone segment background */}
+          <Path
+            d={path}
+            stroke={zone.color}
+            strokeWidth={STROKE_WIDTH - 12} // Slightly inside main groove
+            strokeOpacity={0.15} // Subtle tint
+            strokeLinecap="butt"
+            fill="none"
+          />
+          {/* Zone divider line */}
+          {i > 0 && (
+             <Path 
+               d={`M ${angleToPoint(s, RADIUS - STROKE_WIDTH/2).x} ${angleToPoint(s, RADIUS - STROKE_WIDTH/2).y} L ${angleToPoint(s, RADIUS + STROKE_WIDTH/2).x} ${angleToPoint(s, RADIUS + STROKE_WIDTH/2).y}`}
+               stroke="rgba(0,0,0,0.1)"
+               strokeWidth={1}
+             />
+          )}
+
+          {/* Label if zone is large enough */}
+          {(zone.max - zone.min) >= 5 && (
+            <SvgText
+              x={labelPos.x}
+              y={labelPos.y}
+              fill="rgba(0,0,0,0.4)"
+              fontSize="10"
+              fontWeight="bold"
+              textAnchor="middle"
+              alignmentBaseline="middle"
+              rotation={midWrapped - 90}
+              origin={`${labelPos.x}, ${labelPos.y}`}
+            >
+              {zone.label}
+            </SvgText>
+          )}
+        </G>
+      );
+    });
+  };
+
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.hitArea} {...panResponder.panHandlers}>
@@ -234,58 +321,113 @@ const TimeSlider = ({
             style={StyleSheet.absoluteFill}
           >
             <Defs>
-              <LinearGradient id="knobGradient" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor="rgba(255,255,255,0.9)" />
-                <Stop offset="1" stopColor="rgba(255,255,255,0.4)" />
-              </LinearGradient>
-              <LinearGradient id="trackGradient" x1="0" y1="0" x2="0" y2="1">
-                 <Stop offset="0" stopColor="rgba(255,255,255,0.15)" />
-                 <Stop offset="1" stopColor="rgba(255,255,255,0.05)" />
+              <RadialGradient id="grooveInnerShadow" cx="0.5" cy="0.5">
+                 <Stop offset="0.8" stopColor="rgba(0,0,0,0.05)" /> 
+                 <Stop offset="1" stopColor="rgba(0,0,0,0.2)" />
+              </RadialGradient>
+              <LinearGradient id="knobMetal" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor="#ffffff" />
+                <Stop offset="0.5" stopColor="#e0e0e0" />
+                <Stop offset="1" stopColor="#d0d0d0" />
               </LinearGradient>
             </Defs>
 
             <G transform={`translate(${SVG_PAD}, ${SVG_PAD})`}>
-              {/* Background Track - Tactile/Matte style */}
+              {/* Outer Shadow Lip (Top/Left dark) */}
               <Path
                 d={bgPath}
-                stroke="url(#trackGradient)"
+                stroke="rgba(0,0,0,0.3)"
+                strokeWidth={STROKE_WIDTH + 4}
+                strokeLinecap="round"
+                fill="none"
+              />
+               {/* Outer Highlight Lip (Bottom/Right light) */}
+               <Path
+                d={bgPath}
+                stroke="rgba(255,255,255,0.7)"
+                strokeWidth={STROKE_WIDTH + 4}
+                strokeLinecap="round"
+                fill="none"
+                transform="translate(1, 1)"
+              />
+
+              {/* Main Groove Body */}
+              <Path
+                d={bgPath}
+                stroke="#EAEAEA" // Base track color
+                strokeWidth={STROKE_WIDTH}
+                strokeLinecap="round"
+                fill="none"
+              />
+              
+              {/* Inner Shadow (Groove depth) */}
+              <Path
+                d={bgPath}
+                stroke="rgba(0,0,0,0.15)" // Darker inside
                 strokeWidth={STROKE_WIDTH}
                 strokeLinecap="round"
                 fill="none"
               />
 
-              {/* Progress Arc */}
+              {/* Zone Indicators Layer */}
+              {renderZones()}
+
+              {/* Progress Fill Indicator */}
               <AnimatedPath
                 d={progressPath}
                 animatedProps={animatedProps}
-                strokeWidth={STROKE_WIDTH}
+                strokeWidth={STROKE_WIDTH - 6} // Inside groove
                 strokeLinecap="round"
                 fill="none"
-                opacity={0.8}
+                opacity={0.9}
+              />
+              
+              {/* Glossy overlay on progress for "glass/liquid" look inside groove */}
+              <AnimatedPath
+                 d={progressPath}
+                 stroke="rgba(255,255,255,0.3)"
+                 strokeWidth={STROKE_WIDTH/2}
+                 strokeLinecap="round"
+                 fill="none"
+                 transform="translate(-2, -2)" 
               />
 
-              {/* Tactile Knob */}
-              <Circle
-                cx={thumbPos.x}
-                cy={thumbPos.y}
-                r={22}
-                fill="url(#knobGradient)"
-                stroke="rgba(255,255,255,0.6)"
-                strokeWidth={1.5}
-                shadowColor="#000"
-                shadowOpacity={0.2}
-                shadowRadius={4}
-                shadowOffset={{width: 0, height: 2}}
-              />
-              {/* Indent in knob */}
-              <AnimatedCircle
-                cx={thumbPos.x}
-                cy={thumbPos.y}
-                r={6}
-                 // Match indent color to active color for nice detail
-                animatedProps={animatedProps} 
-                fillOpacity={0.8}
-              />
+              {/* Refined Tactile Knob */}
+              <G>
+                 {/* Knob Shadow */}
+                 <Circle
+                  cx={thumbPos.x}
+                  cy={thumbPos.y + 4}
+                  r={22}
+                  fill="rgba(0,0,0,0.2)"
+                  opacity={0.6}
+                 />
+                 {/* Knob Body */}
+                 <Circle
+                  cx={thumbPos.x}
+                  cy={thumbPos.y}
+                  r={22}
+                  fill="url(#knobMetal)"
+                 />
+                 {/* Knob Ring Reflection */}
+                 <Circle
+                   cx={thumbPos.x}
+                   cy={thumbPos.y}
+                   r={22}
+                   fill="none"
+                   stroke="rgba(255,255,255,0.8)"
+                   strokeWidth={1.5}
+                 />
+                  {/* Center Dimple */}
+                 <Circle
+                   cx={thumbPos.x}
+                   cy={thumbPos.y}
+                   r={6}
+                   fill="rgba(0,0,0,0.1)" // Recessed dimple
+                   stroke="rgba(255,255,255,0.5)" // Highlight bottom edge of dimple
+                   strokeWidth={1}
+                 />
+              </G>
             </G>
           </Svg>
         </View>
@@ -313,4 +455,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TimeSlider;
+export default React.memo(TimeSlider);

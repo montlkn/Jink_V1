@@ -2,13 +2,13 @@ import { getStreakMultiplier } from "@/theme/designConstants";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 import XPGlassOrb from "../three/orb/XPGlassOrb";
 
@@ -26,7 +26,7 @@ const EXPANDED_WIDTH = 280;
 const COLLAPSED_WIDTH = 80;
 const HEIGHT = 80;
 
-export default function XPStatusBanner({
+function XPStatusBanner({
   currentXP,
   level,
   xpForNextLevel,
@@ -46,9 +46,7 @@ export default function XPStatusBanner({
   const isMultiplierMode = multiplier !== undefined && multiplier > 1.0;
 
   const handlePress = () => {
-    // Don't expand in multiplier mode
-    if (isMultiplierMode) return;
-
+    // Allow expansion in all modes
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const nextState = !isExpanded;
     setIsExpanded(nextState);
@@ -279,3 +277,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
 });
+
+export default React.memo(XPStatusBanner);

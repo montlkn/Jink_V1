@@ -35,13 +35,14 @@ export function getBuildingImageUrl(
     bin: string,
     options: BuildingImageOptions = {},
 ): string {
-    const { angle = "0deg", pitch = "0pitch" } = options;
+    const { angle = "0deg", pitch = "40pitch" } = options;
 
     if (!bin || bin === "unknown") {
         return "";
     }
 
-    return `${R2_PUBLIC_URL}/building-images/${bin}/${angle}_${pitch}.jpg`;
+    // R2 bucket structure: /{BIN}/{angle}_{pitch}.jpg (no building-images prefix)
+    return `${R2_PUBLIC_URL}/${bin}/${angle}_${pitch}.jpg`;
 }
 
 /**
