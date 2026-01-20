@@ -8,6 +8,7 @@ import React, {
     useState,
 } from "react";
 import { Animated, Dimensions, StyleSheet, View } from "react-native";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import GlassOrb from "../components/three/orb/GlassOrb";
 
 // Constants
@@ -43,9 +44,9 @@ type SingletonOrbContextType = {
 };
 
 const defaultColors: OrbColors = {
-  colorA: "#8cf",
-  colorB: "#fff",
-  colorC: "#fff",
+  colorA: theme.colors.secondary,
+  colorB: theme.colors.white,
+  colorC: theme.colors.white,
 };
 
 const defaultPosition: OrbPosition = {

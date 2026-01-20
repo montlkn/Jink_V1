@@ -9,6 +9,8 @@ import { authActions } from "@/features/auth";
 import { log } from "@/lib/log";
 import { upsertProfileFromSession } from "../../auth/profileSync";
 import { useAuth } from "../../auth/authProvider";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { APP_COLORS } from "@/constants/appColors";
 
 export default function AuthCallbackScreen({ navigation }) {
   const [error, setError] = useState(null);
@@ -210,7 +212,7 @@ export default function AuthCallbackScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.white,
   },
   content: {
     flex: 1,
@@ -221,17 +223,17 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#333",
+    color: theme.colors.text,
   },
   errorText: {
     fontSize: 16,
-    color: "#e74c3c",
+    color: APP_COLORS.error,
     textAlign: "center",
     marginBottom: 8,
   },
   subText: {
     fontSize: 14,
-    color: "#666",
+    color: theme.colors.muted,
     textAlign: "center",
   },
 });

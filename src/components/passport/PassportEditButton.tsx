@@ -1,3 +1,4 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import React from "react";
 import { Image, StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
 import { SvgUri } from "react-native-svg";
@@ -16,7 +17,7 @@ type PassportEditButtonProps = {
  * Container is 52x44 positioned at top-right, with SVG offset to show the pill correctly.
  * Shows Edit_Pill.svg when enabled, Edit_Pill_Disabled.svg when disabled.
  */
-export function PassportEditButton({ onPress, disabled = false, style, tintColor = "#C62828", accessibilityLabel }: PassportEditButtonProps) {
+export function PassportEditButton({ onPress, disabled = false, style, tintColor = theme.colors.error, accessibilityLabel }: PassportEditButtonProps) {
   const iconSource = React.useMemo(() => {
     try {
       const iconPath = disabled 
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   fallback: {
     width: 52,
     height: 44,
-    backgroundColor: "#E5E5E5",
+    backgroundColor: theme.colors.border,
     borderRadius: 22,
   },
 });

@@ -1,3 +1,4 @@
+import { APP_COLORS } from "@/constants/appColors";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from 'react-native';
@@ -19,7 +20,7 @@ export function QuestCompletionModal({
   xpAwarded,
   onClose,
 }: QuestCompletionModalProps): JSX.Element {
-  const questColor = questType === 'daily' ? '#3b82f6' : '#a855f7'; // Blue for daily, purple for weekly
+  const questColor = questType === 'daily' ? APP_COLORS.daily : APP_COLORS.weekly;
   const questTypeLabel = questType === 'daily' ? 'DAILY QUEST' : 'WEEKLY QUEST';
 
   return (

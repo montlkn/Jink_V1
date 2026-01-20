@@ -2,6 +2,7 @@
  * Glow presets for react-native-animated-glow
  */
 import type { PresetConfig } from "react-native-animated-glow";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 /**
  * Warm golden glow for card components
@@ -14,7 +15,7 @@ export const showtime: PresetConfig = {
                 cornerRadius: 10,
                 outlineWidth: 2,
                 borderColor: "rgba(209, 209, 209, 1)",
-                backgroundColor: "#222",
+                backgroundColor: theme.colors.black,
                 animationSpeed: 0.5,
                 borderSpeedMultiplier: 1,
                 glowLayers: [

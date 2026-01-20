@@ -1,3 +1,4 @@
+import { APP_COLORS } from "@/constants/appColors";
 import { Canvas, useThree } from "@react-three/fiber/native";
 import React, { useEffect, useRef } from "react";
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
@@ -25,8 +26,8 @@ function OrbContent({ envAsset, tintColor }: OrbContentProps) {
   const { scene } = useThree();
 
   // Use tint color if provided, otherwise default gold
-  const glassColor = tintColor || "#FFD700";
-  const attenuationCol = tintColor || "#FFD37A";
+  const glassColor = tintColor || APP_COLORS.passport.list;
+  const attenuationCol = tintColor || APP_COLORS.passport.list;
 
   // Feed PBR with the env once it exists
   useEffect(() => {
@@ -70,7 +71,7 @@ function OrbContent({ envAsset, tintColor }: OrbContentProps) {
             clearcoat={1}
             clearcoatRoughness={0.05}
             specularIntensity={5.0}
-            specularColor="#ffe9b3"
+            specularColor={APP_COLORS.passport.list}
             reflectivity={1.0}
             opacity={0.35}
             transparent

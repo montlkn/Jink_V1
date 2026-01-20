@@ -878,7 +878,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   placeholderIcon: {
-    fontSize: 48,
+    fontSize: theme.typography.fontSize.xxxxl,
     marginBottom: 8,
   },
   placeholderText: {
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   title: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: '700',
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -924,7 +924,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
     fontFamily: 'monospace',
   },
@@ -939,14 +939,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontFamily: 'monospace',
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   statValue: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   actionText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.text,
     fontFamily: 'monospace',
     marginTop: 4,
@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   directionsText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -997,7 +997,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: '700',
     color: theme.colors.primary,
     fontFamily: 'monospace',
@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
   },
   bodyText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     lineHeight: 22,
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -1028,7 +1028,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   errorTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '700',
     color: theme.colors.accent,
     fontFamily: 'monospace',
@@ -1040,7 +1040,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 18,
+    fontSize: theme.typography.fontSize.lg,
     color: theme.colors.muted,
     fontFamily: 'monospace',
   },
@@ -1053,7 +1053,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   locationTitle: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: '700',
     color: theme.colors.primary,
     fontFamily: 'monospace',
@@ -1082,14 +1082,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoCategory: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontFamily: 'monospace',
     marginBottom: 2,
     textTransform: 'uppercase',
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.text,
     fontFamily: 'monospace',
     fontWeight: '600',
@@ -1110,7 +1110,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nameText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '700',
     color: theme.colors.primary,
     fontFamily: 'monospace',
@@ -1123,13 +1123,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
     fontFamily: 'monospace',
     fontStyle: 'italic',
   },
   sourceText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontFamily: 'monospace',
     textTransform: 'uppercase',
@@ -1142,7 +1142,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   readMoreText: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     color: theme.colors.primary,
     fontFamily: 'monospace',
     fontWeight: '600',
@@ -1178,7 +1178,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   bottomSheetTitle: {
-    fontSize: 18,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: '700',
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -1189,7 +1189,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   bottomSheetBuildingName: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '700',
     color: theme.colors.primary,
     fontFamily: 'monospace',
@@ -1197,13 +1197,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   bottomSheetText: {
-    fontSize: 15,
+    fontSize: theme.typography.fontSize.mdPlus,
     lineHeight: 24,
     color: theme.colors.text,
     fontFamily: 'monospace',
   },
   bottomSheetSource: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontFamily: 'monospace',
     marginTop: 20,

@@ -1,9 +1,10 @@
 import { APP_COLORS } from "./appColors";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 export const ELEMENT_COLORS = {
     streak: {
         active: APP_COLORS.weekly,
-        inactive: "#888888",
+        inactive: theme.colors.muted,
         multiplier: APP_COLORS.daily,
         card: APP_COLORS.passport.streak,
     },

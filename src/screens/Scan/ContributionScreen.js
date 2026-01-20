@@ -1,5 +1,6 @@
 import React from "react";
 import { SafeAreaView, StyleSheet, Text } from "react-native";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 const ContributionScreen = () => {
   return (
@@ -17,18 +18,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F8F8F8",
+    backgroundColor: theme.colors.surface,
     padding: 32,
   },
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111",
+    color: theme.colors.text,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 15,
-    color: "#555",
+    color: theme.colors.muted,
     textAlign: "center",
     lineHeight: 22,
   },

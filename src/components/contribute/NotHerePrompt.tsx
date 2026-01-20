@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   xpBadgeSmall: {
-    backgroundColor: '#10b981' + '20',
+    backgroundColor: APP_COLORS.success + '20',
   },
   xpText: {
     fontSize: 12,

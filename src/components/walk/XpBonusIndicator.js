@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 /**
  * XP Multiplier Indicator Component
@@ -22,17 +23,17 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#2196F3", // Default blue
+    backgroundColor: theme.colors.secondary, // Default blue
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
   text: {
-    color: "#fff",
+    color: theme.colors.white,
     fontSize: 22,
     fontWeight: "800",
     letterSpacing: 0.5,

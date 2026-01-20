@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import {
   calculateAestheticProfile,
   fetchQuizQuestions,
@@ -133,7 +134,7 @@ const OnboardingQuizScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={theme.colors.text} />
           <Text style={styles.loadingText}>
             {authLoading ? 'Loading authentication...' : 'Loading quiz...'}
           </Text>
@@ -146,7 +147,7 @@ const OnboardingQuizScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={theme.colors.text} />
           <Text style={styles.loadingText}>Calculating your aesthetic profile...</Text>
         </View>
       </SafeAreaView>
@@ -243,7 +244,7 @@ const OnboardingQuizScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: theme.colors.background,
   },
   centerContainer: {
     flex: 1,
@@ -261,22 +262,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
   },
   questionCounter: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.muted,
   },
   progressBarContainer: {
     height: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 2,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.text,
     borderRadius: 2,
   },
   questionContainer: {
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.text,
     marginBottom: 4,
     lineHeight: 32,
   },
@@ -307,15 +308,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   optionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 16,
     marginBottom: 16,
     marginHorizontal: 4,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderColor: theme.colors.border,
     width: (width * 0.95 - 16) / 2, // Much bigger cards
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text,
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -351,14 +352,14 @@ const styles = StyleSheet.create({
   backButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: theme.colors.border,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#000',
+    color: theme.colors.text,
     fontWeight: '500',
   },
   spacer: {
@@ -367,22 +368,22 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.muted,
   },
   errorText: {
     fontSize: 18,
-    color: '#666',
+    color: theme.colors.muted,
     textAlign: 'center',
     marginBottom: 20,
   },
   retryButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.text,
     borderRadius: 25,
   },
   retryButtonText: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontSize: 16,
     fontWeight: '500',
   },

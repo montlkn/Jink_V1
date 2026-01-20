@@ -91,23 +91,23 @@ function AchievementCard({ item, expanded, onPress }: AchievementCardProps) {
         <View style={[styles.iconBadge, { backgroundColor: statusColor }]}>
           <Ionicons name="information-circle" size={14} color={theme.colors.background} />
         </View>
-        <Text style={[styles.xpText, { color: statusColor, fontSize: 9 }]}>DETAILS</Text>
+        <Text style={[styles.xpText, { color: statusColor, fontSize: theme.typography.fontSize.xxxs }]}>DETAILS</Text>
       </View>
-      
+
       <View style={[styles.cardBody, { justifyContent: 'center' }]}>
-        <Text numberOfLines={2} style={[styles.cardTitle, { fontSize: 12, textAlign: 'center', marginBottom: 4 }]}>
+        <Text numberOfLines={2} style={[styles.cardTitle, { fontSize: theme.typography.fontSize.sm, textAlign: 'center', marginBottom: 4 }]}>
           {item.title}
         </Text>
-        
+
         <View style={[styles.divider, { backgroundColor: statusColor, alignSelf: 'center', width: 20, marginBottom: 6 }]} />
-        
-        <Text style={[styles.miniLabel, { fontSize: 9 }]}>PURPOSE</Text>
-        <Text numberOfLines={4} style={[styles.miniDescription, { fontSize: 11, lineHeight: 14, marginBottom: 6 }]}>{item.purpose}</Text>
-        
+
+        <Text style={[styles.miniLabel, { fontSize: theme.typography.fontSize.xxxs }]}>PURPOSE</Text>
+        <Text numberOfLines={4} style={[styles.miniDescription, { fontSize: theme.typography.fontSize.xsPlus, lineHeight: 14, marginBottom: 6 }]}>{item.purpose}</Text>
+
         <View style={{ height: 4 }} />
-        
-        <Text style={[styles.miniLabel, { fontSize: 9 }]}>UNLOCK</Text>
-        <Text numberOfLines={3} style={[styles.miniDescription, { fontSize: 11, lineHeight: 14 }]}>{item.verification}</Text>
+
+        <Text style={[styles.miniLabel, { fontSize: theme.typography.fontSize.xxxs }]}>UNLOCK</Text>
+        <Text numberOfLines={3} style={[styles.miniDescription, { fontSize: theme.typography.fontSize.xsPlus, lineHeight: 14 }]}>{item.verification}</Text>
       </View>
 
       <View style={styles.cardFooter}>
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: "bold",
     color: theme.colors.text,
     letterSpacing: 2,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   xpText: {
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xsPlus,
     fontWeight: "bold",
     fontFamily: "Courier",
   },
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: theme.typography.fontSize.mdPlus,
     fontWeight: "bold",
     color: theme.colors.text,
     marginBottom: 4,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   verification: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     lineHeight: 15,
   },
@@ -326,20 +326,20 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
   },
   statusText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "bold",
     letterSpacing: 1,
     textTransform: "uppercase",
   },
   miniLabel: {
-    fontSize: 9,
+    fontSize: theme.typography.fontSize.xxxs,
     fontWeight: "bold",
     color: theme.colors.muted,
     marginBottom: 2,
     textAlign: 'center',
   },
   miniDescription: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     lineHeight: 14,
     color: theme.colors.text,
     textAlign: 'center',
@@ -353,16 +353,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyStateIcon: {
-    fontSize: 48,
+    fontSize: theme.typography.fontSize.xxxxl,
   },
   emptyStateTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: 'bold',
     color: theme.colors.text,
     letterSpacing: 2,
   },
   emptyStateText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     textAlign: 'center',
     paddingHorizontal: 40,

@@ -3,6 +3,8 @@ import { Compass, PausePillButton } from "@/features/walks";
 import { log } from "@/lib/log";
 import { goBack, navigate } from "@/navigation/nav";
 import { screens } from "@/navigation/routes";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { APP_COLORS } from "@/constants/appColors";
 import { calculateWalkingETA, formatDistance, getBuildingDisplayName, haversineDistance } from "@/utils/buildingUtils";
 import { AngularKalmanFilter } from "@/utils/KalmanFilter";
 // eslint-disable-next-line no-restricted-imports
@@ -408,18 +410,18 @@ const WalkNavScreen = ({ route, navigation }) => {
   // Helper to get color based on duration (inlined to ensure reliability)
   const getDurationColor = (minutes) => {
     minutes = Number(minutes) || 45;
-    if (minutes >= 5 && minutes <= 10) return '#00ffff'; // Cyan
-    if (minutes >= 10 && minutes < 15) return '#ff8c00'; // Orange
-    if (minutes >= 15 && minutes < 25) return '#32cd32'; // Green
-    if (minutes >= 25 && minutes < 40) return '#dc143c'; // Red
-    if (minutes >= 40 && minutes < 50) return '#ff8c00'; // Orange
-    if (minutes >= 50 && minutes < 60) return '#32cd32'; // Green
-    if (minutes >= 60 && minutes < 70) return '#dc143c'; // Red
-    if (minutes >= 70 && minutes < 80) return '#32cd32'; // Green
-    if (minutes >= 80 && minutes < 85) return '#ff8c00'; // Orange
-    if (minutes >= 85 && minutes <= 90) return '#00ffff'; // Cyan
-    if (minutes > 90 && minutes <= 95) return '#dc143c'; // Red
-    return '#00ffff'; // Default Cyan
+    if (minutes >= 5 && minutes <= 10) return APP_COLORS.info; // Cyan
+    if (minutes >= 10 && minutes < 15) return APP_COLORS.warning; // Orange
+    if (minutes >= 15 && minutes < 25) return APP_COLORS.success; // Green
+    if (minutes >= 25 && minutes < 40) return APP_COLORS.error; // Red
+    if (minutes >= 40 && minutes < 50) return APP_COLORS.warning; // Orange
+    if (minutes >= 50 && minutes < 60) return APP_COLORS.success; // Green
+    if (minutes >= 60 && minutes < 70) return APP_COLORS.error; // Red
+    if (minutes >= 70 && minutes < 80) return APP_COLORS.success; // Green
+    if (minutes >= 80 && minutes < 85) return APP_COLORS.warning; // Orange
+    if (minutes >= 85 && minutes <= 90) return APP_COLORS.info; // Cyan
+    if (minutes > 90 && minutes <= 95) return APP_COLORS.error; // Red
+    return APP_COLORS.info; // Default Cyan
   };
 
   const duration = Number(route.params?.duration) || 45; 
@@ -545,7 +547,7 @@ const WalkNavScreen = ({ route, navigation }) => {
               />
             ) : (
               <View style={styles.loadingState}>
-                <ActivityIndicator size="large" color="#1B1B1B" />
+                <ActivityIndicator size="large" color={theme.colors.text} />
                 <Text style={styles.loadingText}>
                   Calculating your jink…
                 </Text>
@@ -605,7 +607,7 @@ export default WalkNavScreen;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F5F7",
+    backgroundColor: theme.colors.background,
   },
   screen: {
     flex: 1,
@@ -625,8 +627,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   xpText: {
-    color: "#FFFFFF",
-    fontSize: 14,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: "700",
   },
   body: {
@@ -635,34 +637,34 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   nextCard: {
-    backgroundColor: "#FFFFFF",  // Explicit color for shadow optimization
+    backgroundColor: theme.colors.white,  // Explicit color for shadow optimization
     borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 20,
-    shadowColor: "#0F172A",
+    shadowColor: theme.colors.black,
     shadowOpacity: 0.12,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 12 },
     elevation: 8,
   },
   nextLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     letterSpacing: 1,
     fontWeight: "600",
-    color: "#62626D",
+    color: theme.colors.muted,
     textTransform: "uppercase",
   },
   nextAddress: {
     marginTop: 10,
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.lgPlus,
     lineHeight: 26,
     fontWeight: "700",
-    color: "#141417",
+    color: theme.colors.text,
   },
   nextMeta: {
     marginTop: 12,
-    fontSize: 14,
-    color: "#3C3C43",
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.muted,
     opacity: 0.72,
   },
   etaRow: {
@@ -671,15 +673,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 6,
     paddingHorizontal: 10,
-    backgroundColor: "#f0f9ff",
+    backgroundColor: APP_COLORS.info + '15',
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#bae6fd",
+    borderColor: APP_COLORS.info + '40',
   },
   etaText: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     fontWeight: "600",
-    color: "#0369a1",
+    color: APP_COLORS.info,
   },
   directionRow: {
     flexDirection: "row",
@@ -687,15 +689,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: "#eaeaeaff",
+    backgroundColor: theme.colors.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#c8c8c8ff",
+    borderColor: theme.colors.border,
   },
   directionText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: "600",
-    color: "#707070ff",
+    color: theme.colors.muted,
     flex: 1,
   },
   compassSection: {
@@ -710,8 +712,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 14,
-    color: "#3C3C43",
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.muted,
     opacity: 0.7,
   },
   footer: {
@@ -725,13 +727,13 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 2,
-    backgroundColor: "#141417",  // Solid color for shadow optimization
+    backgroundColor: theme.colors.text,  // Solid color for shadow optimization
     borderRadius: 28,
     paddingVertical: 16,
     top: 16,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#141417",
+    shadowColor: theme.colors.text,
     shadowOpacity: 0.25,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
@@ -741,26 +743,26 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.97 }],
   },
   primaryButtonLabel: {
-    color: "#FFFFFF",
-    fontSize: 16,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
   },
   skipButton: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: theme.colors.white + 'E6',
     borderRadius: 28,
     paddingVertical: 16,
     top: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderColor: theme.colors.black + '1A',
   },
   skipButtonLabel: {
-    color: "#141417",
-    fontSize: 16,
+    color: theme.colors.text,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: "600",
     letterSpacing: 1,
     textTransform: "uppercase",
@@ -769,15 +771,15 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   disabledButton: {
-    backgroundColor: "#D1D5DB",
+    backgroundColor: theme.colors.border,
     shadowOpacity: 0,
     elevation: 0,
   },
   routeSummary: {
     marginTop: 16,
     top: 16,
-    fontSize: 14,
-    color: "#3C3C43",
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.muted,
     opacity: 0.7,
     textAlign: "center",
   },
@@ -787,8 +789,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   endWalkText: {
-    color: "#EF4444",
-    fontSize: 14,
+    color: APP_COLORS.error,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: "600",
   },
 });

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Image, StyleSheet, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
 import { SvgUri } from "react-native-svg";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 type PassportBackButtonProps = {
   onPress: () => void;
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
   fallback: {
     width: 44,
     height: 44,
-    backgroundColor: "#E5E5E5",
+    backgroundColor: theme.colors.border,
     borderRadius: 22,
   },
 });

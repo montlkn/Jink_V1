@@ -1,3 +1,4 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { BlurView } from "expo-blur";
 import { useEffect, useState } from "react";
 import {
@@ -68,7 +69,7 @@ export function ListEditModal({
                   value={name}
                   onChangeText={setName}
                   placeholder="Enter list name"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.muted}
                 />
               </View>
 
@@ -79,7 +80,7 @@ export function ListEditModal({
                   value={tagline}
                   onChangeText={setTagline}
                   placeholder="Enter tagline"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.muted}
                 />
               </View>
 
@@ -90,7 +91,7 @@ export function ListEditModal({
                   value={mood}
                   onChangeText={setMood}
                   placeholder="Enter description"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={theme.colors.muted}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   modalContent: {
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     overflow: "hidden",
   },
@@ -137,12 +138,12 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: theme.colors.border,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827",
+    color: theme.colors.text,
     fontFamily: "Courier",
     letterSpacing: 0.5,
   },
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#6B7280",
+    color: theme.colors.muted,
     marginBottom: 8,
     fontFamily: "Courier",
     textTransform: "uppercase",
@@ -166,13 +167,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: theme.colors.border,
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#111827",
-    backgroundColor: "#F9FAFB",
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
     fontFamily: "Courier",
   },
   textArea: {
@@ -184,19 +185,19 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: theme.colors.border,
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: theme.colors.background,
     alignItems: "center",
   },
   cancelText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#6B7280",
+    color: theme.colors.muted,
     fontFamily: "Courier",
     letterSpacing: 0.5,
   },
@@ -204,13 +205,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: "#1ABC9C",
+    backgroundColor: theme.colors.success,
     alignItems: "center",
   },
   saveText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#fff",
+    color: theme.colors.white,
     fontFamily: "Courier",
     letterSpacing: 0.5,
   },

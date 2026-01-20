@@ -8,6 +8,8 @@ import {
     Text,
     View,
 } from "react-native";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { APP_COLORS } from "@/constants/appColors";
 
 import { useWalksData } from "@/hooks/useWalksData";
 
@@ -55,7 +57,7 @@ export function WalksView(): JSX.Element {
   if (walksState.status === "loading") {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#38BDF8" />
+        <ActivityIndicator size="large" color={theme.colors.secondary} />
         <Text style={styles.meta}>Loading walks…</Text>
       </View>
     );
@@ -118,7 +120,7 @@ export function WalksView(): JSX.Element {
       <View style={styles.detailCard}>
         <View style={styles.detailHeader}>
           <Text style={styles.detailTitle}>Selected walk</Text>
-          {isSelecting ? <ActivityIndicator size="small" color="#38BDF8" /> : null}
+          {isSelecting ? <ActivityIndicator size="small" color={theme.colors.secondary} /> : null}
         </View>
         {selectedWalk ? (
           <>
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#0F172A",
+    color: theme.colors.text,
   },
   refreshLink: {
     paddingVertical: 6,
@@ -165,47 +167,47 @@ const styles = StyleSheet.create({
   refreshText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#38BDF8",
+    color: theme.colors.secondary,
   },
   refreshButton: {
     marginTop: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: "#0F172A",
+    backgroundColor: theme.colors.text,
   },
   refreshButtonText: {
-    color: "#F8FAFC",
+    color: theme.colors.white,
     fontWeight: "600",
   },
   meta: {
     fontSize: 14,
-    color: "#64748B",
+    color: theme.colors.muted,
     textAlign: "center",
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#EF4444",
+    color: APP_COLORS.error,
     textAlign: "center",
   },
   emptyState: {
     padding: 18,
     borderRadius: 14,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: theme.colors.surface,
     alignItems: "center",
   },
   summaryCard: {
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#FFFFFF",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.white,
     gap: 6,
   },
   summaryCardActive: {
-    borderColor: "#38BDF8",
-    backgroundColor: "rgba(56, 189, 248, 0.08)",
+    borderColor: theme.colors.secondary,
+    backgroundColor: theme.colors.secondary + '14',
   },
   summaryHeader: {
     flexDirection: "row",
@@ -215,26 +217,26 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1E293B",
+    color: theme.colors.text,
   },
   summaryTitleActive: {
-    color: "#0F172A",
+    color: theme.colors.text,
   },
   summaryDistance: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#0F172A",
+    color: theme.colors.text,
   },
   summaryMeta: {
     fontSize: 13,
-    color: "#64748B",
+    color: theme.colors.muted,
   },
   detailCard: {
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#CBD5F5",
-    backgroundColor: "#0F172A",
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.text,
     gap: 6,
   },
   detailHeader: {
@@ -245,11 +247,11 @@ const styles = StyleSheet.create({
   detailTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#E2E8F0",
+    color: theme.colors.white,
   },
   detailMeta: {
     fontSize: 13,
-    color: "#94A3B8",
+    color: theme.colors.white + 'B3',
   },
 });
 

@@ -10,6 +10,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { getArchetypeColorSafe } from "@/constants/archetypeColors";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 type SliceDatum = {
   id: string;
@@ -146,7 +147,7 @@ const ArchetypePieChart: React.FC<Props> = ({
                 />
                 <Path
                   path={path}
-                  color="#000"
+                  color={theme.colors.black}
                   style="stroke"
                   strokeWidth={2}
                 />
@@ -171,7 +172,7 @@ const ArchetypePieChart: React.FC<Props> = ({
                 y={pos.y - offset}
                 text={text}
                 font={percentFont}
-                color="#FFFFFF"
+                color={theme.colors.white}
                 style="fill"
               />
             );
@@ -195,7 +196,7 @@ const ArchetypePieChart: React.FC<Props> = ({
                 y={pos.y + offset}
                 text={text}
                 font={font}
-                color="#000"
+                color={theme.colors.black}
                 style="fill"
               />
             );
@@ -204,15 +205,15 @@ const ArchetypePieChart: React.FC<Props> = ({
       </Canvas>
       
       {/* Center White Circle (Donut hole, but small) - Reference has a small white center */}
-      <View style={[styles.centerHole, { 
-          left: radius - (size * 0.15), 
+      <View style={[styles.centerHole, {
+          left: radius - (size * 0.15),
           top: radius - (size * 0.15),
           width: size * 0.3,
           height: size * 0.3,
           borderRadius: size * 0.15,
-          backgroundColor: "#FFFFFF",
+          backgroundColor: theme.colors.white,
           borderWidth: 2,
-          borderColor: "#000"
+          borderColor: theme.colors.black
       }]} />
     </View>
   );
@@ -221,10 +222,10 @@ const ArchetypePieChart: React.FC<Props> = ({
 const styles = StyleSheet.create({
   centerHole: {
     position: "absolute",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.white,
     borderWidth: 4,
-    borderColor: "#000",
-    shadowColor: "#000",
+    borderColor: theme.colors.black,
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { theme } from "@/theme/tokens";
 
 const TimeSlider = ({ min, max, initialValue }) => {
   return (
@@ -25,7 +26,7 @@ const styles = StyleSheet.create({
   track: {
     width: 4,
     height: "100%",
-    backgroundColor: "#e0e0e0",
+    backgroundColor: theme.colors.border,
     borderRadius: 2,
     position: "absolute",
   },
@@ -33,14 +34,14 @@ const styles = StyleSheet.create({
     width: 24,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#000",
+    backgroundColor: theme.colors.black,
     position: "absolute",
     left: -10,
     top: "50%", // We will make this dynamic with a real slider library later
   },
   label: {
     fontSize: 16,
-    color: "#888",
+    color: theme.colors.muted,
     fontWeight: "500",
   },
   valueLabel: {
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
     left: 30,
     top: "49%",
     fontSize: 20,
-    color: "#000",
+    color: theme.colors.black,
     fontWeight: "bold",
   },
 });

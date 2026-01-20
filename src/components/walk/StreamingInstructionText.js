@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 const StreamingInstructionText = ({
   text = "Press orb to start jink",
@@ -78,7 +79,7 @@ const StreamingInstructionText = ({
                 style={[
                   styles.text,
                   {
-                    color: "#000",
+                    color: theme.colors.black,
                     opacity: 1,
                     fontSize,
                     letterSpacing,

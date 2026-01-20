@@ -1,6 +1,7 @@
 /**
  * OrbGlow - Visible diffuse circular glow for the ArchetypeOrb
  */
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import {
   BlurMask,
   Canvas,
@@ -53,7 +54,7 @@ export function OrbGlow({
   activeState = "default",
   style,
   animationDuration = 8,
-  colors = ["#FFFFFF", "#FFFFFF"],
+  colors = [theme.colors.white, theme.colors.white],
   opacityMultiplier = 1.0,
 }: OrbGlowProps) {
   const gyroX = useSharedValue(0);

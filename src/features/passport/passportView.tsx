@@ -14,7 +14,7 @@ import { log } from "@/lib/log";
 import { screens, type RootParams } from "@/navigation/routes";
 import { useOrbTransition } from "@/state/orbTransitionContext";
 import { getStreakMultiplier } from "@/theme/designConstants";
-import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { theme, SPACING, BORDER_RADIUS, TYPOGRAPHY } from "@/theme/tokens";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Haptics from "expo-haptics";
@@ -414,17 +414,17 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
             {/* Level Display */}
             {/* Level Display */}
             <View style={{ position: 'absolute', top: 50, left: 104 }}>
-              <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 30, color: '#111' }}>{data.level}</Text>
+              <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxl, color: theme.colors.text }}>{data.level}</Text>
             </View>
-  
+
             {/* XP Progress Bar */}
             <View style={{ position: 'absolute', bottom: 28, left: 24, right: 24 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                 <Text style={{ fontFamily: 'Courier', fontSize: 10, fontWeight: 'bold', color: '#111', opacity: 0.6 }}>XP PROGRESS</Text>
-                 <Text style={{ fontFamily: 'Courier', fontSize: 10, fontWeight: 'bold', color: '#111', opacity: 0.6 }}>{Math.round(data.xpProgress * 100)}%</Text>
+                 <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, fontWeight: 'bold', color: theme.colors.text, opacity: 0.6 }}>XP PROGRESS</Text>
+                 <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, fontWeight: 'bold', color: theme.colors.text, opacity: 0.6 }}>{Math.round(data.xpProgress * 100)}%</Text>
               </View>
-              <View style={{ height: 6, width: '100%', backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 3, overflow: 'hidden' }}>
-                <View style={{ height: '100%', width: `${Math.round(data.xpProgress * 100)}%`, backgroundColor: '#111', borderRadius: 3 }} />
+              <View style={{ height: 6, width: '100%', backgroundColor: theme.colors.border, borderRadius: 3, overflow: 'hidden' }}>
+                <View style={{ height: '100%', width: `${Math.round(data.xpProgress * 100)}%`, backgroundColor: theme.colors.text, borderRadius: 3 }} />
               </View>
             </View>
           </ImageBackground>
@@ -446,11 +446,11 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
                resizeMode="contain"
             >
                <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{stampCount}</Text>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxxl, color: theme.colors.text, marginTop: 20 }}>{stampCount}</Text>
                </View>
             </ImageBackground>
           </TouchableOpacity>
-  
+
           <TouchableOpacity
             style={{ flex: 1 }}
             onPress={() => onCardPress("Achievements")}
@@ -462,7 +462,7 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
                resizeMode="contain"
             >
                <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{achievementCount}</Text>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxxl, color: theme.colors.text, marginTop: 20 }}>{achievementCount}</Text>
                </View>
             </ImageBackground>
           </TouchableOpacity>
@@ -483,11 +483,11 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
                resizeMode="contain"
             >
                <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{listCount}</Text>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxxl, color: theme.colors.text, marginTop: 20 }}>{listCount}</Text>
                </View>
             </ImageBackground>
           </TouchableOpacity>
-  
+
           {/* Visas */}
           <TouchableOpacity
             style={{ flex: 1 }}
@@ -500,7 +500,7 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
                resizeMode="contain"
             >
                <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 36, color: '#111', marginTop: 20 }}>{visaCount}</Text>
+                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxxl, color: theme.colors.text, marginTop: 20 }}>{visaCount}</Text>
                </View>
             </ImageBackground>
           </TouchableOpacity>
@@ -521,20 +521,20 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
             >
                <View style={{ padding: 20, paddingTop: 40, width: '100%', height: '100%' }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 }}>
-                     <Text style={{ fontFamily: 'Courier', fontSize: 10, fontWeight: 'bold', color: '#111', opacity: 0.8 }}>{data.walks.length.toString().padStart(2, '0')}</Text>
+                     <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, fontWeight: 'bold', color: theme.colors.text, opacity: 0.8 }}>{data.walks.length.toString().padStart(2, '0')}</Text>
                   </View>
-                  
+
                   <View style={{ gap: 14 }}>
                      {data.walks.slice(0, 5).map((walk: any) => (
                        <View key={walk.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <Text style={{ fontFamily: 'Courier', fontSize: 10, color: '#111', opacity: 0.8 }}>
+                         <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, color: theme.colors.text, opacity: 0.8 }}>
                            {walk.date} | {walk.duration} | {walk.buildingCount} Buildings
                          </Text>
-                         <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: 12, color: '#111' }}>{walk.style}</Text>
+                         <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.sm, color: theme.colors.text }}>{walk.style}</Text>
                        </View>
                      ))}
                      {data.walks.length === 0 && (
-                        <Text style={{ fontFamily: 'Courier', fontSize: 12, color: '#111', opacity: 0.6, textAlign: 'center', marginTop: 20 }}>NO ENTRIES RECORDED</Text>
+                        <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.sm, color: theme.colors.text, opacity: 0.6, textAlign: 'center', marginTop: 20 }}>NO ENTRIES RECORDED</Text>
                      )}
                   </View>
                </View>
@@ -546,15 +546,15 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#ece9da" 
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background
   },
-  scrollContent: { 
-    paddingHorizontal: 12, 
+  scrollContent: {
+    paddingHorizontal: SPACING.md,
     paddingTop: 220, // Space for absolute header
-    paddingBottom: 16,
-    gap: 12,
+    paddingBottom: SPACING.base,
+    gap: SPACING.md,
   },
   absoluteHeader: {
     position: 'absolute',
@@ -567,85 +567,85 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: SPACING.md,
     paddingTop: 160,
   },
   centeredText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
-    letterSpacing: 2,
+    letterSpacing: theme.typography.letterSpacing.widest,
     fontWeight: "bold",
   },
   errorTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: "bold",
     color: theme.colors.primary,
-    letterSpacing: 1,
+    letterSpacing: theme.typography.letterSpacing.normal,
   },
   retryButton: {
-    marginTop: 12,
-    paddingHorizontal: 16,
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.base,
     paddingVertical: 10,
-    borderWidth: 1,
+    borderWidth: theme.layout.borderWidth.thin,
     borderColor: theme.colors.text,
   },
   retryButtonText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "bold",
     color: theme.colors.text,
-    letterSpacing: 1,
+    letterSpacing: theme.typography.letterSpacing.normal,
   },
   dashboardGrid: {
-    gap: 12,
+    gap: SPACING.md,
   },
   dataBlock: {
     backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderLeftWidth: 2,
-    borderRadius: 12,
+    padding: SPACING.base,
+    borderLeftWidth: theme.layout.borderWidth.medium,
+    borderRadius: BORDER_RADIUS.xl,
   },
   blockHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: SPACING.md,
   },
   blockLabel: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "bold",
     color: theme.colors.muted,
-    letterSpacing: 1,
+    letterSpacing: theme.typography.letterSpacing.normal,
   },
   statusRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    marginBottom: 12,
+    marginBottom: SPACING.md,
   },
   statusValue: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: "bold",
     color: theme.colors.text,
-    letterSpacing: 1,
+    letterSpacing: theme.typography.letterSpacing.normal,
   },
   statusSub: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "600",
     color: theme.colors.accent,
-    letterSpacing: 1,
-    marginTop: 4,
+    letterSpacing: theme.typography.letterSpacing.normal,
+    marginTop: SPACING.xs,
   },
   xpContainer: {
     backgroundColor: theme.colors.background,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.xl,
   },
   xpText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: "bold",
     color: theme.colors.text,
-    fontFamily: "Courier",
+    fontFamily: theme.typography.fontFamily.monospace,
   },
   progressBarContainer: {
     height: 4,
@@ -657,40 +657,40 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accent,
   },
   multiplierText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.muted,
     letterSpacing: 0.5,
   },
   gridRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: SPACING.md,
   },
   gridItem: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderTopWidth: 2,
-    borderRadius: 12,
+    padding: SPACING.base,
+    borderTopWidth: theme.layout.borderWidth.medium,
+    borderRadius: BORDER_RADIUS.xl,
     minHeight: 100,
     justifyContent: "space-between",
   },
   gridLabel: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "bold",
-    letterSpacing: 1,
-    marginBottom: 8,
+    letterSpacing: theme.typography.letterSpacing.normal,
+    marginBottom: SPACING.sm,
   },
   gridValue: {
-    fontSize: 32,
+    fontSize: theme.typography.fontSize.xxl,
     fontWeight: "bold",
     color: theme.colors.text,
   },
   gridSub: {
-    fontSize: 9,
+    fontSize: TYPOGRAPHY.sizes.tiny,
     fontWeight: "600",
     color: theme.colors.muted,
-    letterSpacing: 1,
+    letterSpacing: theme.typography.letterSpacing.normal,
     alignSelf: "flex-end",
   },
   miniPreview: {
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   logCount: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "bold",
     color: theme.colors.muted,
   },
@@ -717,12 +717,12 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   logDate: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontFamily: "Courier",
   },
   logTitle: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: "600",
     color: theme.colors.text,
     letterSpacing: 0.5,

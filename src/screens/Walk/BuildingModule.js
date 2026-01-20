@@ -11,6 +11,7 @@ import {
   Share,
   View,
 } from "react-native";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { log } from "@/lib/log";
 
 export default function BuildingDetailsScreen({ route }) {
@@ -149,17 +150,17 @@ function Chip({ label, onPress }) {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: "#0B0B0C",
+    backgroundColor: theme.colors.black,
   },
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: theme.colors.white,
     marginBottom: 6,
   },
   address: {
     fontSize: 16,
-    color: "#D1D5DB",
+    color: theme.colors.muted,
     flexShrink: 1,
   },
   addrRow: {
@@ -174,12 +175,12 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
   },
   card: {
-    backgroundColor: "#151518",
+    backgroundColor: theme.colors.text,
     borderRadius: 16,
     padding: 12,
     marginBottom: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#222228",
+    borderColor: theme.colors.border,
   },
   photo: {
     width: "100%",
@@ -187,50 +188,50 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   photoFallback: {
-    backgroundColor: "#222228",
+    backgroundColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
   photoFallbackText: {
-    color: "#9CA3AF",
+    color: theme.colors.muted,
   },
   photoCaption: {
     marginTop: 8,
     fontSize: 12,
-    color: "#9CA3AF",
+    color: theme.colors.muted,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: theme.colors.white,
     marginBottom: 8,
   },
   row: {
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#26262B",
+    borderBottomColor: theme.colors.border,
   },
   rowLabel: {
-    color: "#9CA3AF",
+    color: theme.colors.muted,
     fontSize: 12,
     marginBottom: 4,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   rowValue: {
-    color: "#E5E7EB",
+    color: theme.colors.white,
     fontSize: 16,
   },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "#2A2A31",
+    backgroundColor: theme.colors.muted,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#3A3A44",
+    borderColor: theme.colors.border,
   },
   chipText: {
-    color: "#E5E7EB",
+    color: theme.colors.white,
     fontSize: 13,
     fontWeight: "600",
   },

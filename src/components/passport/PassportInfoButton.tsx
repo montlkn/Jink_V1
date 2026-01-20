@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Image, StyleSheet, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
 import { SvgUri } from "react-native-svg";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 
 type PassportInfoButtonProps = {
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#E5E5E5",
+    backgroundColor: theme.colors.border,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#1F2937",
+    backgroundColor: theme.colors.text,
   },
 });
 

@@ -3,6 +3,8 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { PanResponder, StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedProps, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Stop, Text as SvgText } from "react-native-svg";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { APP_COLORS } from "@/constants/appColors";
 
 const SIZE = 290;
 const SVG_PAD = 40;
@@ -33,17 +35,17 @@ const ARC_SPAN = 300;
 // 90-95: 2.0x (Red)
 
 const ZONES = [
-  { min: 5, max: 10,  color: "#303030", label: "1.0x" }, // Black/Dark Grey
-  { min: 10, max: 15, color: "#ff8c00", label: "1.2x" }, // Orange
-  { min: 15, max: 25, color: "#32cd32", label: "1.5x" }, // Green
-  { min: 25, max: 40, color: "#dc143c", label: "2.0x" }, // Red
-  { min: 40, max: 50, color: "#ff8c00", label: "1.2x" }, // Orange
-  { min: 50, max: 60, color: "#32cd32", label: "1.5x" }, // Green
-  { min: 60, max: 70, color: "#dc143c", label: "2.0x" }, // Red
-  { min: 70, max: 80, color: "#32cd32", label: "1.5x" }, // Green
-  { min: 80, max: 85, color: "#ff8c00", label: "1.2x" }, // Orange
-  { min: 85, max: 90, color: "#303030", label: "1.0x" }, // Black/Dark Grey
-  { min: 90, max: 95, color: "#dc143c", label: "2.0x" }, // Red
+  { min: 5, max: 10,  color: theme.colors.muted, label: "1.0x" }, // Dark Grey
+  { min: 10, max: 15, color: APP_COLORS.warning, label: "1.2x" }, // Orange
+  { min: 15, max: 25, color: APP_COLORS.success, label: "1.5x" }, // Green
+  { min: 25, max: 40, color: APP_COLORS.error, label: "2.0x" }, // Red
+  { min: 40, max: 50, color: APP_COLORS.warning, label: "1.2x" }, // Orange
+  { min: 50, max: 60, color: APP_COLORS.success, label: "1.5x" }, // Green
+  { min: 60, max: 70, color: APP_COLORS.error, label: "2.0x" }, // Red
+  { min: 70, max: 80, color: APP_COLORS.success, label: "1.5x" }, // Green
+  { min: 80, max: 85, color: APP_COLORS.warning, label: "1.2x" }, // Orange
+  { min: 85, max: 90, color: theme.colors.muted, label: "1.0x" }, // Dark Grey
+  { min: 90, max: 95, color: APP_COLORS.error, label: "2.0x" }, // Red
 ];
 
 const angleToPoint = (angleDeg, r = RADIUS) => {
@@ -85,7 +87,7 @@ const TimeSlider = ({
   initialValue = 45,
   setValue,
   onPress,
-  color = "#FFFFFF",
+  color = theme.colors.white,
 }) => {
   const range = Math.max(max - min, 1);
   const clampedValue = Math.min(max, Math.max(min, initialValue ?? min));
@@ -283,9 +285,9 @@ const TimeSlider = ({
           />
           {/* Zone divider line */}
           {i > 0 && (
-             <Path 
+             <Path
                d={`M ${angleToPoint(s, RADIUS - STROKE_WIDTH/2).x} ${angleToPoint(s, RADIUS - STROKE_WIDTH/2).y} L ${angleToPoint(s, RADIUS + STROKE_WIDTH/2).x} ${angleToPoint(s, RADIUS + STROKE_WIDTH/2).y}`}
-               stroke="rgba(0,0,0,0.1)"
+               stroke={theme.colors.black + '1A'}
                strokeWidth={1}
              />
           )}
@@ -295,7 +297,7 @@ const TimeSlider = ({
             <SvgText
               x={labelPos.x}
               y={labelPos.y}
-              fill="rgba(0,0,0,0.4)"
+              fill={theme.colors.black + '66'}
               fontSize="10"
               fontWeight="bold"
               textAnchor="middle"
@@ -322,13 +324,13 @@ const TimeSlider = ({
           >
             <Defs>
               <RadialGradient id="grooveInnerShadow" cx="0.5" cy="0.5">
-                 <Stop offset="0.8" stopColor="rgba(0,0,0,0.05)" /> 
-                 <Stop offset="1" stopColor="rgba(0,0,0,0.2)" />
+                 <Stop offset="0.8" stopColor={theme.colors.black + '0D'} />
+                 <Stop offset="1" stopColor={theme.colors.black + '33'} />
               </RadialGradient>
               <LinearGradient id="knobMetal" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor="#ffffff" />
-                <Stop offset="0.5" stopColor="#e0e0e0" />
-                <Stop offset="1" stopColor="#d0d0d0" />
+                <Stop offset="0" stopColor={theme.colors.white} />
+                <Stop offset="0.5" stopColor={theme.colors.border} />
+                <Stop offset="1" stopColor={theme.colors.border} />
               </LinearGradient>
             </Defs>
 
@@ -336,7 +338,7 @@ const TimeSlider = ({
               {/* Outer Shadow Lip (Top/Left dark) */}
               <Path
                 d={bgPath}
-                stroke="rgba(0,0,0,0.3)"
+                stroke={theme.colors.black + '4D'}
                 strokeWidth={STROKE_WIDTH + 4}
                 strokeLinecap="round"
                 fill="none"
@@ -344,7 +346,7 @@ const TimeSlider = ({
                {/* Outer Highlight Lip (Bottom/Right light) */}
                <Path
                 d={bgPath}
-                stroke="rgba(255,255,255,0.7)"
+                stroke={theme.colors.white + 'B3'}
                 strokeWidth={STROKE_WIDTH + 4}
                 strokeLinecap="round"
                 fill="none"
@@ -354,16 +356,16 @@ const TimeSlider = ({
               {/* Main Groove Body */}
               <Path
                 d={bgPath}
-                stroke="#EAEAEA" // Base track color
+                stroke={theme.colors.surface} // Base track color
                 strokeWidth={STROKE_WIDTH}
                 strokeLinecap="round"
                 fill="none"
               />
-              
+
               {/* Inner Shadow (Groove depth) */}
               <Path
                 d={bgPath}
-                stroke="rgba(0,0,0,0.15)" // Darker inside
+                stroke={theme.colors.black + '26'} // Darker inside
                 strokeWidth={STROKE_WIDTH}
                 strokeLinecap="round"
                 fill="none"
@@ -385,11 +387,11 @@ const TimeSlider = ({
               {/* Glossy overlay on progress for "glass/liquid" look inside groove */}
               <AnimatedPath
                  d={progressPath}
-                 stroke="rgba(255,255,255,0.3)"
+                 stroke={theme.colors.white + '4D'}
                  strokeWidth={STROKE_WIDTH/2}
                  strokeLinecap="round"
                  fill="none"
-                 transform="translate(-2, -2)" 
+                 transform="translate(-2, -2)"
               />
 
               {/* Refined Tactile Knob */}
@@ -399,7 +401,7 @@ const TimeSlider = ({
                   cx={thumbPos.x}
                   cy={thumbPos.y + 4}
                   r={22}
-                  fill="rgba(0,0,0,0.2)"
+                  fill={theme.colors.black + '33'}
                   opacity={0.6}
                  />
                  {/* Knob Body */}
@@ -415,7 +417,7 @@ const TimeSlider = ({
                    cy={thumbPos.y}
                    r={22}
                    fill="none"
-                   stroke="rgba(255,255,255,0.8)"
+                   stroke={theme.colors.white + 'CC'}
                    strokeWidth={1.5}
                  />
                   {/* Center Dimple */}
@@ -423,8 +425,8 @@ const TimeSlider = ({
                    cx={thumbPos.x}
                    cy={thumbPos.y}
                    r={6}
-                   fill="rgba(0,0,0,0.1)" // Recessed dimple
-                   stroke="rgba(255,255,255,0.5)" // Highlight bottom edge of dimple
+                   fill={theme.colors.black + '1A'} // Recessed dimple
+                   stroke={theme.colors.white + '80'} // Highlight bottom edge of dimple
                    strokeWidth={1}
                  />
               </G>

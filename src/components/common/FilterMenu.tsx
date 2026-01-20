@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     minWidth: 280,
     maxWidth: 320,
     padding: 16,
-    shadowColor: "#000",
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 16,

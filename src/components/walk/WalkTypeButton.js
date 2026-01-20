@@ -1,3 +1,4 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 const WalkTypeButton = ({ title, color, onPress }) => {
@@ -21,7 +22,7 @@ const styles = StyleSheet.create({
     minWidth: 150,
   },
   buttonText: {
-    color: "#000",
+    color: theme.colors.black,
     fontSize: 22,
     fontWeight: "bold",
     letterSpacing: 1,

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { getArchetypeColor } from "../constants/archetypeColors";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 /**
  * Blends multiple archetype colors weighted by their scores/percentages
@@ -10,14 +11,14 @@ export function blendArchetypeColors(archetypes = []) {
   // Guard: if no archetypes, return default colors
   if (!archetypes || archetypes.length === 0) {
     return {
-      blendedColor: "#8cf",
-      colorA: "#8cf",
-      colorB: "#fff",
-      colorC: "#fff",
+      blendedColor: theme.colors.secondary,
+      colorA: theme.colors.secondary,
+      colorB: theme.colors.white,
+      colorC: theme.colors.white,
       palette: [
-        { color: "#8cf", weight: 1 },
-        { color: "#fff", weight: 1 },
-        { color: "#fff", weight: 1 },
+        { color: theme.colors.secondary, weight: 1 },
+        { color: theme.colors.white, weight: 1 },
+        { color: theme.colors.white, weight: 1 },
       ],
     };
   }
@@ -27,7 +28,7 @@ export function blendArchetypeColors(archetypes = []) {
 
   // Extract colors (fallback to white if missing)
   const colors = top3.map((arch) => {
-    const colorHex = arch.color || "#FFFFFF";
+    const colorHex = arch.color || theme.colors.white;
     return new THREE.Color(colorHex);
   });
 
@@ -39,14 +40,14 @@ export function blendArchetypeColors(archetypes = []) {
 
   if (totalWeight === 0) {
     // No valid weights, return first color or default
-    const firstColor = top3[0]?.color || "#8cf";
+    const firstColor = top3[0]?.color || theme.colors.secondary;
     return {
       blendedColor: firstColor,
       colorA: firstColor,
-      colorB: top3[1]?.color || "#fff",
-      colorC: top3[2]?.color || "#fff",
+      colorB: top3[1]?.color || theme.colors.white,
+      colorC: top3[2]?.color || theme.colors.white,
       palette: top3.map((arch, idx) => ({
-        color: arch?.color || "#FFFFFF",
+        color: arch?.color || theme.colors.white,
         weight: 1,
       })),
     };
@@ -60,15 +61,15 @@ export function blendArchetypeColors(archetypes = []) {
   });
 
   const palette = top3.map((arch, idx) => ({
-    color: arch?.color || "#FFFFFF",
+    color: arch?.color || theme.colors.white,
     weight: weights[idx] ?? 0,
   }));
 
   return {
     blendedColor: "#" + blendedColor.getHexString(),
-    colorA: top3[0]?.color || "#8cf",
-    colorB: top3[1]?.color || "#fff",
-    colorC: top3[2]?.color || "#fff",
+    colorA: top3[0]?.color || theme.colors.secondary,
+    colorB: top3[1]?.color || theme.colors.white,
+    colorC: top3[2]?.color || theme.colors.white,
     palette,
   };
 }

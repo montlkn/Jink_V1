@@ -1,7 +1,7 @@
 import { useAuth } from '@/auth/authProvider';
 import { PassportBackButton, StampCollectionView } from "@/features/passport";
 import { screens, type RootParams } from "@/navigation/routes";
-import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { theme } from "@/theme/tokens";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    borderBottomWidth: 2,
+    borderBottomWidth: theme.layout.borderWidth.thin,
     borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background,
   },
   headerLeft: {
     width: 44,
@@ -73,10 +73,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: theme.typography.fontFamily.bold,
-    fontSize: 18,
-    fontWeight: "900",
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: "bold",
     color: theme.colors.text,
-    letterSpacing: 3,
+    letterSpacing: theme.typography.letterSpacing.widest,
     textAlign: "center",
   },
   headerRight: {

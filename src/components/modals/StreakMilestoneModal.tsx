@@ -1,3 +1,4 @@
+import { APP_COLORS } from "@/constants/appColors";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from 'react-native';
@@ -19,8 +20,8 @@ export function StreakMilestoneModal({
   newMultiplier,
   onClose,
 }: StreakMilestoneModalProps): JSX.Element {
-  const flameColor = '#ff6b35'; // Fire orange
-  const goldColor = '#FFD700'; // Gold for multiplier
+  const flameColor = APP_COLORS.warning; // Fire orange
+  const goldColor = APP_COLORS.passport.list; // Gold for multiplier
 
   return (
     <FlipModal visible={visible} onClose={onClose}>
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#ff6b35',
+    borderColor: theme.colors.primary,
     borderRadius: 0, // Sharp corners
     padding: 24,
     minHeight: 340,

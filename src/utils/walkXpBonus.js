@@ -1,3 +1,6 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
+import { APP_COLORS } from '@/constants/appColors';
+
 /**
  * Calculate XP multiplier for walk duration
  * Based on time tiers that correlate to optimal exploration durations
@@ -11,10 +14,10 @@
 export const getWalkDurationBonus = (minutes) => {
   // Colors extracted from timeslider.png zones
   const COLORS = {
-    RED: '#dc143c',      // Crimson/Red - 2.0x multiplier zones
-    ORANGE: '#ff8c00',   // Orange - 1.2x multiplier zones
-    BLACK: '#000000',    // Black - no bonus zones (1.0x)
-    GREEN: '#32cd32',    // Lime Green - 1.5x multiplier zones
+    RED: APP_COLORS.error,      // Red - 2.0x multiplier zones
+    ORANGE: APP_COLORS.warning,  // Orange - 1.2x multiplier zones
+    BLACK: theme.colors.black,   // Black - no bonus zones (1.0x)
+    GREEN: APP_COLORS.success,   // Green - 1.5x multiplier zones
   };
 
   // Time-based multiplier tiers

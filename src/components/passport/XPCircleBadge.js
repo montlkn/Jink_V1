@@ -3,6 +3,10 @@ import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
+import { ARCHETYPE_COLORS } from '@/constants/archetypeColors';
+
+const XP_GOLD = ARCHETYPE_COLORS.Stylist;
 
 const XPCircleBadge = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000, onPress }) => {
   const [scale] = useState(new Animated.Value(1));
@@ -41,7 +45,7 @@ const XPCircleBadge = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000, onP
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#E0E0E0"
+            stroke={theme.colors.border}
             strokeWidth={strokeWidth}
             fill="none"
           />
@@ -50,7 +54,7 @@ const XPCircleBadge = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000, onP
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#FFD700"
+            stroke={XP_GOLD}
             strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={circumference}
@@ -63,7 +67,7 @@ const XPCircleBadge = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000, onP
 
         {/* Center content */}
         <View style={styles.centerContent}>
-          <Ionicons name="star" size={18} color="#FFD700" />
+          <Ionicons name="star" size={18} color={XP_GOLD} />
           <Text style={styles.levelText}>{level}</Text>
         </View>
       </Pressable>
@@ -90,14 +94,14 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF9E6',
+    backgroundColor: theme.colors.surface,
     borderRadius: 35,
     margin: 5,
   },
   levelText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.black,
     marginTop: 1,
   },
 });

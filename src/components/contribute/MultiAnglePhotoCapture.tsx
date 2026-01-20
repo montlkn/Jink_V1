@@ -18,6 +18,7 @@ import {
     View,
 } from 'react-native';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { APP_COLORS } from '../../constants/appColors';
 
 interface CapturedPhoto {
@@ -341,7 +342,7 @@ export const MultiAnglePhotoCapture: React.FC<MultiAnglePhotoCaptureProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.black,
   },
   progressContainer: {
     paddingTop: 60,
@@ -357,36 +358,36 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#444',
+    backgroundColor: theme.colors.muted,
   },
   progressDotComplete: {
-    backgroundColor: '#10b981',
+    backgroundColor: APP_COLORS.success,
   },
   progressDotCurrent: {
     backgroundColor: APP_COLORS.accent,
     transform: [{ scale: 1.2 }],
   },
   progressText: {
-    color: '#888',
-    fontSize: 14,
+    color: theme.colors.muted,
+    fontSize: theme.typography.fontSize.md,
   },
   guideContainer: {
     alignItems: 'center',
     paddingVertical: 16,
   },
   guideEmoji: {
-    fontSize: 40,
+    fontSize: theme.typography.fontSize.xxxxl,
     marginBottom: 8,
   },
   guideLabel: {
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.lgPlus,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.white,
     marginBottom: 4,
   },
   guideInstruction: {
-    fontSize: 14,
-    color: '#aaa',
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.muted,
   },
   cameraContainer: {
     flex: 1,
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderTopWidth: 3,
     borderLeftWidth: 3,
-    borderColor: 'rgba(255,255,255,0.6)',
+    borderColor: theme.colors.white + '99',
     position: 'absolute',
     top: 40,
     left: 40,
@@ -440,13 +441,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   xpIndicatorText: {
-    fontSize: 18,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: '700',
-    color: '#10b981',
+    color: APP_COLORS.success,
   },
   xpIndicatorHint: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.muted,
   },
   controls: {
     flexDirection: 'row',
@@ -460,14 +461,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   skipButtonText: {
-    color: '#888',
-    fontSize: 16,
+    color: theme.colors.muted,
+    fontSize: theme.typography.fontSize.base,
   },
   captureButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: theme.colors.white + '4D',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -478,20 +479,20 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.white,
   },
   doneButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#10b981',
+    backgroundColor: APP_COLORS.success,
     borderRadius: 20,
   },
   doneButtonDisabled: {
-    backgroundColor: '#333',
+    backgroundColor: theme.colors.muted,
   },
   doneButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
   },
   photoStrip: {
@@ -505,7 +506,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#10b981',
+    borderColor: APP_COLORS.success,
   },
   closeButton: {
     position: 'absolute',
@@ -514,13 +515,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: theme.colors.black + '80',
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
-    color: '#fff',
-    fontSize: 24,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.xl,
   },
   // Permission screen
   permissionContainer: {
@@ -531,13 +532,13 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   permissionTitle: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: '700',
     color: APP_COLORS.text,
     marginBottom: 12,
   },
   permissionText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     color: APP_COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
@@ -550,8 +551,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   permissionButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
   },
   cancelButton: {
@@ -560,7 +561,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: APP_COLORS.textSecondary,
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
   },
   // Preview screen
   previewContainer: {
@@ -576,20 +577,20 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   previewTitle: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: '700',
     color: APP_COLORS.text,
   },
   xpBadgeLarge: {
-    backgroundColor: '#10b981' + '30',
+    backgroundColor: APP_COLORS.success + '30',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
   },
   xpTextLarge: {
-    fontSize: 18,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: '700',
-    color: '#10b981',
+    color: APP_COLORS.success,
   },
   photoGrid: {
     flexDirection: 'row',
@@ -612,12 +613,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     left: 8,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: theme.colors.black + 'B3',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    color: '#fff',
-    fontSize: 12,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.sm,
   },
   removePhotoButton: {
     position: 'absolute',
@@ -626,13 +627,13 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(239,68,68,0.9)',
+    backgroundColor: APP_COLORS.error + 'E6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   removePhotoText: {
-    color: '#fff',
-    fontSize: 20,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.lgPlus,
     fontWeight: '700',
     marginTop: -2,
   },
@@ -647,13 +648,13 @@ const styles = StyleSheet.create({
   },
   addMoreText: {
     color: APP_COLORS.textSecondary,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
   },
   previewActions: {
     gap: 12,
   },
   finishButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: APP_COLORS.success,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -662,8 +663,8 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.border,
   },
   finishButtonText: {
-    color: '#fff',
-    fontSize: 18,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: '600',
   },
   cancelButtonOutline: {
@@ -675,12 +676,12 @@ const styles = StyleSheet.create({
   },
   cancelButtonOutlineText: {
     color: APP_COLORS.textSecondary,
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
   },
   minPhotosHint: {
     textAlign: 'center',
     color: APP_COLORS.textSecondary,
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     marginTop: 12,
   },
 });

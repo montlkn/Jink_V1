@@ -15,6 +15,7 @@ import Svg, {
     Stop,
     Text as SvgText,
 } from "react-native-svg";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 /**
  * Glass compass styled to match the Jink art direction.
@@ -440,7 +441,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "transparent",
-    shadowColor: "#0F172A",
+    shadowColor: theme.colors.black,
     shadowOpacity: 0.16,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 18 },
@@ -454,21 +455,21 @@ const styles = StyleSheet.create({
   statusPrimary: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1B1B1B",
+    color: theme.colors.text,
     textAlign: "center",
   },
   statusSecondary: {
     marginTop: 6,
     fontSize: 14,
     lineHeight: 20,
-    color: "#3C3C43",
+    color: theme.colors.muted,
     opacity: 0.72,
     textAlign: "center",
   },
   statusNote: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#3C3C43",
+    color: theme.colors.muted,
     opacity: 0.72,
     textAlign: "center",
   },

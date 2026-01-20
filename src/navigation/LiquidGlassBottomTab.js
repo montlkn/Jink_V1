@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { theme } from "@/theme/tokens";
 import { useOrbTransition } from "../state/orbTransitionContext";
 import { screens } from "./routes";
 
@@ -375,8 +376,8 @@ export default function LiquidGlassBottomTab({ state, descriptors, navigation })
 function TabButton({ label, icon, focused, onPress }) {
   return (
     <TouchableOpacity onPress={onPress} style={styles.tabButton} activeOpacity={0.85}>
-      <Ionicons name={icon} size={22} color={focused ? "#007AFF" : "#333"} />
-      <Text style={[styles.label, { color: focused ? "#007AFF" : "#333" }]}>{label}</Text>
+      <Ionicons name={icon} size={22} color={focused ? theme.colors.tabActive : theme.colors.tabInactive} />
+      <Text style={[styles.label, { color: focused ? theme.colors.tabActive : theme.colors.tabInactive }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
     borderRadius: PILL_HEIGHT / 2,
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.05)",
-    shadowColor: "#000",
+    shadowColor: theme.colors.black,
     shadowOpacity: 0.08,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },

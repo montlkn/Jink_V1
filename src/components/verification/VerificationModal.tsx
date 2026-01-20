@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 import { APP_COLORS } from '../../constants/appColors';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 
 interface VerificationModalProps {
   visible: boolean;
@@ -201,13 +202,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: '700',
     color: APP_COLORS.text,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.textSecondary,
     textAlign: 'center',
   },
@@ -221,12 +222,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statusText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.text,
     fontWeight: '600',
   },
   scoreText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.accent,
     fontWeight: '600',
   },
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
     color: APP_COLORS.text,
     marginBottom: 12,
@@ -247,13 +248,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infoLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.textSecondary,
     fontWeight: '500',
     width: 100,
   },
   infoValue: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.text,
     flex: 1,
   },
@@ -264,19 +265,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   rewardsTitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
     color: APP_COLORS.text,
     marginBottom: 8,
   },
   rewardItem: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.accent,
     fontWeight: '600',
     marginBottom: 4,
   },
   rewardSubtext: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: APP_COLORS.textSecondary,
     fontStyle: 'italic',
   },
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
     color: APP_COLORS.textSecondary,
   },
@@ -306,9 +307,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   verifyButtonText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.white,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   disputeButtonText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.textSecondary,
     textDecorationLine: 'underline',
   },

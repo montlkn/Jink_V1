@@ -270,13 +270,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerLabel: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
     color: theme.colors.text,
   },
@@ -291,24 +291,24 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
   },
   errorText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.text,
     textAlign: 'center',
   },
   emptyText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.text,
     textAlign: 'center',
   },
   emptySubtext: {
     marginTop: 8,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
     textAlign: 'center',
   },
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   resultCount: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     marginBottom: 12,
     textTransform: 'uppercase',
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   placeholderIcon: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
   },
   similarityBadge: {
     position: 'absolute',
@@ -363,9 +363,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   similarityText: {
-    fontSize: 9,
+    fontSize: theme.typography.fontSize.xxxs,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.white,
   },
   cardContent: {
     flex: 1,
@@ -373,13 +373,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   cardName: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: 'bold',
     color: theme.colors.text,
     marginBottom: 3,
   },
   cardAddress: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     color: theme.colors.muted,
     marginBottom: 5,
   },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardYear: {
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xsPlus,
     color: theme.colors.accent,
     fontWeight: 'bold',
   },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   styleText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -411,10 +411,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   matchIcon: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
   },
   reasonText: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     color: theme.colors.muted,
     fontStyle: 'italic',
     marginTop: 6,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   reasonLoadingText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     fontStyle: 'italic',
   },

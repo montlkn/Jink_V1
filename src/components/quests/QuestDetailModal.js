@@ -260,13 +260,13 @@ const styles = StyleSheet.create({
   },
   questTypeText: {
     color: theme.colors.surface,
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
     marginLeft: 6,
     letterSpacing: 1,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.lgPlus,
     fontWeight: 'bold',
     color: theme.colors.surface,
     marginBottom: 4,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   timerText: {
     color: theme.colors.surface,
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: '600',
     marginLeft: 6,
     fontFamily: 'Courier',
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
     color: theme.colors.muted,
     letterSpacing: 1,
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   description: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     lineHeight: 20,
     color: theme.colors.text,
   },
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   progressText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontWeight: 'bold',
     letterSpacing: 1,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rewardLabel: {
-    fontSize: 8,
+    fontSize: theme.typography.fontSize.xxs,
     color: theme.colors.muted,
     fontWeight: 'bold',
     marginBottom: 2,
@@ -351,13 +351,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   rewardValue: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: 'bold',
     color: theme.colors.text,
     marginBottom: 2,
   },
   rewardDescription: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoTitle: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
     color: theme.colors.primary,
     marginBottom: 4,
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   infoText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.text,
     fontWeight: '600',
     letterSpacing: 0.5,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     color: theme.colors.surface,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: 'bold',
     marginRight: 8,
     letterSpacing: 1,

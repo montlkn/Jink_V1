@@ -1,6 +1,7 @@
 /* File: /src/components/common/SectionHeader.js
   Description: A reusable header for sections with a title and a "See All" button.
 */
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
@@ -26,13 +27,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#555',
+    color: theme.colors.text,
     letterSpacing: 1,
   },
   seeAllText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#888',
+    color: theme.colors.muted,
   },
 });
 

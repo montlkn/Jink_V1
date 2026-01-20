@@ -11,6 +11,7 @@
 
 import { useAuth } from "@/auth/authProvider";
 import { PassportBackButton } from "@/features/passport";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 // eslint-disable-next-line no-restricted-imports
 import { buildingsSupabaseClient } from "@/services/gateways/buildingsSupabaseClient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -52,11 +53,11 @@ type Props = NativeStackScreenProps<RootStackParamList, "NolliSkia">;
 const MASTER_WALK_ID = "__MASTER__";
 
 const COLORS = {
-  visited: "#000000",
-  adjacent: "#888888",
-  background: "#FFFFFF",
-  water: "#F0F0F0",
-  route: "#444444",
+  visited: theme.colors.black,
+  adjacent: theme.colors.muted,
+  background: theme.colors.white,
+  water: theme.colors.surface,
+  route: theme.colors.muted,
 };
 
 // -------------------- WKT Parser --------------------
@@ -488,7 +489,7 @@ export default function NolliMapScreen({ navigation }: Props) {
             <MapboxGL.LineLayer
               id="adjacent-outline"
               style={{
-                lineColor: "#666666",
+                lineColor: theme.colors.muted,
                 lineWidth: 0.5,
               }}
             />
@@ -508,7 +509,7 @@ export default function NolliMapScreen({ navigation }: Props) {
             <MapboxGL.LineLayer
               id="visited-outline"
               style={{
-                lineColor: "#000000",
+                lineColor: theme.colors.black,
                 lineWidth: 1,
               }}
             />
@@ -629,8 +630,8 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   errorText: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.muted,
     textAlign: "center",
   },
 
@@ -649,14 +650,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 100,
     alignSelf: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: theme.colors.black + 'B3',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   loadingText: {
-    color: "#FFF",
-    fontSize: 12,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.sm,
   },
 
   headerContainer: {
@@ -681,25 +682,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 17,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: theme.colors.text,
   },
   smokeToggle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: theme.colors.white + 'F2',
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
+    borderColor: theme.colors.black + '1A',
   },
   smokeToggleOff: {
-    backgroundColor: "rgba(0,0,0,0.08)",
+    backgroundColor: theme.colors.black + '14',
   },
   smokeToggleText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
   },
 
   bottomContainer: {
@@ -724,39 +725,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: theme.colors.white + 'F2',
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
+    borderColor: theme.colors.black + '14',
   },
   tabActive: {
-    backgroundColor: "#1A1A1A",
-    borderColor: "#1A1A1A",
+    backgroundColor: theme.colors.text,
+    borderColor: theme.colors.text,
   },
   tabLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: "500",
-    color: "#666",
+    color: theme.colors.muted,
   },
   tabLabelActive: {
-    color: "#FFF",
+    color: theme.colors.white,
     fontWeight: "600",
   },
   tabCount: {
-    fontSize: 12,
-    color: "#999",
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.muted,
     fontWeight: "600",
   },
   tabCountActive: {
-    color: "rgba(255,255,255,0.7)",
+    color: theme.colors.white + 'B3',
   },
 
   infoCard: {
     marginHorizontal: 16,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.95)",
+    backgroundColor: theme.colors.white + 'F2',
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
+    borderColor: theme.colors.black + '0F',
   },
   statsRow: {
     flexDirection: "row",
@@ -774,13 +775,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: theme.colors.text,
   },
   statLabel: {
-    fontSize: 11,
-    color: "#888",
+    fontSize: theme.typography.fontSize.xsPlus,
+    color: theme.colors.muted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginTop: 2,
@@ -788,7 +789,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: "rgba(0,0,0,0.1)",
+    backgroundColor: theme.colors.black + '1A',
   },
   walkInfo: {
     flexDirection: "row",
@@ -797,23 +798,23 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.06)",
+    borderTopColor: theme.colors.black + '0F',
   },
   walkDate: {
-    fontSize: 13,
-    color: "#666",
+    fontSize: theme.typography.fontSize.smPlus,
+    color: theme.colors.muted,
   },
   walkBorough: {
-    fontSize: 13,
-    color: "#666",
+    fontSize: theme.typography.fontSize.smPlus,
+    color: theme.colors.muted,
     fontWeight: "500",
   },
   demoLabel: {
     position: "absolute",
     top: 8,
     right: 12,
-    fontSize: 10,
-    color: "#B8860B",
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.warning,
     fontWeight: "700",
     letterSpacing: 1,
   },

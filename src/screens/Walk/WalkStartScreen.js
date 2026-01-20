@@ -28,6 +28,7 @@ import TimeSlider from "../../components/walk/TimeSlider";
 import ArchetypeOrb from "../../features/orb/ArchetypeOrb";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { DESIGNER_REPUBLIC_THEME } from "../../theme/designer_republic";
+import { theme } from "@/theme/tokens";
 import { getWalkDurationBonus } from "../../utils/walkXpBonus";
 
 if (Platform.OS === 'android') {
@@ -492,7 +493,7 @@ const WalkStartScreen = ({ navigation, route }) => {
                 onPress={() => Alert.alert("Coming Soon", "Map view integration in progress.")}
                 intensity={40}
              >
-                <Ionicons name="map-outline" size={24} color="#000" />
+                <Ionicons name="map-outline" size={24} color={theme.colors.black} />
              </TactileButton>
           </View>
 
@@ -575,9 +576,9 @@ const WalkStartScreen = ({ navigation, route }) => {
              <StreamingInstructionText
                 text={isFetching ? "Generating your jink..." : locationLoading ? "Acquiring location..." : "Press orb to start jink"}
                 duration={2600}
-                baseColor="#111"
+                baseColor={theme.colors.text}
                 baseOpacity={isFetching ? 0.18 : 0.22}
-                highlightColor="#fff"
+                highlightColor={theme.colors.white}
                 fontSize={14}
                 letterSpacing={1.5}
                 style={styles.instructionText}
@@ -654,7 +655,7 @@ const styles = StyleSheet.create({
   stepperText: {
     fontSize: 24,
     fontWeight: '300',
-    color: '#333',
+    color: theme.colors.text,
   },
   
   sliderContainer: {
@@ -704,16 +705,16 @@ const styles = StyleSheet.create({
   },
   toggleActive: {
     borderWidth: 1,
-    borderColor: '#fff',
+    borderColor: theme.colors.white,
   },
   toggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.muted,
     letterSpacing: 0.5,
   },
   toggleTextActive: {
-    color: '#333',
+    color: theme.colors.text,
   },
   instructionText: {
     marginTop: 8,

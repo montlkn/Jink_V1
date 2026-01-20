@@ -66,32 +66,58 @@ export async function generateSingleReason(
             contextBlock += `\n${targetName}: "${targetContext[0].substring(0, 200)}..."`;
         }
 
+        // Build shared attributes to explicitly exclude from the response
+        const sharedStyle = sourceStyle && targetBuilding.style &&
+            sourceStyle.toLowerCase() === targetBuilding.style?.toLowerCase();
+        const sameEra = sourceYear && targetBuilding.year &&
+            Math.abs(sourceYear - targetBuilding.year) <= 5;
+
+        const avoidList = [];
+        if (sharedStyle) avoidList.push(`mentioning "${sourceStyle}" style (already obvious)`);
+        if (sameEra) avoidList.push("generic era references");
+        avoidList.push("generic phrases like 'both exemplify', 'both showcase', 'both feature'");
+
         const prompt = hasContext
-            ? `What specifically connects these two buildings architecturally or historically? One sentence, max 18 words. Be specific about what makes this connection notable.
+            ? `What SPECIFIC detail connects these two buildings? One sentence, max 18 words.
 
 ${sourceName} (${sourceYear || "?"}, ${sourceStyle || "unknown"})
 ${targetName} (${targetBuilding.year || "?"}, ${targetBuilding.style || "unknown"})
 
 Context:${contextBlock}
 
-Good responses explain the WHY:
-- "Designed by William Van Alen, who pioneered the Art Deco skyscraper crown"
-- "Part of Rockefeller Center, sharing the same limestone and setback vocabulary"
-- "Terra cotta by the same supplier who defined 1920s ornament"
-- "Built under the 1916 zoning law that shaped Manhattan's stepped silhouette"
+AVOID: ${avoidList.join("; ")}
 
-Output ONLY the connection.`
-            : `What specifically connects these two buildings? One sentence, max 18 words. Be specific.
+Focus on ONE specific detail like:
+- Same architect or architectural firm
+- Shared materials (specific terra cotta supplier, limestone source)
+- Same developer or commission
+- Specific design element (crown, spire, lobby, setbacks from same zoning law)
+- Historical connection (same exhibition, competition, client)
+
+Good: "Both crowned by distinctive stainless steel spires by the same metalworker"
+Good: "Commissioned by the same developer who shaped Midtown's skyline"
+Bad: "Both are Art Deco buildings with ornamental facades"
+
+Output ONLY the specific connection.`
+            : `What SPECIFIC detail connects these two buildings? One sentence, max 18 words.
 
 ${sourceName} (${sourceYear || "?"}, ${sourceStyle || "unknown"})
 ${targetName} (${targetBuilding.year || "?"}, ${targetBuilding.style || "unknown"})
 
-Good responses explain the WHY:
-- "Same Art Deco vocabulary of setbacks and geometric ornament from the late 1920s"
-- "Stepped massing required by the 1916 zoning law that shaped the skyline"
-- "Neo-Gothic detailing typical of early skyscraper romanticisim"
+AVOID: ${avoidList.join("; ")}
 
-Output ONLY the connection.`;
+Focus on ONE specific detail like:
+- Shared architect, firm, or craftsman
+- Specific material or construction technique
+- Same zoning law influence (e.g., 1916 setback law)
+- Crown/spire/lobby design similarity
+- Same neighborhood development wave
+
+Good: "Setbacks shaped by the 1916 zoning resolution that defined the ziggurat silhouette"
+Good: "Lobbies feature murals by artists from the same WPA program"
+Bad: "Both buildings exhibit Art Deco styling from the 1930s"
+
+Output ONLY the specific connection.`;
 
         const result = await model.generateContent(prompt);
         const text = result.response.text().trim();

@@ -1,5 +1,5 @@
-import { getStreakMultiplier } from "@/theme/designConstants";
-import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { getStreakMultiplier, SHADOWS } from "@/theme/designConstants";
+import { theme } from "@/theme/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
@@ -91,7 +91,7 @@ function XPStatusBanner({
             ) : (
               // Normal mode: show star icon and level
               <>
-                <Ionicons name="star" size={18} color="#FFD700" />
+                <Ionicons name="star" size={18} color={theme.colors.warning} />
                 <Text style={styles.levelText}>{level}</Text>
               </>
             )}
@@ -177,14 +177,10 @@ const styles = StyleSheet.create({
   background: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.surface,
-    borderWidth: 1,
+    borderWidth: theme.layout.borderWidth.thin,
     borderColor: theme.colors.border,
     borderRadius: 35,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    ...SHADOWS.small,
   },
   orbWrapper: {
     width: HEIGHT,
@@ -202,18 +198,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   levelText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: "bold",
-    color: "#000",
+    color: theme.colors.black,
     marginTop: 1,
     textShadowColor: "rgba(255, 255, 255, 0.8)",
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 4,
   },
   multiplierText: {
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.xlg,
     fontWeight: "800",
-    color: "#fff",
+    color: theme.colors.white,
     textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
@@ -248,10 +244,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   value: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.text,
     fontWeight: "bold",
-    fontFamily: "Courier",
+    fontFamily: theme.typography.fontFamily.monospace,
   },
   subtext: {
     fontSize: 8,

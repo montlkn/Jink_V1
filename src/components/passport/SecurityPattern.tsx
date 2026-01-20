@@ -1,3 +1,4 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Defs, G, LinearGradient, Path, Pattern, Rect, Stop } from "react-native-svg";
 
@@ -8,7 +9,7 @@ type SecurityPatternProps = {
   opacity?: number;
 };
 
-export function SecurityPattern({ width, height, color = "#000", opacity = 0.5 }: SecurityPatternProps) {
+export function SecurityPattern({ width, height, color = theme.colors.black, opacity = 0.5 }: SecurityPatternProps) {
   return (
     <View style={[styles.container, { width, height, opacity }]} pointerEvents="none">
       <Svg width="100%" height="100%">

@@ -34,7 +34,7 @@ export const TimePeriodSlider: React.FC<TimePeriodSliderProps> = ({
       {/* Slider Bar */}
       <View style={styles.sliderContainer}>
         <LinearGradient
-          colors={['#000000', '#888888', '#FFFFFF']}
+          colors={[theme.colors.black, theme.colors.muted, theme.colors.white]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gradientBar}

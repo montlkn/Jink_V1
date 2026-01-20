@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: 'bold',
     color: theme.colors.text,
     letterSpacing: 1,
@@ -934,7 +934,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
     fontFamily: 'Courier',
     letterSpacing: 1,
@@ -945,7 +945,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.muted,
     marginBottom: 20,
     fontFamily: 'Courier',
@@ -958,7 +958,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: theme.colors.background,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: 'bold',
     letterSpacing: 1,
   },
@@ -986,7 +986,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: 'bold',
     color: theme.colors.text,
     marginBottom: 12,
@@ -1029,7 +1029,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   scoreName: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.text,
     fontWeight: 'bold',
     letterSpacing: 0.5,
@@ -1038,13 +1038,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   scorePercentage: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: 'bold',
     color: theme.colors.text,
     fontFamily: 'Courier',
   },
   scorePoints: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontFamily: 'Courier',
   },
@@ -1057,14 +1057,14 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   archetypeName: {
-    fontSize: 18,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
     color: theme.colors.text,
     marginBottom: 8,
     letterSpacing: 1,
   },
   archetypeDescription: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.text,
     lineHeight: 20,
     marginBottom: 16,
@@ -1074,7 +1074,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   vibeTitle: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: 'bold',
     color: theme.colors.muted,
     marginBottom: 12,
@@ -1093,7 +1093,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   vibeText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
@@ -1119,21 +1119,21 @@ const styles = StyleSheet.create({
     borderRadius: 0,
   },
   subtypeName: {
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xsPlus,
     color: theme.colors.muted,
     fontStyle: 'italic',
   },
   subtypePercentage: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
   },
   subtypePoints: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
   },
   aiSummaryText: {
-    fontSize: 14,
-    color: '#000000',
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.black,
     lineHeight: 22,
     marginBottom: 12,
     fontWeight: '500',
@@ -1152,12 +1152,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   pendingLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     fontFamily: 'Courier',
   },
   generatedAtText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     marginTop: 8,
     fontStyle: 'italic',
@@ -1179,7 +1179,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   suggestionPillText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.text,
     fontWeight: 'bold',
     letterSpacing: 0.5,
@@ -1211,7 +1211,7 @@ const styles = StyleSheet.create({
   },
   expandedHeaderPillText: {
     color: theme.colors.background,
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: 'bold',
     fontFamily: 'Courier',
     letterSpacing: 1,
@@ -1229,7 +1229,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   expandedCoreConcept: {
-    fontSize: 15,
+    fontSize: theme.typography.fontSize.mdPlus,
     lineHeight: 24,
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -1257,14 +1257,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   qualityPillText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: 'bold',
     color: theme.colors.text,
     fontFamily: 'Courier',
     letterSpacing: 0.5,
   },
   qualityDescription: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     lineHeight: 22,
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -1273,7 +1273,7 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   expandedUrbanText: {
-    fontSize: 15,
+    fontSize: theme.typography.fontSize.mdPlus,
     lineHeight: 24,
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -1294,7 +1294,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   movementPillText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: 'bold',
     color: theme.colors.muted,
     fontFamily: 'Courier',
@@ -1313,7 +1313,7 @@ const styles = StyleSheet.create({
   },
   retakeQuizText: {
     color: theme.colors.background,
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     fontWeight: 'bold',
     letterSpacing: 1.5,
     fontFamily: 'Courier',

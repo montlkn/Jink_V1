@@ -2,6 +2,7 @@ import { useAuth } from "@/auth/authProvider";
 import { log } from "@/lib/log";
 import { screens } from "@/navigation/routes";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { APP_COLORS } from "@/constants/appColors";
 import { getBuildingDisplayName } from '@/utils/buildingUtils';
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -220,40 +221,40 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 28,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: '900',
     color: theme.colors.text,
     letterSpacing: 2,
     fontFamily: 'monospace',
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
     marginTop: 4,
     fontFamily: 'monospace',
   },
   xpCard: {
-    backgroundColor: '#10B981',
+    backgroundColor: APP_COLORS.success,
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
     marginBottom: 20,
   },
   xpLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.8)',
     letterSpacing: 1,
     fontFamily: 'monospace',
   },
   xpValue: {
-    fontSize: 48,
+    fontSize: theme.typography.fontSize.xxxxl,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontFamily: 'monospace',
   },
   xpMultiplier: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
   },
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   labelTitle: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: '700',
     color: theme.colors.muted,
     letterSpacing: 1,
@@ -277,14 +278,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderRadius: 8,
     padding: 12,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.text,
     fontFamily: 'monospace',
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
   labelHint: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     marginTop: 6,
     textAlign: 'right',
@@ -306,14 +307,14 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.lgPlus,
     fontWeight: '700',
     color: theme.colors.text,
     marginTop: 8,
     fontFamily: 'monospace',
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     marginTop: 4,
     textTransform: 'uppercase',
@@ -331,7 +332,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   tierText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
     color: theme.colors.text,
   },
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: '700',
     color: theme.colors.muted,
     letterSpacing: 1,
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   buildingName: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
     color: theme.colors.text,
     fontFamily: 'monospace',
@@ -373,14 +374,14 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
   },
   buildingStyle: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     marginTop: 2,
   },
   buildingXp: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '700',
-    color: '#10B981',
+    color: APP_COLORS.success,
     fontFamily: 'monospace',
   },
   actions: {
@@ -394,8 +395,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '700',
     letterSpacing: 1,
     fontFamily: 'monospace',
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: theme.colors.text,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
     fontFamily: 'monospace',
   },

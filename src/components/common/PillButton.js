@@ -3,6 +3,7 @@
 */
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { theme, BUTTON_SIZES, SHADOWS } from '@/theme/tokens';
 
 const PillButton = ({ title, onPress, style, textStyle }) => {
   return (
@@ -14,23 +15,19 @@ const PillButton = ({ title, onPress, style, textStyle }) => {
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 50, // Creates the pill shape
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    backgroundColor: theme.colors.white,
+    paddingVertical: BUTTON_SIZES.pill.paddingVertical,
+    paddingHorizontal: BUTTON_SIZES.pill.paddingHorizontal,
+    borderRadius: BUTTON_SIZES.pill.borderRadius,
+    borderWidth: theme.layout.borderWidth.thin,
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...SHADOWS.small,
   },
   text: {
-    color: '#000',
-    fontSize: 14,
+    color: theme.colors.black,
+    fontSize: BUTTON_SIZES.pill.fontSize,
     fontWeight: '600',
     letterSpacing: 0.5,
   },

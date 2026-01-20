@@ -1,6 +1,7 @@
 import QuestCard from "@/components/quests/QuestCard";
 import { useQuestsData } from "@/hooks/useQuestsData";
 import { log } from "@/lib/log";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { ActivityIndicator, Button, StyleSheet, Text, View } from "react-native";
 import { questsActions } from "./mutations";
 import type { QuestItem } from "./selectors";
@@ -122,7 +123,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 12,
-    color: "#94A3B8",
+    color: theme.colors.muted,
   },
   cardWrapper: {
     gap: 8,

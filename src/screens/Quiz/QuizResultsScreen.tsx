@@ -187,7 +187,7 @@ export default function QuizResultsScreen(): JSX.Element {
     ? Object.entries(profile.normalized_scores).map(([archetype, score]) => {
         const info = getArchetypeInfo(archetype);
         return {
-          color: info?.color || '#FFFFFF',
+          color: info?.color || theme.colors.white,
           percentage: score as number,
           score: score as number,
         };
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   calculatingText: {
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.lgPlus,
     fontWeight: '700',
     letterSpacing: 2,
     color: theme.colors.text,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   resultsTitle: {
-    fontSize: 28,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: '700',
     letterSpacing: 3,
     color: theme.colors.text,
@@ -359,11 +359,11 @@ const styles = StyleSheet.create({
 
   // Archetype cards
   archetypeCard: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.white,
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -373,20 +373,20 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   archetypeLabel: {
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xsPlus,
     fontWeight: '700',
     letterSpacing: 1.5,
     color: theme.colors.muted,
     marginBottom: 4,
   },
   archetypeName: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: 8,
   },
   archetypeDescription: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     lineHeight: 20,
     color: theme.colors.text,
     opacity: 0.7,
@@ -404,14 +404,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   vibeText: {
-    fontSize: 11,
+    fontSize: theme.typography.fontSize.xsPlus,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.white,
   },
 
   // Confidence
   confidenceCard: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -419,18 +419,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   confidenceLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: '600',
     color: theme.colors.muted,
     marginBottom: 4,
   },
   confidenceValue: {
-    fontSize: 36,
+    fontSize: theme.typography.fontSize.xxxl,
     fontWeight: '700',
     color: theme.colors.primary,
   },
   confidenceHint: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontStyle: 'italic',
     color: theme.colors.muted,
     marginTop: 4,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
 
   // CTA
   ctaText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontStyle: 'italic',
     color: theme.colors.muted,
     textAlign: 'center',
@@ -451,9 +451,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.white,
     letterSpacing: 0.5,
   },
 
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     color: theme.colors.muted,
     textAlign: 'center',
   },

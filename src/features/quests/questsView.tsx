@@ -1,5 +1,7 @@
 import { useQuestsData } from "@/hooks/useQuestsData";
 import { log } from "@/lib/log";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { APP_COLORS } from "@/constants/appColors";
 import { useCallback } from "react";
 import {
     ActivityIndicator,
@@ -33,7 +35,7 @@ export function QuestsView(): JSX.Element {
   if (state.status === "loading") {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#666" />
+        <ActivityIndicator size="large" color={theme.colors.muted} />
         <Text style={styles.metaText}>Loading quests…</Text>
       </View>
     );
@@ -113,25 +115,25 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   section: {
-    backgroundColor: "#0F172A",
+    backgroundColor: theme.colors.text,
     borderRadius: 16,
     padding: 16,
   },
   heading: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#F8FAFC",
+    color: theme.colors.white,
     marginBottom: 8,
   },
   metric: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#38BDF8",
+    color: theme.colors.secondary,
   },
   metaText: {
     marginTop: 4,
     fontSize: 14,
-    color: "#CBD5F5",
+    color: theme.colors.white + 'CC',
   },
   centered: {
     flex: 1,
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#F87171",
+    color: APP_COLORS.error,
     marginBottom: 12,
     textAlign: "center",
   },
@@ -150,29 +152,29 @@ const styles = StyleSheet.create({
     marginTop: 12,
     padding: 16,
     borderRadius: 14,
-    backgroundColor: "#1E293B",
+    backgroundColor: theme.colors.black,
     borderWidth: 1,
-    borderColor: "#334155",
+    borderColor: theme.colors.border,
     gap: 6,
   },
   questType: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#94A3B8",
+    color: theme.colors.muted,
     letterSpacing: 1,
   },
   questTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#F1F5F9",
+    color: theme.colors.white,
   },
   questDescription: {
     fontSize: 14,
-    color: "#CBD5F5",
+    color: theme.colors.white + 'CC',
   },
   questMeta: {
     fontSize: 13,
-    color: "#94A3B8",
+    color: theme.colors.muted,
   },
   rewardsRow: {
     flexDirection: "row",
@@ -182,8 +184,8 @@ const styles = StyleSheet.create({
   },
   rewardChip: {
     fontSize: 12,
-    color: "#38BDF8",
-    backgroundColor: "#0F172A",
+    color: theme.colors.secondary,
+    backgroundColor: theme.colors.text,
     borderRadius: 12,
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -192,6 +194,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     fontWeight: "600",
-    color: "#4ADE80",
+    color: APP_COLORS.success,
   },
 });

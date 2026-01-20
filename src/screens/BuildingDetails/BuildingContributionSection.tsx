@@ -3,6 +3,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { VerificationBadge } from '../../components/verification/VerificationBadge';
 import { VerificationModal } from '../../components/verification/VerificationModal';
 import { APP_COLORS } from "../../constants/appColors";
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import {
     fetchBuildingContributions,
     fetchEditSuggestions as fetchEditSuggestionsFromService,
@@ -317,7 +318,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.lgPlus,
     fontWeight: '700',
     color: APP_COLORS.text,
     marginBottom: 16,
@@ -343,7 +344,7 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.accent + '20',
   },
   editBadgeText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: '600',
     color: APP_COLORS.accent,
   },
@@ -355,13 +356,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dataLabel: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
     color: APP_COLORS.textSecondary,
     width: 120,
   },
   dataValue: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.text,
     flex: 1,
   },
@@ -374,11 +375,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sourceIcon: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     marginRight: 8,
   },
   sourceText: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     color: APP_COLORS.accent,
     textDecorationLine: 'underline',
   },
@@ -394,9 +395,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   verifyButtonText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: APP_COLORS.white,
   },
   editButton: {
     flex: 1,
@@ -408,12 +409,12 @@ const styles = StyleSheet.create({
     borderColor: APP_COLORS.border,
   },
   editButtonText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: '600',
     color: APP_COLORS.text,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.textSecondary,
     textAlign: 'center',
     padding: 20,
@@ -423,13 +424,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
     color: APP_COLORS.text,
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.textSecondary,
   },
   editSuggestionsModal: {
@@ -442,7 +443,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   editSuggestionsTitle: {
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.lgPlus,
     fontWeight: '700',
     color: APP_COLORS.text,
     marginBottom: 16,
@@ -454,12 +455,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   suggestionReason: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: APP_COLORS.text,
     marginBottom: 8,
   },
   suggestionVotes: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     color: APP_COLORS.textSecondary,
     marginBottom: 12,
   },
@@ -470,24 +471,24 @@ const styles = StyleSheet.create({
   voteForButton: {
     flex: 1,
     padding: 10,
-    backgroundColor: '#10b981',
+    backgroundColor: APP_COLORS.success,
     borderRadius: 8,
     alignItems: 'center',
   },
   voteAgainstButton: {
     flex: 1,
     padding: 10,
-    backgroundColor: '#ef4444',
+    backgroundColor: APP_COLORS.error,
     borderRadius: 8,
     alignItems: 'center',
   },
   voteButtonText: {
-    fontSize: 13,
+    fontSize: theme.typography.fontSize.smPlus,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: APP_COLORS.white,
   },
   closeButton: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '600',
     color: APP_COLORS.accent,
     textAlign: 'center',

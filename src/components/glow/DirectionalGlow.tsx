@@ -8,6 +8,7 @@
  * - Smooth color transitions between hot/cold states
  */
 
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
@@ -25,11 +26,11 @@ const GLOW_SIZE = 500;
 
 // Color palette
 const COLORS = {
-  hot: '#FF3B30',      // Red - on track
-  warm: '#FF9500',     // Orange - getting warm
-  cool: '#5AC8FA',     // Light blue - off track
-  cold: '#007AFF',     // Blue - way off track
-  arrived: '#34C759',  // Green - arrived
+  hot: theme.colors.error,      // Red - on track
+  warm: theme.colors.warning,     // Orange - getting warm
+  cool: theme.colors.info,     // Light blue - off track
+  cold: theme.colors.secondary,     // Blue - way off track
+  arrived: theme.colors.success,  // Green - arrived
 };
 
 export const DirectionalGlow: React.FC<DirectionalGlowProps> = ({

@@ -11,4 +11,3 @@ export type { ProfileViewModel, RawProfile } from "./selectors";
 
 // Re-export aesthetic summary service
 export { getAestheticSummary } from "@/services/ai/aestheticSummaryService";
-

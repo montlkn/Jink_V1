@@ -1,4 +1,4 @@
-import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
+import { theme, BORDER_RADIUS, SPACING, TYPOGRAPHY } from '@/theme/tokens';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
@@ -53,7 +53,7 @@ const QuestCard = ({
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.badge, { backgroundColor: '#FFFFFF' }]}>
+        <View style={[styles.badge, { backgroundColor: theme.colors.white }]}>
           <Ionicons
             name={isDaily ? 'sunny' : 'calendar'}
             size={10}
@@ -103,7 +103,7 @@ const QuestCard = ({
       {/* Completed Overlay */}
       {completed && (
         <View style={styles.completedOverlay}>
-          <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+          <Ionicons name="checkmark-circle" size={24} color={theme.colors.white} />
         </View>
       )}
     </TouchableOpacity>
@@ -112,11 +112,11 @@ const QuestCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    padding: 12,
+    padding: SPACING.md,
     // marginBottom: 8, // Removed to allow parent to control spacing via gap
     minHeight: 110,
     justifyContent: 'space-between',
-    borderRadius: 12,
+    borderRadius: BORDER_RADIUS.xl,
   },
   completedCard: {
     opacity: 0.8,
@@ -125,20 +125,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 0,
-    gap: 4,
+    borderRadius: BORDER_RADIUS.none,
+    gap: SPACING.xs,
   },
   questType: {
-    fontSize: 8,
+    fontSize: TYPOGRAPHY.sizes.tiny,
     fontWeight: 'bold',
-    letterSpacing: 1,
+    letterSpacing: TYPOGRAPHY.letterSpacing.normal,
   },
   timerBadge: {
     paddingHorizontal: 8,
@@ -147,41 +147,41 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   timerText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    fontFamily: 'Courier',
+    color: theme.colors.white,
+    fontFamily: theme.typography.fontFamily.monospace,
   },
   content: {
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
   title: {
-    fontSize: 18,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    color: theme.colors.white,
+    marginBottom: SPACING.sm,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   directiveContainer: {
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
     padding: 6,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderLeftWidth: 2,
-    borderLeftColor: '#FFFFFF',
+    borderLeftWidth: theme.layout.borderWidth.medium,
+    borderLeftColor: theme.colors.white,
   },
   directiveLabel: {
-    fontSize: 8,
+    fontSize: TYPOGRAPHY.sizes.tiny,
     fontWeight: 'bold',
-    letterSpacing: 1,
+    letterSpacing: TYPOGRAPHY.letterSpacing.normal,
     marginBottom: 2,
-    fontFamily: 'Courier',
+    fontFamily: theme.typography.fontFamily.monospace,
     color: 'rgba(255,255,255,0.8)',
   },
   directiveText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontFamily: 'Courier',
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.white,
+    fontFamily: theme.typography.fontFamily.monospace,
     lineHeight: 16,
   },
   metaRow: {
@@ -190,13 +190,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rewardText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: 'bold',
-    fontFamily: 'Courier',
-    color: '#FFFFFF',
+    fontFamily: theme.typography.fontFamily.monospace,
+    color: theme.colors.white,
   },
   progressText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: 'rgba(255,255,255,0.8)',
     fontWeight: 'bold',
   },
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
   },
   completedOverlay: {
     ...StyleSheet.absoluteFillObject,

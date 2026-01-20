@@ -15,7 +15,7 @@ const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout, style }) =
 
   return (
     <LinearGradient
-      colors={['#ece9da', '#ece9da', 'rgba(236, 233, 218, 0)']}
+      colors={[theme.colors.background, theme.colors.background, `${theme.colors.background}00`]}
       locations={[0, 0.5, 1]}
       style={[styles.headerContainer, style]}
     >

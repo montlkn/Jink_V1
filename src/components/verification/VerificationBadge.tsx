@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
+import { APP_COLORS } from '@/constants/appColors';
 
 interface VerificationBadgeProps {
   verifiedCount: number;
@@ -25,26 +27,26 @@ export const VerificationBadge: React.FC<VerificationBadgeProps> = ({
     const configs = {
       highly_verified: {
         text: `✓✓ ${verifiedCount} users`,
-        color: '#10b981',
-        backgroundColor: '#10b98120',
+        color: APP_COLORS.success,
+        backgroundColor: APP_COLORS.success + '20',
         icon: '✓✓',
       },
       verified: {
         text: `✓ ${verifiedCount} users`,
-        color: '#3b82f6',
-        backgroundColor: '#3b82f620',
+        color: theme.colors.secondary,
+        backgroundColor: theme.colors.secondary + '20',
         icon: '✓',
       },
       partially_verified: {
         text: `⚠ ${verifiedCount} users`,
-        color: '#f59e0b',
-        backgroundColor: '#f59e0b20',
+        color: APP_COLORS.warning,
+        backgroundColor: APP_COLORS.warning + '20',
         icon: '⚠',
       },
       unverified: {
         text: verifiedCount === 1 ? '1 user' : `${verifiedCount} users`,
-        color: '#6b7280',
-        backgroundColor: '#6b728020',
+        color: theme.colors.muted,
+        backgroundColor: theme.colors.muted + '20',
         icon: '?',
       },
     };

@@ -60,7 +60,57 @@ export const SPACING = {
 /**
  * Button and interactive element sizes
  */
-export const BUTTON_SIZES = {} as const;
+export const BUTTON_SIZES = {
+  small: {
+    height: 32,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 12,
+    borderRadius: 6,
+  },
+  medium: {
+    height: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 14,
+    borderRadius: 8,
+  },
+  large: {
+    height: 52,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    fontSize: 16,
+    borderRadius: 12,
+  },
+  pill: {
+    height: 44,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    fontSize: 14,
+    borderRadius: 100,
+  },
+} as const;
+
+/**
+ * Icon sizes
+ */
+export const ICON_SIZES = {
+  tiny: 12,
+  small: 16,
+  medium: 20,
+  large: 24,
+  xlarge: 32,
+  xxlarge: 40,
+} as const;
+
+/**
+ * Header heights
+ */
+export const HEADER_HEIGHTS = {
+  standard: 56,
+  tall: 72,
+  passport: 200,
+} as const;
 
 /**
  * Modal sizes
@@ -88,6 +138,11 @@ export const BORDERS = {
   medium: 2,
   thick: 4,
 } as const;
+
+/**
+ * Border radius - re-export from theme for convenience
+ */
+export const BORDER_RADIUS = DESIGNER_REPUBLIC_THEME.layout.borderRadius;
 
 /**
  * Common elevation/shadow styles

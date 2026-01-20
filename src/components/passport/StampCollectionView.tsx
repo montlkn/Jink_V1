@@ -31,9 +31,9 @@ type StampCollectionViewProps = {
 
 const RARITY_COLORS = {
   common: theme.colors.muted,
-  rare: '#3b82f6',
-  epic: '#a855f7',
-  legendary: '#f59e0b',
+  rare: theme.colors.secondary,
+  epic: theme.colors.primary,
+  legendary: theme.colors.accent,
 };
 
 export function StampCollectionView({ userId }: StampCollectionViewProps): JSX.Element {
@@ -144,7 +144,7 @@ export function StampCollectionView({ userId }: StampCollectionViewProps): JSX.E
           <Text style={styles.title}>STAMP COLLECTION</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={theme.colors.accent} />
+          <ActivityIndicator size="small" color={theme.colors.tabActive} />
         </View>
       </View>
     );
@@ -192,7 +192,7 @@ export function StampCollectionView({ userId }: StampCollectionViewProps): JSX.E
           ListFooterComponent={
             loading ? (
               <View style={styles.footerLoading}>
-                <ActivityIndicator size="small" color={theme.colors.accent} />
+                <ActivityIndicator size="small" color={theme.colors.tabActive} />
               </View>
             ) : null
           }
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 2,
     borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background,
   },
   tab: {
     flex: 1,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     borderRightColor: theme.colors.border,
   },
   activeTab: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: theme.colors.tabActive,
   },
   tabText: {
     fontFamily: theme.typography.fontFamily.regular,

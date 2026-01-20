@@ -1,4 +1,5 @@
 import { useProfileData } from "@/hooks/useProfileData";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import {
     ActivityIndicator,
     Image,
@@ -17,7 +18,7 @@ export function ProfileView(): JSX.Element {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.centered}>
-        <ActivityIndicator size="large" color="#111" />
+        <ActivityIndicator size="large" color={theme.colors.text} />
         <Text style={styles.loadingText}>Loading profile…</Text>
       </SafeAreaView>
     );
@@ -79,7 +80,7 @@ const AVATAR_SIZE = 120;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: theme.colors.background,
   },
   content: {
     paddingHorizontal: 24,
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   },
   centered: {
     flex: 1,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: theme.colors.background,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
@@ -96,17 +97,17 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: "#555",
+    color: theme.colors.muted,
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111",
+    color: theme.colors.text,
     textAlign: "center",
   },
   errorMessage: {
     fontSize: 14,
-    color: "#555",
+    color: theme.colors.muted,
     textAlign: "center",
   },
   header: {
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    backgroundColor: "#D9D9D9",
+    backgroundColor: theme.colors.border,
   },
   avatarPlaceholder: {
     alignItems: "center",
@@ -126,26 +127,26 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontSize: 42,
     fontWeight: "600",
-    color: "#111",
+    color: theme.colors.text,
   },
   name: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#111",
+    color: theme.colors.text,
   },
   bio: {
     fontSize: 15,
-    color: "#444",
+    color: theme.colors.muted,
     textAlign: "center",
     lineHeight: 22,
     maxWidth: 280,
   },
   section: {
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.white,
     borderRadius: 16,
     padding: 20,
     gap: 4,
-    shadowColor: "#000",
+    shadowColor: theme.colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -153,13 +154,13 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 13,
-    color: "#666",
+    color: theme.colors.muted,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   sectionValue: {
     fontSize: 16,
-    color: "#111",
+    color: theme.colors.text,
     fontWeight: "500",
   },
 });

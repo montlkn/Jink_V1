@@ -1,5 +1,12 @@
 import type { ImageSourcePropType } from "react-native";
 
+// Neighborhood-specific visa accent colors
+const VISA_ACCENT_COLORS = {
+  midtown: "#2D5B91",    // Dark blue
+  bedstuy: "#8B4A2D",    // Brown
+  lic: "#1F8A70",        // Teal
+} as const;
+
 export type StampDefinition = {
   id: string;
   title: string;
@@ -213,7 +220,7 @@ export const visaCarousel: VisaDefinition[] = [
     requirement: "Scan 12 landmark towers between 34th Street and 59th Street.",
     description:
       "Issued after you walked the Midtown canyon, capturing deco crowns and glass spires.",
-    accent: "#2D5B91",
+    accent: VISA_ACCENT_COLORS.midtown,
   },
   {
     id: "bedstuy",
@@ -224,7 +231,7 @@ export const visaCarousel: VisaDefinition[] = [
       "Visit 10 distinct stoops in the Stuyvesant Heights landmark district.",
     description:
       "Awarded for knowing the blocks by heart—detailing lintels, cornices, and backyard stories.",
-    accent: "#8B4A2D",
+    accent: VISA_ACCENT_COLORS.bedstuy,
   },
   {
     id: "lic",
@@ -234,7 +241,7 @@ export const visaCarousel: VisaDefinition[] = [
     requirement: "Complete three twilight derives along the Queens waterfront.",
     description:
       "You traced the gantries and silos at dusk—documenting rail relics and neon glow.",
-    accent: "#1F8A70",
+    accent: VISA_ACCENT_COLORS.lic,
   },
 ];
 

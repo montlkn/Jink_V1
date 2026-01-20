@@ -1,3 +1,4 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { useMemo } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet } from "react-native";
@@ -13,7 +14,7 @@ type PassportBackdropProps = {
  */
 export function PassportBackdrop({
   height = 200,
-  tailColor = "#F6F1E7",
+  tailColor = theme.colors.background,
 }: PassportBackdropProps) {
   const gradient = useMemo(() => {
     const parsedTail = toRgb(tailColor) ?? { r: 246, g: 241, b: 231 };

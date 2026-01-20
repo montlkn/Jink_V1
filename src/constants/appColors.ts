@@ -25,6 +25,10 @@ export const APP_COLORS = {
     // Error
     error: "#FF0000",
 
+    // Standard colors
+    white: "#FFFFFF",
+    black: "#000000",
+
     // Passport specific
     passport: {
         streak: "#F50057", // Hot Pink - Distinct from Daily Quest

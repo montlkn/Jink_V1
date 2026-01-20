@@ -2,6 +2,8 @@ import { useAuth } from '@/auth/authProvider';
 import { questsActions } from '@/features/quests';
 import { log } from '@/lib/log';
 import { screens } from "@/navigation/routes";
+import { theme } from '@/theme/tokens';
+import { APP_COLORS } from '@/constants/appColors';
 import * as Location from 'expo-location';
 import { Accelerometer, Magnetometer } from 'expo-sensors';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -816,7 +818,7 @@ export default function ScanScreen({ navigation, route }) {
   if (!hasPermission) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color={theme.colors.white} />
         <Text style={styles.text}>Requesting camera permission...</Text>
       </View>
     );
@@ -825,7 +827,7 @@ export default function ScanScreen({ navigation, route }) {
   if (device == null) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color={theme.colors.white} />
         <Text style={styles.text}>Loading camera...</Text>
       </View>
     );
@@ -907,9 +909,9 @@ export default function ScanScreen({ navigation, route }) {
         <View style={styles.captureButtonContainer}>
           {/* Breathing glow behind camera button */}
           {position && !isScanning && (
-            <BreathingGlow 
-              color="#FFFFFF" 
-              size={160} 
+            <BreathingGlow
+              color={theme.colors.white}
+              size={160}
               duration={2000}
               minOpacity={0.2}
               maxOpacity={0.5}
@@ -919,14 +921,14 @@ export default function ScanScreen({ navigation, route }) {
           )}
           <TouchableOpacity
             style={[
-              styles.captureButton, 
+              styles.captureButton,
               (!position || (gpsAccuracy && gpsAccuracy > 25)) && styles.captureButtonDisabled
             ]}
             onPress={handleCapture}
             disabled={isScanning || !position || (gpsAccuracy && gpsAccuracy > 25)}
           >
             {isScanning ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.white} />
             ) : (
               <Image source={require('../../../assets/icons/camera_icon.png')} style={styles.captureIcon} />
             )}
@@ -948,7 +950,7 @@ export default function ScanScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: theme.colors.black,
   },
   camera: {
     flex: 1,
@@ -963,16 +965,16 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   sensorText: {
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: 'monospace',
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.sm,
+    fontFamily: theme.typography.fontFamily.monospace,
     marginBottom: 4,
   },
   sensorTextWarning: {
-    color: '#FF6B6B', // Red for low accuracy
+    color: APP_COLORS.error,
   },
   sensorTextGood: {
-    color: '#51CF66', // Green for good accuracy
+    color: APP_COLORS.success,
   },
   crosshair: {
     position: 'absolute',
@@ -990,7 +992,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.white,
     opacity: 0.8,
   },
   crosshairV: {
@@ -999,7 +1001,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: '50%',
     width: 2,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.white,
     opacity: 0.8,
   },
   resultPanel: {
@@ -1013,13 +1015,13 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   resultTitle: {
-    color: '#fff',
-    fontSize: 20,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.xlg,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   resultText: {
-    color: '#ccc',
+    color: theme.colors.muted,
     fontSize: 14,
     marginBottom: 4,
   },
@@ -1051,8 +1053,8 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   text: {
-    color: '#fff',
-    fontSize: 16,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -1062,8 +1064,8 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   loadingText: {
-    color: '#fff',
-    fontSize: 18,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.lg,
     fontWeight: '600',
     marginTop: 30,
   },
@@ -1079,8 +1081,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   verificationText: {
-    color: '#fff',
-    fontSize: 16,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: 'bold',
   },
   verificationSubtext: {
@@ -1110,8 +1112,8 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   lensButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: '700',
   },
   lensHint: {

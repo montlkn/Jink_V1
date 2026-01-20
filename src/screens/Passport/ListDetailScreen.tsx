@@ -51,7 +51,7 @@ function BuildingCard({ building, index, drag, isActive, onDelete, onPress }: Bu
   const renderRightActions = useCallback(
     () => (
       <TouchableOpacity style={styles.swipeDelete} activeOpacity={0.85} onPress={handleDelete}>
-        <Ionicons name="trash" size={20} color="#fff" />
+        <Ionicons name="trash" size={20} color={theme.colors.white} />
       </TouchableOpacity>
     ),
     [handleDelete]
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: "bold",
     color: theme.colors.text,
     letterSpacing: 2,
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroLabel: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.accent,
     textTransform: "uppercase",
     letterSpacing: 1,
@@ -487,13 +487,13 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
   },
   streakText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: "bold",
     color: APP_COLORS.passport.streak,
     letterSpacing: 1,
   },
   editToggleText: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "bold",
     color: theme.colors.primary,
     letterSpacing: 1,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: theme.typography.fontSize.xl,
     fontWeight: "bold",
     color: theme.colors.text,
     fontFamily: "Courier",
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   heroTagline: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
     fontStyle: "italic",
     fontFamily: "Courier",
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     margin: 0,
   },
   heroTaglineText: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     color: theme.colors.muted,
     fontStyle: "italic",
   },
@@ -533,13 +533,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   heroMeta: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.text,
     fontWeight: "bold",
     letterSpacing: 1,
   },
   heroMood: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     fontFamily: "Courier",
     padding: 0,
@@ -547,12 +547,12 @@ const styles = StyleSheet.create({
     minHeight: 60,
   },
   heroMoodText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     lineHeight: 18,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: "bold",
     color: theme.colors.muted,
     marginBottom: 12,
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   buildingIndex: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     fontWeight: "bold",
     color: theme.colors.text,
   },
@@ -597,12 +597,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   buildingName: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.md,
     fontWeight: "bold",
     color: theme.colors.text,
   },
   buildingMeta: {
-    fontSize: 10,
+    fontSize: theme.typography.fontSize.xs,
     color: theme.colors.muted,
     fontWeight: "bold",
   },
@@ -628,13 +628,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.base,
     fontWeight: "bold",
     color: theme.colors.text,
     letterSpacing: 1,
   },
   emptySubtext: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     color: theme.colors.muted,
     textAlign: "center",
   },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   emptyAddText: {
-    fontSize: 12,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: "bold",
     color: theme.colors.background,
     letterSpacing: 1,

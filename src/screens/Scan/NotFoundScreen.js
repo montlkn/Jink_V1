@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
     marginBottom: DR.spacing.sm,
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    color: DR.colors.white,
     fontSize: DR.typography.fontSize.md,
     fontWeight: "900",
     letterSpacing: DR.typography.letterSpacing.wide,
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   // Camera styles
   cameraContainer: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: DR.colors.black,
   },
   cameraHeader: {
     paddingTop: 60,
@@ -812,7 +812,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#333",
+    backgroundColor: DR.colors.text + '33',
   },
   progressDotComplete: {
     backgroundColor: DR.colors.accent,
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.2 }],
   },
   cameraProgress: {
-    color: "#888",
+    color: DR.colors.muted,
     fontSize: DR.typography.fontSize.sm,
     fontWeight: "700",
     letterSpacing: DR.typography.letterSpacing.wide,
@@ -834,12 +834,12 @@ const styles = StyleSheet.create({
   angleLabel: {
     fontSize: DR.typography.fontSize.xl,
     fontWeight: "900",
-    color: "#FFF",
+    color: DR.colors.white,
     letterSpacing: DR.typography.letterSpacing.widest,
   },
   angleInstruction: {
     fontSize: DR.typography.fontSize.sm,
-    color: "#888",
+    color: DR.colors.muted,
     marginTop: 4,
   },
   cameraViewContainer: {
@@ -848,7 +848,7 @@ const styles = StyleSheet.create({
     borderRadius: DR.layout.borderRadius.md,
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: "#333",
+    borderColor: DR.colors.text + '33',
   },
   camera: {
     flex: 1,
@@ -875,7 +875,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: DR.spacing.md,
   },
   skipBtnText: {
-    color: "#666",
+    color: DR.colors.muted,
     fontSize: DR.typography.fontSize.sm,
     fontWeight: "700",
     letterSpacing: DR.typography.letterSpacing.wide,
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "#FFF",
+    backgroundColor: DR.colors.white,
   },
   doneBtn: {
     backgroundColor: DR.colors.accent,
@@ -903,10 +903,10 @@ const styles = StyleSheet.create({
     borderRadius: DR.layout.borderRadius.sm,
   },
   doneBtnDisabled: {
-    backgroundColor: "#333",
+    backgroundColor: DR.colors.text + '33',
   },
   doneBtnText: {
-    color: "#FFF",
+    color: DR.colors.white,
     fontSize: DR.typography.fontSize.sm,
     fontWeight: "900",
     letterSpacing: DR.typography.letterSpacing.wide,
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cameraBackBtnText: {
-    color: "#FFF",
+    color: DR.colors.white,
     fontSize: 24,
     fontWeight: "700",
   },

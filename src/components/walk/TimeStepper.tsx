@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, View } from "react-native";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 type TimeStepperProps = {
   value: number;
@@ -47,7 +48,7 @@ const TimeButton = ({ iconPath, onPress }: { iconPath: any; onPress: () => void 
         {iconSource && SvgUri ? (
           <SvgUri uri={iconSource} width={BUTTON_WIDTH} height={BUTTON_HEIGHT} />
         ) : (
-          <View style={{ width: 83, height: 61, backgroundColor: '#E5E5E5', borderRadius: 30 }} />
+          <View style={{ width: 83, height: 61, backgroundColor: theme.colors.border, borderRadius: 30 }} />
         )}
       </View>
     </Pressable>

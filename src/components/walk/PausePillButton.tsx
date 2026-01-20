@@ -1,3 +1,4 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import React from "react";
 import {
   Pressable,
@@ -41,8 +42,8 @@ const PausePillButton = ({ onPress, style }: PausePillButtonProps) => {
       >
         <Defs>
           <LinearGradient id="pausePillGradient" x1="50%" y1="0%" x2="50%" y2="100%">
-            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.92} />
-            <Stop offset="100%" stopColor="#EDEDED" stopOpacity={0.96} />
+            <Stop offset="0%" stopColor={theme.colors.white} stopOpacity={0.92} />
+            <Stop offset="100%" stopColor={theme.colors.border} stopOpacity={0.96} />
           </LinearGradient>
         </Defs>
         <Rect
@@ -68,7 +69,7 @@ const PausePillButton = ({ onPress, style }: PausePillButtonProps) => {
         <Svg width={16} height={16} viewBox="0 0 16 16" style={styles.icon}>
           <Path
             d="M9.35 2.4 8.08 1.1 3.08 6.1a1.2 1.2 0 0 0 0 1.7l5 5 1.27-1.3L5.74 6.96l3.61-3.82Z"
-            fill="#3C3C43"
+            fill={theme.colors.text}
             fillOpacity={0.75}
           />
         </Svg>
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#0F172A",
+    shadowColor: theme.colors.black,
     shadowOpacity: 0.18,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 12 },
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     letterSpacing: 0.6,
-    color: "#2B2B2F",
+    color: theme.colors.text,
     textTransform: "uppercase",
   },
 });

@@ -1,5 +1,6 @@
 import { getUserAestheticProfile } from "@/features/profile";
 import { log } from "@/lib/log";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Suspense,
@@ -39,7 +40,7 @@ const sanitizeOrbEntries = (data) => {
       color:
         typeof entry?.color === "string" && entry.color.length
           ? entry.color
-          : "#FFFFFF",
+          : theme.colors.white,
     }));
 };
 

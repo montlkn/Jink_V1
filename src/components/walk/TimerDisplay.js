@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 
 const clampValue = (value) => {
   const numeric = Number(value);
@@ -109,14 +110,14 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontWeight: "800",
-    color: "#111",
+    color: theme.colors.text,
     textAlign: "center",
   },
   label: {
     fontSize: 14,
     letterSpacing: 2,
     textTransform: "uppercase",
-    color: "#6d6d72",
+    color: theme.colors.muted,
     fontWeight: "600",
   },
 });

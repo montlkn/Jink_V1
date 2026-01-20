@@ -15,6 +15,8 @@ import ProviderButton from "@/components/auth/ProviderButton";
 import { authActions } from "./mutations";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { screens, type RootParams } from "@/navigation/routes";
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
+import { APP_COLORS } from "@/constants/appColors";
 
 type AuthNavigation = NativeStackNavigationProp<RootParams, typeof screens.AuthLogin>;
 
@@ -274,7 +276,7 @@ export function AuthView({ navigation }: AuthViewProps) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#0D0D0D",
+    backgroundColor: theme.colors.black,
   },
   flex: {
     flex: 1,
@@ -286,13 +288,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: theme.colors.white,
     textAlign: "left",
     textTransform: "uppercase",
   },
   subtitle: {
     fontSize: 16,
-    color: "#BBBBBB",
+    color: theme.colors.muted,
     marginBottom: 8,
   },
   ssoContainer: {
@@ -308,10 +310,10 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: theme.colors.white + '33',
   },
   dividerText: {
-    color: "#888",
+    color: theme.colors.muted,
     fontSize: 12,
     textTransform: "uppercase",
   },
@@ -319,27 +321,27 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   input: {
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: theme.colors.white + '14',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: "#FFF",
+    color: theme.colors.white,
   },
   primaryButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
   },
   primaryButtonText: {
-    color: "#000",
+    color: theme.colors.black,
     fontWeight: "700",
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   linkText: {
-    color: "#FFFFFF",
+    color: theme.colors.white,
     textAlign: "center",
     textDecorationLine: "underline",
   },
@@ -347,11 +349,11 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   backText: {
-    color: "#FFFFFF",
+    color: theme.colors.white,
     opacity: 0.7,
   },
   errorText: {
-    color: "#FF6B6B",
+    color: APP_COLORS.error,
     textAlign: "center",
   },
 });

@@ -1,6 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
+import { ARCHETYPE_COLORS } from '@/constants/archetypeColors';
+
+const XP_GOLD = ARCHETYPE_COLORS.Stylist; // #FFD700
+const XP_GOLD_LIGHT = '#FFF9E6'; // Light gold background
 
 const XPMeter = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000 }) => {
   const progressPercent = (currentXP / xpForNextLevel) * 100;
@@ -10,7 +15,7 @@ const XPMeter = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000 }) => {
     <View style={styles.container}>
       {/* Level Badge */}
       <View style={styles.levelBadge}>
-        <Ionicons name="star" size={20} color="#FFD700" />
+        <Ionicons name="star" size={20} color={XP_GOLD} />
         <Text style={styles.levelNumber}>{level}</Text>
       </View>
 
@@ -43,25 +48,25 @@ const XPMeter = ({ currentXP = 1250, level = 5, xpForNextLevel = 2000 }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.white,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 2,
-    borderColor: '#FFD700',
+    borderColor: XP_GOLD,
   },
   levelBadge: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FFF9E6',
+    backgroundColor: XP_GOLD_LIGHT,
     borderWidth: 3,
-    borderColor: '#FFD700',
+    borderColor: XP_GOLD,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -69,7 +74,7 @@ const styles = StyleSheet.create({
   levelNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.black,
     marginTop: 2,
   },
   xpInfo: {
@@ -85,32 +90,32 @@ const styles = StyleSheet.create({
   xpLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#888',
+    color: theme.colors.muted,
     letterSpacing: 0.5,
   },
   xpValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    color: theme.colors.black,
   },
   progressBarContainer: {
     marginTop: 4,
   },
   progressBar: {
     height: 8,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: theme.colors.border,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 4,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FFD700',
+    backgroundColor: XP_GOLD,
     borderRadius: 4,
   },
   progressText: {
     fontSize: 11,
-    color: '#666',
+    color: theme.colors.muted,
   },
 });
 

@@ -1,3 +1,4 @@
+import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { useMemo } from "react";
 import { Image, StyleSheet, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
 import { SvgUri } from "react-native-svg";
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
   fallback: {
     width: 64,
     height: 64,
-    backgroundColor: "#E5E5E5",
+    backgroundColor: theme.colors.border,
     borderRadius: 22,
   },
 });

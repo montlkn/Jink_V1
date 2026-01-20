@@ -1,3 +1,4 @@
+import { APP_COLORS } from "@/constants/appColors";
 import { DESIGNER_REPUBLIC_THEME as theme } from "@/theme/designer_republic";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from 'react-native';
@@ -23,7 +24,7 @@ export function VisaGrantedModal({
     <FlipModal visible={visible} onClose={onClose}>
       <View style={styles.container}>
         {/* Header Badge */}
-        <View style={[styles.badge, { backgroundColor: '#8b5cf6' }]}>
+        <View style={[styles.badge, { backgroundColor: APP_COLORS.passport.visa }]}>
           <Ionicons name="location" size={16} color={theme.colors.background} style={styles.icon} />
           <Text style={styles.badgeText}>VISA GRANTED</Text>
         </View>
@@ -32,7 +33,7 @@ export function VisaGrantedModal({
         <View style={styles.content}>
           {/* Icon */}
           <View style={styles.iconSection}>
-            <Ionicons name="map" size={56} color="#8b5cf6" />
+            <Ionicons name="map" size={56} color={APP_COLORS.passport.visa} />
           </View>
 
           {/* Neighborhood Name */}
@@ -72,7 +73,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#8b5cf6',
+    borderColor: APP_COLORS.passport.visa,
     borderRadius: 0,
     padding: 24,
     minHeight: 380,
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bold,
     fontSize: 32,
     fontWeight: '900',
-    color: '#8b5cf6',
+    color: APP_COLORS.passport.visa,
     lineHeight: 32,
   },
   description: {
