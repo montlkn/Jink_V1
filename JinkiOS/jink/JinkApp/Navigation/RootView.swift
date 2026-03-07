@@ -7,7 +7,7 @@ struct RootView: View {
     @State private var selectedTab: Tab = .walk
     @State private var showOnboardingQuiz = false
 
-    enum Tab { case scan, walk, passport }
+    enum Tab { case scan, walk, explore, passport }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -22,6 +22,15 @@ struct RootView: View {
                     Label("Jink", systemImage: "figure.walk")
                 }
                 .tag(Tab.walk)
+
+            NavigationStack {
+                ExploreView()
+            }
+            .tabItem {
+                Label("Explore", systemImage: "map")
+            }
+            .tag(Tab.explore)
+            .environment(locationService)
 
             PassportView()
                 .tabItem {

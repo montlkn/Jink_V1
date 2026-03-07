@@ -223,6 +223,15 @@ private struct BuildingCard: View {
                         .font(.title3.bold())
                         .lineLimit(2)
 
+                    if let style = vm.currentStop?.style {
+                        Text(style.uppercased())
+                            .font(.caption2.bold())
+                            .foregroundStyle(AppColors.accent)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(AppColors.accent.opacity(0.1), in: Capsule())
+                    }
+
                     if let dist = vm.distanceToCurrentStop {
                         let isTooFar = dist > 80_467 // > ~50 miles
                         HStack(spacing: 4) {

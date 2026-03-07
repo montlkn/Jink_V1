@@ -43,6 +43,8 @@ final class GPSGridCacheService {
         }
     }
 
+    var allBuildings: [Building] { Array(cache.values) }
+
     func findByBIN(_ bin: String?) -> Building? {
         guard let bin = bin, !bin.isEmpty, bin != "unknown" else { return nil }
         let binStr = bin.replacingOccurrences(of: ".0", with: "")

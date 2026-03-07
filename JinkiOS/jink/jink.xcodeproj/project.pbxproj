@@ -45,6 +45,8 @@
 		AA001002AA001002AA001002 /* BrooklynBridgeTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001002BB001002BB001002 /* BrooklynBridgeTour.swift */; };
 		AA001003AA001003AA001003 /* ListStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001003BB001003BB001003 /* ListStorageService.swift */; };
 		AA001004AA001004AA001004 /* ListingsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001004BB001004BB001004 /* ListingsService.swift */; };
+		BB003001AA003001AA003001 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB003001BB003001BB003001 /* ExploreViewModel.swift */; };
+		BB003002AA003002AA003002 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB003002BB003002BB003002 /* ExploreView.swift */; };
 		AA001011AA001011AA001011 /* StampsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001011BB001011BB001011 /* StampsViewModel.swift */; };
 		AA001012AA001012AA001012 /* StampsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001012BB001012BB001012 /* StampsView.swift */; };
 		AA001021AA001021AA001021 /* AchievementsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001021BB001021BB001021 /* AchievementsViewModel.swift */; };
@@ -137,6 +139,8 @@
 		AA001002BB001002BB001002 /* BrooklynBridgeTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrooklynBridgeTour.swift; sourceTree = "<group>"; };
 		AA001003BB001003BB001003 /* ListStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListStorageService.swift; sourceTree = "<group>"; };
 		AA001004BB001004BB001004 /* ListingsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListingsService.swift; sourceTree = "<group>"; };
+		BB003001BB003001BB003001 /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
+		BB003002BB003002BB003002 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		AA001011BB001011BB001011 /* StampsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StampsViewModel.swift; sourceTree = "<group>"; };
 		AA001012BB001012BB001012 /* StampsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StampsView.swift; sourceTree = "<group>"; };
 		AA001021BB001021BB001021 /* AchievementsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementsViewModel.swift; sourceTree = "<group>"; };
@@ -307,6 +311,7 @@
 				AA001040BB001040BB001040 /* Tour */,
 				AA001050BB001050BB001050 /* Listings */,
 				AA002020BB002020BB002020 /* Quiz */,
+			BB003000BB003000BB003000 /* Explore */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -444,6 +449,15 @@
 				AA002023BB002023BB002023 /* QuizResultsView.swift */,
 			);
 			path = Quiz;
+			sourceTree = "<group>";
+		};
+		BB003000BB003000BB003000 /* Explore */ = {
+			isa = PBXGroup;
+			children = (
+				BB003001BB003001BB003001 /* ExploreViewModel.swift */,
+				BB003002BB003002BB003002 /* ExploreView.swift */,
+			);
+			path = Explore;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -615,6 +629,8 @@
 				AA002023AA002023AA002023 /* QuizResultsView.swift in Sources */,
 				15EDB6EAC352AD3DBCDCC97F /* WalkStopInsightsView.swift in Sources */,
 				1BE17B48E35F54A163105B1A /* WalkVerificationCameraView.swift in Sources */,
+				BB003001AA003001AA003001 /* ExploreViewModel.swift in Sources */,
+				BB003002AA003002AA003002 /* ExploreView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

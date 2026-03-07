@@ -6,9 +6,13 @@ import Supabase
 // MARK: - BuildingStop
 
 struct BuildingStop: Identifiable {
-    let id: String
+    let id: String        // bin ?? bbl ?? coord — for Identifiable
+    let bin: String?
+    let bbl: String?
     let name: String
     let address: String?
+    let style: String?
+    let description: String?
     let latitude: Double
     let longitude: Double
     var coordinate: CLLocationCoordinate2D { .init(latitude: latitude, longitude: longitude) }
@@ -224,7 +228,7 @@ final class WalkViewModel {
                 movementType: movementType
             )
 
-            if let building = result.building, building.bin == currentStop?.id {
+            if let building = result.building, let stop = currentStop, matchesStop(building: building, stop: stop) {
                 // Success: Verified the correct building
                 // Insert aesthetic event
                 try? await AestheticService.shared.insertScanEvent(
@@ -312,10 +316,17 @@ final class WalkViewModel {
                 routeCoordinates.append(loc.coordinate)
             }
 
-            // Fetch real buildings by proximity, fall back to sample
+            // Fetch real buildings by proximity, rank by aesthetic, fall back to sample
             let buildingCount = max(3, min(12, durationMinutes / 7))
             if let coord = locationService.location?.coordinate {
-                buildings = await fetchNearbyBuildings(coordinate: coord, count: buildingCount)
+                let rawStops = await fetchNearbyBuildings(coordinate: coord, count: buildingCount * 3)
+                let userProfile = await fetchUserAestheticProfile(userId: userId) ?? [:]
+                if !rawStops.isEmpty {
+                    buildings = rawStops
+                        .sorted { aestheticScore(stop: $0, userProfile: userProfile) > aestheticScore(stop: $1, userProfile: userProfile) }
+                        .prefix(buildingCount)
+                        .map { $0 }
+                }
             }
             if buildings.isEmpty {
                 buildings = sampleNYCRoute()
@@ -354,11 +365,16 @@ final class WalkViewModel {
                 "p_walk_id": .string(walkId),
                 "p_completed_at": .string(ISO8601DateFormatter().string(from: Date()))
             ]
-            try await SupabaseService.shared.client
+            struct CompleteWalkResult: Decodable {
+                let totalXp: Int?
+                enum CodingKeys: String, CodingKey { case totalXp = "total_xp" }
+            }
+            let rpcResult = try? await SupabaseService.shared.client
                 .rpc("complete_walk_session", params: params)
                 .execute()
+                .value as CompleteWalkResult
 
-            let totalXP = walkXP + 100
+            let totalXP = rpcResult?.totalXp ?? (walkXP + 100)
             xpEarned = totalXP
 
             // Calculate real duration and distance
@@ -411,6 +427,18 @@ final class WalkViewModel {
         locationObservation = nil
     }
 
+    // MARK: - Stop matching (BIN preferred, BBL fallback)
+
+    private func matchesStop(building: BuildingResult, stop: BuildingStop) -> Bool {
+        if let bin = building.bin, !bin.isEmpty, let stopBin = stop.bin, !stopBin.isEmpty {
+            return bin == stopBin
+        }
+        if let bbl = building.bbl, !bbl.isEmpty, let stopBbl = stop.bbl, !stopBbl.isEmpty {
+            return bbl == stopBbl
+        }
+        return false
+    }
+
     // MARK: - Private geo helpers
 
     private func haversine(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
@@ -435,13 +463,37 @@ final class WalkViewModel {
         return (deg + 360).truncatingRemainder(dividingBy: 360)
     }
 
+    // MARK: - Aesthetic ranking
+
+    private func fetchUserAestheticProfile(userId: String) async -> [String: Double]? {
+        struct ProfileResult: Decodable {
+            let aestheticVector: [String: Double]?
+            enum CodingKeys: String, CodingKey { case aestheticVector = "aesthetic_vector" }
+        }
+        let result = try? await SupabaseService.shared.client
+            .rpc("get_user_aesthetic_profile", params: ["p_user_id": AnyJSON.string(userId)])
+            .execute()
+            .value as ProfileResult
+        return result?.aestheticVector
+    }
+
+    private func aestheticScore(stop: BuildingStop, userProfile: [String: Double]) -> Double {
+        // We don't carry a full aesthetic vector on BuildingStop — use style string match as proxy
+        let style = (stop.style ?? "").lowercased()
+        return userProfile[style] ?? 0.0
+    }
+
     // MARK: - Fetch nearby buildings from Supabase
 
     func fetchNearbyBuildings(coordinate: CLLocationCoordinate2D, count: Int) async -> [BuildingStop] {
         struct BuildingRow: Decodable {
             let bin: String?
+            let bbl: String?
             let building_name: String?
             let address: String?
+            let style: String?
+            let storytelling: String?
+            let primary_aesthetic: String?
             let geocoded_lat: String?
             let geocoded_lng: String?
         }
@@ -465,10 +517,16 @@ final class WalkViewModel {
             let stops = rows.compactMap { row -> BuildingStop? in
                 guard let bLat = row.geocoded_lat.flatMap(Double.init),
                       let bLng = row.geocoded_lng.flatMap(Double.init) else { return nil }
+                let bin = row.bin.flatMap { $0.isEmpty ? nil : $0 }
+                let bbl = row.bbl.flatMap { $0.isEmpty ? nil : $0 }
                 return BuildingStop(
-                    id: row.bin ?? "\(bLat),\(bLng)",
+                    id: bin ?? bbl ?? "\(bLat),\(bLng)",
+                    bin: bin,
+                    bbl: bbl,
                     name: row.building_name ?? "Unknown Building",
                     address: row.address,
+                    style: row.style,
+                    description: row.storytelling,
                     latitude: bLat,
                     longitude: bLng
                 )
@@ -486,17 +544,17 @@ final class WalkViewModel {
 
     private func sampleNYCRoute() -> [BuildingStop] {
         [
-            BuildingStop(id: "flatiron", name: "Flatiron Building",
-                         address: "175 5th Ave, New York, NY",
+            BuildingStop(id: "flatiron", bin: nil, bbl: nil, name: "Flatiron Building",
+                         address: "175 5th Ave, New York, NY", style: nil, description: nil,
                          latitude: 40.7411, longitude: -73.9897),
-            BuildingStop(id: "chrysler", name: "Chrysler Building",
-                         address: "405 Lexington Ave, New York, NY",
+            BuildingStop(id: "chrysler", bin: nil, bbl: nil, name: "Chrysler Building",
+                         address: "405 Lexington Ave, New York, NY", style: nil, description: nil,
                          latitude: 40.7516, longitude: -73.9755),
-            BuildingStop(id: "gc-terminal", name: "Grand Central Terminal",
-                         address: "89 E 42nd St, New York, NY",
+            BuildingStop(id: "gc-terminal", bin: nil, bbl: nil, name: "Grand Central Terminal",
+                         address: "89 E 42nd St, New York, NY", style: nil, description: nil,
                          latitude: 40.7527, longitude: -73.9772),
-            BuildingStop(id: "ny-public-lib", name: "New York Public Library",
-                         address: "476 5th Ave, New York, NY",
+            BuildingStop(id: "ny-public-lib", bin: nil, bbl: nil, name: "New York Public Library",
+                         address: "476 5th Ave, New York, NY", style: nil, description: nil,
                          latitude: 40.7532, longitude: -73.9822),
         ]
     }
