@@ -13,7 +13,10 @@ DerivedData/
 .swiftpm/
 
 ## Secrets
+**/Secrets.xcconfig
 Secrets.xcconfig
+**/.env
+.env
 
 ## macOS
 .DS_Store

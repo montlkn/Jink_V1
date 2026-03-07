@@ -47,6 +47,12 @@ final class WalkViewModel {
     var showXPSummary = false
     var completionStats: WalkCompletionStats? = nil
     var errorMessage: String? = nil
+    
+    // Verification State
+    var isVerifying = false
+    var showInsights = false
+    var verifiedBuildingDetail: BuildingResult? = nil
+    var verificationLoadingMessage = ""
 
     // Navigation state
     var buildings: [BuildingStop] = []
@@ -183,6 +189,62 @@ final class WalkViewModel {
     }
 
     // MARK: - Visit / Skip
+
+    func verifyWithImage(_ image: UIImage, userId: String) async {
+        guard let location = locationService.location else {
+            errorMessage = "Waiting for GPS…"
+            return
+        }
+
+        isVerifying = true
+        errorMessage = nil
+        verificationLoadingMessage = "Analyzing architecture..."
+
+        let bearing = locationService.compassBearing
+        let pitch = locationService.devicePitch
+        let altitude = location.altitude
+        let lat = location.coordinate.latitude
+        let lng = location.coordinate.longitude
+
+        do {
+            let result = try await ScanAPIService.shared.scan(
+                image: image,
+                lat: lat,
+                lng: lng,
+                bearing: bearing,
+                pitch: pitch,
+                altitude: altitude
+            )
+
+            if let building = result.building, building.bin == currentStop?.id {
+                // Success: Verified the correct building
+                // Insert aesthetic event
+                try? await AestheticService.shared.insertScanEvent(
+                    userId: userId,
+                    buildingBbl: building.bbl,
+                    aestheticVector: building.aestheticProfile.map { profile in
+                        var dict: [String: Double] = [:]
+                        for item in profile.all { dict[item.name.lowercased()] = item.score }
+                        return dict
+                    }
+                )
+                // Award XP and visit
+                try? await XPService.shared.awardXP(userId: userId, amount: 25)
+                
+                self.verifiedBuildingDetail = building
+                self.showInsights = true
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            } else if result.verified {
+                errorMessage = "Found \(result.building?.name ?? "a different building"). Keep looking for \(currentStop?.name ?? "the destination")!"
+            } else {
+                errorMessage = "Building not recognized. Try getting closer or a clearer angle."
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+
+        isVerifying = false
+    }
 
     func visitBuilding() {
         guard let stop = currentStop else { return }

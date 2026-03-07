@@ -46,11 +46,13 @@ struct WalkSummary: Identifiable, Decodable {
     let routeTier: String?
     let startedAt: Date?
     let endedAt: Date?
+    let xpEarned: Int?
 
     enum CodingKeys: String, CodingKey {
         case id
         case routeTier = "route_tier"
         case startedAt = "started_at"
         case endedAt = "ended_at"
+        case xpEarned = "xp_earned"
     }
 }

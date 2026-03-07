@@ -15,6 +15,10 @@ struct WalkNavView: View {
     @State private var flashOpacity: Double = 0
     @State private var xpBumpScale: Double = 1
     @State private var isVerifyCooldown: Bool = false
+    
+    // New states
+    @State private var showVerificationCamera = false
+    @State private var showAdHocScan = false
 
     var body: some View {
         ZStack {
@@ -47,9 +51,27 @@ struct WalkNavView: View {
                 NavFooter(vm: vm,
                           isVerifyCooldown: isVerifyCooldown,
                           completeAction: { Task { await completeWalk() } },
-                          verifyAction: { triggerVerifyCelebration() })
+                          verifyAction: { showVerificationCamera = true })
                     .padding(.horizontal, 20)
                     .padding(.bottom, 32)
+            }
+            
+            // Ad-hoc scan FAB
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: { showAdHocScan = true }) {
+                        Image(systemName: "camera.viewfinder")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                            .frame(width: 56, height: 56)
+                            .background(AppColors.accent, in: Circle())
+                            .shadow(color: AppColors.accent.opacity(0.4), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 120) // above footer
+                }
             }
 
             // Green flash overlay on verify
@@ -60,14 +82,30 @@ struct WalkNavView: View {
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
+        .fullScreenCover(isPresented: $showVerificationCamera) {
+            WalkVerificationCameraView(vm: vm)
+        }
+        .fullScreenCover(isPresented: $showAdHocScan) {
+            ScanView() // Reusing the main scan view for ad-hoc contributions
+        }
+        .sheet(isPresented: $vm.showInsights) {
+            if let detail = vm.verifiedBuildingDetail {
+                WalkStopInsightsView(detail: detail, onContinue: {
+                    vm.showInsights = false
+                    triggerVerifyCelebration() // Trigger visual effects and advance
+                })
+            }
+        }
         .sheet(isPresented: $vm.showXPSummary) {
             if let stats = vm.completionStats {
                 WalkSummaryView(stats: stats, onDone: {
                     dismiss()
                     onWalkComplete?()
+                    refreshAppState()
                 })
             } else {
                 XPSummarySheet(xpEarned: vm.xpEarned ?? 100)
+                    .onDisappear { refreshAppState() }
             }
         }
         .alert("Error", isPresented: .constant(vm.errorMessage != nil), actions: {
@@ -75,6 +113,14 @@ struct WalkNavView: View {
         }, message: {
             Text(vm.errorMessage ?? "")
         })
+    }
+
+    private func refreshAppState() {
+        Task {
+            if appState.currentUser != nil {
+                try? await SupabaseService.shared.client.auth.refreshSession()
+            }
+        }
     }
 
     private func triggerVerifyCelebration() {
@@ -230,7 +276,7 @@ private struct DirectionsBlock: View {
                     Text(directionInstruction)
                         .font(.subheadline.bold())
                         .foregroundStyle(.primary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     HStack(spacing: 6) {
                         Text(vm.distanceString)

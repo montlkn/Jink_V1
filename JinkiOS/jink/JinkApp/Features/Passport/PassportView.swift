@@ -273,10 +273,17 @@ struct WalkRow: View {
 
             Spacer()
 
-            if let type = walk.routeTier {
-                Text(type.uppercased())
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 2) {
+                if let type = walk.routeTier {
+                    Text(type.uppercased())
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                }
+                if let xp = walk.xpEarned {
+                    Text("+\(xp) XP")
+                        .font(.caption2.bold())
+                        .foregroundStyle(AppColors.accent)
+                }
             }
         }
         .padding(12)
