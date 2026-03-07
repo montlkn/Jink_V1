@@ -144,6 +144,7 @@ struct WalkStartView: View {
     @State private var includeVisited = false
     @State private var navigateToNav = false
     @State private var showXPDetail = false
+    @State private var showExplore = false
     @State private var xp: Int = 0
     @State private var level: Int = 1
 
@@ -202,15 +203,18 @@ struct WalkStartView: View {
 
                         Spacer()
 
-                        // Map placeholder
-                        ZStack {
-                            Circle()
-                                .fill(Color(.systemGray5))
-                                .frame(width: 56, height: 56)
-                            Image(systemName: "map.fill")
-                                .font(.system(size: 20))
-                                .foregroundStyle(Color(.systemGray2))
+                        // Map button → ExploreView
+                        Button { showExplore = true } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(.systemGray5))
+                                    .frame(width: 56, height: 56)
+                                Image(systemName: "map.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(AppColors.accent)
+                            }
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 16)
@@ -296,6 +300,18 @@ struct WalkStartView: View {
                 XPDetailSheet(xp: xp, level: level)
                     .presentationDetents([.height(160)])
                     .presentationDragIndicator(.hidden)
+            }
+            .sheet(isPresented: $showExplore) {
+                NavigationStack {
+                    ExploreView()
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") { showExplore = false }
+                            }
+                        }
+                }
+                .environment(locationService)
             }
             .alert("Error", isPresented: .constant(vm.errorMessage != nil)) {
                 Button("OK") { vm.errorMessage = nil }

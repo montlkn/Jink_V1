@@ -5,63 +5,82 @@ struct ExploreView: View {
     @Environment(LocationService.self) private var locationService
     @State private var vm = ExploreViewModel()
     @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 40.7549, longitude: -73.9840), // Midtown default
+        center: CLLocationCoordinate2D(latitude: 40.7549, longitude: -73.9840), // Midtown NYC default
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
     )
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Map(coordinateRegion: $region, annotationItems: vm.buildings.filter { $0.latitude != nil && $0.longitude != nil }) { building in
-                MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: building.latitude!, longitude: building.longitude!)) {
-                    Circle()
-                        .fill(aestheticColor(for: building.primaryAesthetic))
-                        .frame(width: 10, height: 10)
-                        .overlay(Circle().stroke(.white.opacity(0.6), lineWidth: 1))
+            Map(coordinateRegion: $region, showsUserLocation: true, annotationItems: mapBuildings) { building in
+                MapAnnotation(coordinate: CLLocationCoordinate2D(
+                    latitude: building.latitude ?? 0,
+                    longitude: building.longitude ?? 0
+                )) {
+                    BuildingPin(building: building, isSelected: vm.selectedBuilding?.bin == building.bin)
                         .onTapGesture { vm.selectedBuilding = building }
                 }
             }
             .ignoresSafeArea(edges: .top)
 
-            if vm.isLoading {
-                ProgressView()
-                    .padding(12)
-                    .background(.regularMaterial, in: Circle())
-                    .padding(.bottom, 100)
-                    .padding(.trailing, 20)
-            }
-
-            // Recenter FAB
-            Button {
-                if let coord = locationService.location?.coordinate {
-                    withAnimation {
-                        region.center = coord
-                    }
+            VStack(alignment: .trailing, spacing: 12) {
+                if vm.isLoading {
+                    ProgressView()
+                        .padding(10)
+                        .background(.regularMaterial, in: Circle())
                 }
-            } label: {
-                Image(systemName: "location.fill")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(AppColors.accent, in: Circle())
-                    .shadow(color: AppColors.accent.opacity(0.4), radius: 8, x: 0, y: 4)
+
+                // Recenter FAB
+                Button {
+                    let coord = locationService.location?.coordinate
+                        ?? CLLocationCoordinate2D(latitude: 40.7549, longitude: -73.9840)
+                    withAnimation { region.center = coord }
+                } label: {
+                    Image(systemName: "location.fill")
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                        .frame(width: 48, height: 48)
+                        .background(AppColors.accent, in: Circle())
+                        .shadow(color: AppColors.accent.opacity(0.4), radius: 8, x: 0, y: 4)
+                }
             }
-            .padding(.bottom, 100)
+            .padding(.bottom, 20)
             .padding(.trailing, 20)
         }
         .sheet(item: $vm.selectedBuilding) { building in
             BuildingDetailSheet(building: building)
                 .presentationDetents([.medium])
         }
-        .task {
-            if let coord = locationService.location?.coordinate {
-                region.center = coord
-                await vm.load(near: coord)
-            } else {
-                await vm.load(near: region.center)
-            }
-        }
         .navigationTitle("Explore")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            let coord = locationService.location?.coordinate
+                ?? CLLocationCoordinate2D(latitude: 40.7549, longitude: -73.9840)
+            withAnimation { region.center = coord }
+            await vm.load(near: coord)
+        }
+    }
+
+    // Filter to buildings with valid coordinates
+    private var mapBuildings: [Building] {
+        vm.buildings.filter { $0.latitude != nil && $0.longitude != nil }
+    }
+}
+
+// MARK: - Building pin annotation
+
+private struct BuildingPin: View {
+    let building: Building
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(aestheticColor(for: building.primaryAesthetic))
+                .frame(width: isSelected ? 16 : 10, height: isSelected ? 16 : 10)
+                .overlay(Circle().stroke(.white, lineWidth: isSelected ? 2 : 1))
+                .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+        }
+        .animation(.easeOut(duration: 0.15), value: isSelected)
     }
 
     private func aestheticColor(for aesthetic: String?) -> Color {
@@ -104,7 +123,7 @@ private struct BuildingDetailSheet: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: 20) {
                 if let style = building.style {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("STYLE").font(.caption2).foregroundStyle(.secondary)
@@ -120,7 +139,7 @@ private struct BuildingDetailSheet: View {
                 if let architect = building.architect {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ARCHITECT").font(.caption2).foregroundStyle(.secondary)
-                        Text(architect).font(.caption.bold())
+                        Text(architect).font(.caption.bold()).lineLimit(1)
                     }
                 }
             }
@@ -129,7 +148,7 @@ private struct BuildingDetailSheet: View {
                 Text(desc)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(4)
+                    .lineLimit(5)
             }
 
             Spacer()
