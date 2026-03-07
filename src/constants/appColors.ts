@@ -25,6 +25,9 @@ export const APP_COLORS = {
     // Error
     error: "#FF0000",
 
+    // Info / Informational (cyan/blue)
+    info: "#00AEEF",
+
     // Standard colors
     white: "#FFFFFF",
     black: "#000000",

@@ -18,13 +18,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Pressable,
   SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { DirectionalGlow } from "../../components/glow/DirectionalGlow";
+import { RadarMiniMap } from "../../components/walk/RadarMiniMap";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { deriveBuildingOrder } from "../../utils/deriveUtils";
 
@@ -52,6 +55,12 @@ const WalkNavScreen = ({ route, navigation }) => {
   const [buildingIndex, setBuildingIndex] = useState(0);
   const [visitedBuildings, setVisitedBuildings] = useState(new Set());
   const [walkXp, setWalkXp] = useState(0);
+  const [skippedCount, setSkippedCount] = useState(0); // Track consecutive skips
+
+  // Animation values for smooth transitions
+  const cardSlideAnim = useRef(new Animated.Value(0)).current;
+  const xpPulseAnim = useRef(new Animated.Value(1)).current;
+  const progressBarWidth = useRef(new Animated.Value(0)).current;
 
   // OPTIMIZED: Batched navigation state - single state object instead of multiple
   const [navState, setNavState] = useState({
@@ -233,6 +242,15 @@ const WalkNavScreen = ({ route, navigation }) => {
         // Award XP for this building (base 50 XP * multiplier)
         const buildingXp = Math.round(50 * xpMultiplier);
         setWalkXp(prev => prev + buildingXp);
+
+        // Reset skip count on successful verification
+        setSkippedCount(0);
+
+        // Haptic success feedback
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        // Animate XP pulse
+        animateXpPulse();
         
         // Track the visit event
         if (session?.user?.id && currentStop) {
@@ -250,6 +268,9 @@ const WalkNavScreen = ({ route, navigation }) => {
             },
           }).catch((err) => log.warn('[WalkNav] Failed to track verified visit', err));
         }
+
+        // Animate card transition
+        animateCardTransition(1);
 
         // Move to next building or complete walk
         if (isLastBuilding) {
@@ -296,35 +317,62 @@ const WalkNavScreen = ({ route, navigation }) => {
   }, [hasRoute, currentStop, walkId]);
 
   // Handle skip button - mark as visited and advance
+  // Shows confirmation if skipping multiple buildings in a row
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleSkip = useCallback(() => {
     if (!hasRoute) return;
-    const activeStop = routeStops[currentIndex];
 
-    // Track quick_dismiss event
-    if (session?.user?.id && activeStop) {
-      createAestheticEvent({
-        userId: session.user.id,
-        eventType: 'quick_dismiss',
-        buildingBbl: activeStop.bbl || activeStop.bin,
-        payload: {
-          building_name: activeStop.name || activeStop.title,
-          dismissed_at_index: currentIndex,
-          walk_id: walkId,
-        },
-      }).catch((err) => log.warn('[WalkNav] Failed to track quick_dismiss', err));
-    }
+    const doSkip = () => {
+      const activeStop = routeStops[currentIndex];
 
-    // Check if this is the last building
-    if (isLastBuilding) {
-      // Walk complete (even if skipped)
-      handleWalkComplete();
+      // Track quick_dismiss event
+      if (session?.user?.id && activeStop) {
+        createAestheticEvent({
+          userId: session.user.id,
+          eventType: 'quick_dismiss',
+          buildingBbl: activeStop.bbl || activeStop.bin,
+          payload: {
+            building_name: activeStop.name || activeStop.title,
+            dismissed_at_index: currentIndex,
+            walk_id: walkId,
+          },
+        }).catch((err) => log.warn('[WalkNav] Failed to track quick_dismiss', err));
+      }
+
+      // Haptic feedback for skip
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Animate card transition
+      animateCardTransition(1);
+
+      // Increment skip count
+      setSkippedCount(prev => prev + 1);
+
+      // Check if this is the last building
+      if (isLastBuilding) {
+        // Walk complete (even if skipped)
+        handleWalkComplete();
+      } else {
+        // Move to next building
+        setBuildingIndex((prev) => prev + 1);
+      }
+    };
+
+    // Show confirmation if skipping 2+ buildings in a row
+    if (skippedCount >= 2) {
+      Alert.alert(
+        "Skip Another Building?",
+        "You've skipped a few buildings. Skipping affects your aesthetic profile learning. Continue?",
+        [
+          { text: "Go Back", style: "cancel" },
+          { text: "Skip Anyway", onPress: doSkip },
+        ]
+      );
     } else {
-      // Move to next building
-      setBuildingIndex((prev) => prev + 1);
+      doSkip();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, hasRoute, isLastBuilding, routeStops, session?.user?.id, walkId]);
+  }, [currentIndex, hasRoute, isLastBuilding, routeStops, session?.user?.id, walkId, skippedCount, animateCardTransition]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleWalkComplete = useCallback(() => {
@@ -370,6 +418,52 @@ const WalkNavScreen = ({ route, navigation }) => {
   const progressLabel = hasRoute
     ? `${currentIndex + 1}/${routeStops.length}`
     : null;
+
+  // Progress percentage for animated bar
+  const progressPercent = hasRoute ? ((currentIndex + 1) / routeStops.length) * 100 : 0;
+
+  // Animate progress bar when building changes
+  useEffect(() => {
+    Animated.timing(progressBarWidth, {
+      toValue: progressPercent,
+      duration: 400,
+      useNativeDriver: false, // width can't use native driver
+    }).start();
+  }, [progressPercent, progressBarWidth]);
+
+  // Smooth card slide animation when transitioning between buildings
+  const animateCardTransition = useCallback((direction = 1) => {
+    // Slide out
+    Animated.sequence([
+      Animated.timing(cardSlideAnim, {
+        toValue: direction * -50,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardSlideAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [cardSlideAnim]);
+
+  // XP pulse animation when earning XP
+  const animateXpPulse = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(xpPulseAnim, {
+        toValue: 1.3,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.spring(xpPulseAnim, {
+        toValue: 1,
+        friction: 4,
+        tension: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [xpPulseAnim]);
   
   // Use validated building name
   const nextAddress = hasRoute && currentStop
@@ -397,6 +491,14 @@ const WalkNavScreen = ({ route, navigation }) => {
 
   // Distance in meters for the glow component
   const distanceMeters = distanceToStop ? distanceToStop * 1000 : 1000;
+
+  // Calculate angle difference for directional hints (building on left/right)
+  const angleDiff = useMemo(() => {
+    let diff = targetBearing - userHeading;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+    return diff;
+  }, [targetBearing, userHeading]);
 
   const nextStopDistance = distanceToStop ? formatDistance(distanceToStop) : null;
   const nextStopETA = distanceToStop ? calculateWalkingETA(distanceToStop) : null;
@@ -437,65 +539,117 @@ const WalkNavScreen = ({ route, navigation }) => {
   }, [duration, xpBadgeColor, route.params]);
 
   // Extract walking directions from OSRM route data
+  // Shows next 2-3 steps like Google Maps for clear navigation
   const routeData = route.params?.routeData;
   const currentLeg = routeData?.legs?.[currentIndex];
-  const walkingInstruction = useMemo(() => {
-    if (!currentLeg) return null;
 
-    const steps = currentLeg.steps || [];
-    const firstStep = steps.find(step => step.distance > 20);
+  // Format a single step into a readable instruction
+  const formatStep = useCallback((step, isNext = false) => {
+    if (!step || !step.maneuver) return null;
 
-    if (firstStep && firstStep.maneuver) {
-      const maneuver = firstStep.maneuver;
-      const type = maneuver.type;
-      const modifier = maneuver.modifier;
-      const streetName = firstStep.name || "";
+    const maneuver = step.maneuver;
+    const type = maneuver.type;
+    const modifier = maneuver.modifier;
+    const streetName = step.name || "";
 
-      let instruction = "";
+    let instruction = "";
+    let icon = "↑"; // Default straight
 
-      if (type === "depart") {
-        instruction = streetName ? `Head ${modifier || "straight"} on ${streetName}` : `Head ${modifier || "straight"}`;
-      } else if (type === "turn") {
-        const direction = modifier === "left" ? "left" : modifier === "right" ? "right" : "straight";
-        instruction = streetName ? `Turn ${direction} onto ${streetName}` : `Turn ${direction}`;
-      } else if (type === "new name") {
-        instruction = streetName ? `Continue on ${streetName}` : "Continue straight";
-      } else if (type === "arrive") {
-        instruction = "Arrive at destination";
+    if (type === "depart") {
+      instruction = streetName ? `Head ${modifier || "straight"} on ${streetName}` : `Head ${modifier || "straight"}`;
+      icon = "↑";
+    } else if (type === "turn") {
+      if (modifier === "left" || modifier === "slight left" || modifier === "sharp left") {
+        instruction = streetName ? `Turn left onto ${streetName}` : "Turn left";
+        icon = "↰";
+      } else if (modifier === "right" || modifier === "slight right" || modifier === "sharp right") {
+        instruction = streetName ? `Turn right onto ${streetName}` : "Turn right";
+        icon = "↱";
       } else {
-        instruction = streetName ? `Continue on ${streetName}` : "Continue straight";
+        instruction = streetName ? `Continue onto ${streetName}` : "Continue straight";
+        icon = "↑";
       }
-
-      const distanceM = Math.round(firstStep.distance);
-      const feet = distanceM * 3.28084;
-      
-      if (feet < 2640) {
-        instruction += ` (${Math.round(feet)} ft)`;
-      } else {
-        const miles = distanceM * 0.000621371;
-        instruction += ` (${miles.toFixed(1)} mi)`;
-      }
-
-      return instruction;
+    } else if (type === "new name" || type === "continue") {
+      instruction = streetName ? `Continue on ${streetName}` : "Continue straight";
+      icon = "↑";
+    } else if (type === "arrive") {
+      instruction = "Arrive at destination";
+      icon = "⬤";
+    } else if (type === "roundabout" || type === "rotary") {
+      instruction = streetName ? `At roundabout, take exit onto ${streetName}` : "At roundabout, take exit";
+      icon = "⟳";
+    } else {
+      instruction = streetName ? `Continue on ${streetName}` : "Continue";
+      icon = "↑";
     }
 
-    const distanceKm = currentLeg.distanceKm;
-    const durationMin = currentLeg.durationMin;
+    // Add distance
+    const distanceM = Math.round(step.distance);
+    const feet = distanceM * 3.28084;
+    let distanceText = "";
 
-    const feet = distanceKm * 3280.84;
-    let distanceText;
-    
     if (feet < 2640) {
       distanceText = `${Math.round(feet)} ft`;
     } else {
-      const miles = distanceKm * 0.621371;
+      const miles = distanceM * 0.000621371;
       distanceText = `${miles.toFixed(1)} mi`;
     }
 
-    const durationText = durationMin < 1 ? "< 1 min" : `${Math.round(durationMin)} min`;
+    return {
+      instruction,
+      icon,
+      distance: distanceText,
+      isNext,
+    };
+  }, []);
 
-    return `Walk ${distanceText} · ${durationText}`;
-  }, [currentLeg]);
+  // Get multiple upcoming steps for Google Maps-style navigation
+  const walkingDirections = useMemo(() => {
+    if (!currentLeg) return null;
+
+    const steps = currentLeg.steps || [];
+    const significantSteps = steps.filter(step => step.distance > 15); // Filter tiny steps
+
+    if (significantSteps.length === 0) {
+      // Fallback to simple distance/duration
+      const distanceKm = currentLeg.distanceKm;
+      const durationMin = currentLeg.durationMin;
+      const feet = distanceKm * 3280.84;
+
+      let distanceText;
+      if (feet < 2640) {
+        distanceText = `${Math.round(feet)} ft`;
+      } else {
+        const miles = distanceKm * 0.621371;
+        distanceText = `${miles.toFixed(1)} mi`;
+      }
+
+      const durationText = durationMin < 1 ? "< 1 min" : `${Math.round(durationMin)} min`;
+
+      return {
+        currentStep: { instruction: `Walk ${distanceText}`, icon: "↑", distance: durationText, isNext: false },
+        nextSteps: [],
+      };
+    }
+
+    // Format current step (first significant step)
+    const currentStep = formatStep(significantSteps[0], false);
+
+    // Format next 1-2 steps for preview
+    const nextSteps = significantSteps.slice(1, 3).map(step => formatStep(step, true)).filter(Boolean);
+
+    return {
+      currentStep,
+      nextSteps,
+    };
+  }, [currentLeg, formatStep]);
+
+  // Legacy single instruction for backwards compatibility
+  const walkingInstruction = useMemo(() => {
+    if (!walkingDirections || !walkingDirections.currentStep) return null;
+    const { currentStep } = walkingDirections;
+    return `${currentStep.icon} ${currentStep.instruction} (${currentStep.distance})`;
+  }, [walkingDirections]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -507,43 +661,124 @@ const WalkNavScreen = ({ route, navigation }) => {
         isActive={hasRoute && currentStop !== null}
       />
       <View style={styles.screen}>
+        {/* Header Row - Pause on left, Progress on right */}
         <View style={styles.headerRow}>
           <PausePillButton onPress={handlePause} />
-          {/* XP Counter - color synced with walk duration multiplier (time-based) */}
-          {walkXp > 0 && (
-            <View style={[styles.xpBadge, { backgroundColor: xpBadgeColor }]}>
-              <Text style={styles.xpText}>+{walkXp} XP</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.body}>
-          <View style={styles.nextCard}>
-            <Text style={styles.nextLabel}>Next Stop</Text>
-            <Text style={styles.nextAddress} numberOfLines={2}>
-              {nextAddress}
-            </Text>
-            {/* Distance and ETA */}
-            {nextStopDistance && nextStopETA ? (
-              <View style={styles.etaRow}>
-                <Text style={styles.etaText}>{nextStopDistance} away · {nextStopETA}</Text>
+
+          {/* Right side: XP + Progress */}
+          <View style={styles.headerRight}>
+            {walkXp > 0 && (
+              <Animated.View
+                style={[
+                  styles.xpBadge,
+                  { backgroundColor: xpBadgeColor },
+                  { transform: [{ scale: xpPulseAnim }] }
+                ]}
+              >
+                <Text style={styles.xpText}>+{walkXp}</Text>
+              </Animated.View>
+            )}
+            {hasRoute && (
+              <View style={styles.progressPill}>
+                <Text style={styles.progressPillText}>
+                  {currentIndex + 1} of {routeStops.length}
+                </Text>
               </View>
-            ) : null}
-            {walkingInstruction ? (
+            )}
+          </View>
+        </View>
+
+        <View style={styles.body}>
+
+          <Animated.View
+            style={[
+              styles.nextCard,
+              { transform: [{ translateX: cardSlideAnim }] }
+            ]}
+          >
+            <View style={styles.cardTopRow}>
+              <View style={styles.cardLeftContent}>
+                <Text style={styles.nextLabel}>Next Stop</Text>
+                <Text style={styles.nextAddress} numberOfLines={2}>
+                  {nextAddress}
+                </Text>
+                {/* Distance and ETA */}
+                {nextStopDistance && nextStopETA ? (
+                  <View style={styles.etaRow}>
+                    <Text style={styles.etaText}>{nextStopDistance} away · {nextStopETA}</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              {/* Radar inside card on right */}
+              {currentLocation && hasRoute && currentStop && (
+                <RadarMiniMap
+                  userLat={currentLocation.lat}
+                  userLng={currentLocation.lng}
+                  userHeading={userHeading}
+                  targetLat={normalizeCoords(currentStop)?.lat}
+                  targetLng={normalizeCoords(currentStop)?.lng}
+                  distanceToTarget={distanceMeters}
+                  size={70}
+                  isActive={true}
+                />
+              )}
+            </View>
+
+            {/* Multi-step directions like Google Maps */}
+            {walkingDirections && walkingDirections.currentStep ? (
+              <View style={styles.directionsContainer}>
+                {/* Current step - prominent */}
+                <View style={styles.currentDirectionRow}>
+                  <Text style={styles.directionIcon}>{walkingDirections.currentStep.icon}</Text>
+                  <View style={styles.directionContent}>
+                    <Text style={styles.currentDirectionText}>
+                      {walkingDirections.currentStep.instruction}
+                    </Text>
+                    <Text style={styles.directionDistance}>
+                      {walkingDirections.currentStep.distance}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Next steps - smaller, preview */}
+                {walkingDirections.nextSteps && walkingDirections.nextSteps.length > 0 && (
+                  <View style={styles.nextStepsContainer}>
+                    {walkingDirections.nextSteps.map((step, idx) => (
+                      <View key={idx} style={styles.nextStepRow}>
+                        <Text style={styles.nextStepIcon}>{step.icon}</Text>
+                        <Text style={styles.nextStepText} numberOfLines={1}>
+                          {idx === 0 ? "Then: " : "After: "}{step.instruction}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Building destination hint */}
+                {hasRoute && currentStop && (
+                  <View style={styles.destinationHint}>
+                    <Text style={styles.destinationIcon}>⬤</Text>
+                    <Text style={styles.destinationText}>
+                      {getBuildingDisplayName(currentStop)} on your {angleDiff > 0 ? 'right' : 'left'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ) : walkingInstruction ? (
               <View style={styles.directionRow}>
                 <Text style={styles.directionText}>{walkingInstruction}</Text>
               </View>
             ) : null}
-            {progressLabel ? (
-              <Text style={styles.nextMeta}>{progressLabel} · {visitedBuildings.size} verified</Text>
-            ) : null}
-          </View>
+          </Animated.View>
 
+          {/* Compass */}
           <View style={styles.compassSection}>
             {hasRoute ? (
               <Compass
                 buildings={routeStops}
                 buildingIndex={currentIndex}
-                size={260}
+                size={200}
               />
             ) : (
               <View style={styles.loadingState}>
@@ -582,14 +817,7 @@ const WalkNavScreen = ({ route, navigation }) => {
                 <Text style={styles.skipButtonLabel}>Skip</Text>
               </Pressable>
             </View>
-            {hasRoute && (summaryDistance || summaryDuration) ? (
-              <Text style={styles.routeSummary}>
-                {summaryDistance ? summaryDistance : ""}
-                {summaryDistance && summaryDuration ? " · " : ""}
-                {summaryDuration ? `~${summaryDuration}` : ""}
-              </Text>
-            ) : null}
-            {/* End Walk Early Button */}
+            {/* End Walk Early - only show after visiting at least one */}
             {visitedBuildings.size > 0 && (
               <Pressable style={styles.endWalkButton} onPress={handleEndWalk}>
                 <Text style={styles.endWalkText}>End Walk Early</Text>
@@ -620,32 +848,79 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   xpBadge: {
-    // backgroundColor set dynamically via xpBadgeColor
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 14,
   },
   xpText: {
     color: theme.colors.white,
-    fontSize: theme.typography.fontSize.md,
+    fontSize: theme.typography.fontSize.sm,
     fontWeight: "700",
+  },
+  progressPill: {
+    backgroundColor: theme.colors.text,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  progressPillText: {
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: "700",
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  cardLeftContent: {
+    flex: 1,
+    marginRight: 12,
   },
   body: {
     flex: 1,
     paddingTop: 16,
     justifyContent: "space-between",
   },
+  progressBarContainer: {
+    height: 28,
+    backgroundColor: theme.colors.border,
+    borderRadius: 14,
+    marginBottom: 16,
+    overflow: "hidden",
+    justifyContent: "center",
+  },
+  progressBarFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: APP_COLORS.success,
+    borderRadius: 14,
+  },
+  progressBarText: {
+    textAlign: "center",
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: "600",
+    color: theme.colors.text,
+    zIndex: 1,
+  },
   nextCard: {
     backgroundColor: theme.colors.white,  // Explicit color for shadow optimization
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     shadowColor: theme.colors.black,
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
   nextLabel: {
     fontSize: theme.typography.fontSize.sm,
@@ -700,11 +975,90 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     flex: 1,
   },
-  compassSection: {
+  // Multi-step directions (Google Maps style)
+  directionsContainer: {
+    marginTop: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    overflow: "hidden",
+  },
+  currentDirectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: theme.colors.text + '08',
+  },
+  directionIcon: {
+    fontSize: 24,
+    marginRight: 12,
+    width: 32,
+    textAlign: "center",
+  },
+  directionContent: {
     flex: 1,
+  },
+  currentDirectionText: {
+    fontSize: theme.typography.fontSize.md,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  directionDistance: {
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: "600",
+    color: APP_COLORS.info,
+  },
+  nextStepsContainer: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  nextStepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  nextStepIcon: {
+    fontSize: 14,
+    marginRight: 8,
+    width: 20,
+    textAlign: "center",
+    color: theme.colors.muted,
+  },
+  nextStepText: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.muted,
+    flex: 1,
+  },
+  destinationHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: APP_COLORS.success + '15',
+    borderTopWidth: 1,
+    borderTopColor: APP_COLORS.success + '30',
+  },
+  destinationIcon: {
+    fontSize: 10,
+    marginRight: 10,
+    color: APP_COLORS.success,
+  },
+  destinationText: {
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: "600",
+    color: APP_COLORS.success,
+    flex: 1,
+  },
+  compassSection: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 28,
+    marginTop: 12,
+    flex: 1,
   },
   loadingState: {
     alignItems: "center",
@@ -717,7 +1071,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   footer: {
-    marginTop: 28,
+    marginTop: 12,
     alignItems: "center",
   },
   buttonRow: {
@@ -729,15 +1083,14 @@ const styles = StyleSheet.create({
     flex: 2,
     backgroundColor: theme.colors.text,  // Solid color for shadow optimization
     borderRadius: 28,
-    paddingVertical: 16,
-    top: 16,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: theme.colors.text,
     shadowOpacity: 0.25,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
   primaryButtonPressed: {
     transform: [{ scale: 0.97 }],
@@ -753,8 +1106,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.white + 'E6',
     borderRadius: 28,
-    paddingVertical: 16,
-    top: 16,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,

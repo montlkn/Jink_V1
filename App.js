@@ -10,7 +10,8 @@ import "@/lib/log";
 import { log } from "@/lib/log";
 import RootNavigator from "@/navigation/RootNavigator";
 import { flushEventQueue } from "@/services/gateways/aestheticEventGateway";
-import { initLocationCache } from "@/services/locationCacheService";
+import { initLocationCache, getCachedLocation } from "@/services/locationCacheService";
+import { initializeGridCache } from "@/services/gpsGridCacheService";
 import { Asset } from "expo-asset";
 import { useFonts } from "expo-font";
 import "expo-three";
@@ -173,9 +174,19 @@ export default function App() {
     });
 
     // Pre-warm GPS location cache for faster WalkStartScreen load
-    initLocationCache().catch((error) => {
-      log.warn("[App] Failed to initialize location cache", error);
-    });
+    // Then initialize building grid cache for instant scan lookups
+    initLocationCache()
+      .then(async () => {
+        // After location is cached, initialize the building grid cache
+        const cachedLoc = await getCachedLocation({ maxAge: 120000 });
+        if (cachedLoc) {
+          await initializeGridCache(cachedLoc.latitude, cachedLoc.longitude);
+          log.info("[App] GPS grid cache initialized at startup");
+        }
+      })
+      .catch((error) => {
+        log.warn("[App] Failed to initialize location/grid cache", error);
+      });
 
     // Flush aesthetic event queue when app comes to foreground
     const subscription = AppState.addEventListener("change", (nextAppState) => {

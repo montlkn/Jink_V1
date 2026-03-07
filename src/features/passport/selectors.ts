@@ -34,6 +34,8 @@ export type PassportUiData = {
   issueDateLabel: string | null;
   xpTotal: number;
   level: number;
+  levelTitle?: string;
+  levelTier?: string;
   xpForNextLevel: number;
   xpProgress: number;
   stamps: PassportUiStamp[];
@@ -99,6 +101,8 @@ export function toPassportUi(
     issueDateLabel,
     xpTotal: snapshot.xpTotal,
     level: snapshot.level,
+    levelTitle: snapshot.levelTitle,
+    levelTier: snapshot.levelTier,
     xpForNextLevel,
     xpProgress,
     stamps: snapshot.stamps.map((name, index) => ({

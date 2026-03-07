@@ -4,7 +4,6 @@
 import { log } from "@/lib/log";
 import { supabase, coerceNumber } from "./supabaseClient";
 import { fetchUserStreak, updateDailyStreak } from "./streakGateway";
-import { fetchActiveQuests, updateQuestProgress } from "./questGateway";
 
 export type FetchXpSummaryResult = {
   xp: number;
@@ -207,22 +206,4 @@ export async function awardXp(params: AwardXpParams): Promise<void> {
     return;
   }
 
-  // Quest progress only applies to building scans
-  if (source !== "building_scan") return;
-
-  try {
-    const { daily, weekly } = await fetchActiveQuests({ userId });
-    const updates: Promise<boolean>[] = [];
-
-    if (daily && daily.quest_type === "scan" && !daily.completed) {
-      updates.push(updateQuestProgress(userId, "daily", progressIncrement));
-    }
-    if (weekly && weekly.quest_type === "scan" && !weekly.completed) {
-      updates.push(updateQuestProgress(userId, "weekly", progressIncrement));
-    }
-
-    if (updates.length) await Promise.all(updates);
-  } catch (questError) {
-    log.warn("[xpGateway] Failed to update quest progress after awarding XP", questError);
-  }
 }

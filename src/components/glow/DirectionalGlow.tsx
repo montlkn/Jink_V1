@@ -6,12 +6,16 @@
  * - Subtle breathing animation (10-20% opacity only)
  * - Single smooth gradient (no visible concentric rings)
  * - Smooth color transitions between hot/cold states
+ * - Enhanced proximity feedback with text hints
+ * - Geofence arrival detection (30m triggers callback)
+ * - Haptic feedback on state changes
  */
 
 import { DESIGNER_REPUBLIC_THEME as theme } from '@/theme/designer_republic';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Dimensions, Easing, StyleSheet, Text, View } from 'react-native';
 import { AngularKalmanFilter } from '../../utils/KalmanFilter';
 
 interface DirectionalGlowProps {
@@ -19,6 +23,10 @@ interface DirectionalGlowProps {
   userHeading: number;
   distanceMeters: number;
   isActive?: boolean;
+  // Callback when user enters geofence (within 30m)
+  onGeofenceEnter?: () => void;
+  // Show text hints like "Getting warmer..."
+  showHints?: boolean;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -33,27 +41,38 @@ const COLORS = {
   arrived: theme.colors.success,  // Green - arrived
 };
 
+// Geofence radius in meters
+const GEOFENCE_RADIUS = 30;
+
 export const DirectionalGlow: React.FC<DirectionalGlowProps> = ({
   targetBearing,
   userHeading,
   distanceMeters,
   isActive = true,
+  onGeofenceEnter,
+  showHints = true,
 }) => {
   // Kalman filters for smooth heading/bearing transitions
   const headingFilterRef = useRef(new AngularKalmanFilter(0.05, 2.0, userHeading));
   const bearingFilterRef = useRef(new AngularKalmanFilter(0.05, 2.0, targetBearing));
-  
+
   // Smoothed values
   const [smoothHeading, setSmoothHeading] = useState(userHeading);
   const [smoothBearing, setSmoothBearing] = useState(targetBearing);
-  
+
   // Animation values
   const breathOpacity = useRef(new Animated.Value(0.15)).current;
   const positionX = useRef(new Animated.Value(0)).current;
   const positionY = useRef(new Animated.Value(0)).current;
-  
+  const hintOpacity = useRef(new Animated.Value(0)).current;
+
   // Previous color for smooth transitions
   const [currentColor, setCurrentColor] = useState(COLORS.cold);
+  const [hintText, setHintText] = useState<string | null>(null);
+
+  // Track if we've entered the geofence (to avoid repeated callbacks)
+  const hasEnteredGeofence = useRef(false);
+  const lastHapticState = useRef<string>('cold');
 
   // Apply Kalman filtering to heading
   useEffect(() => {
@@ -77,14 +96,90 @@ export const DirectionalGlow: React.FC<DirectionalGlowProps> = ({
 
   const absAngleDiff = Math.abs(angleDiff);
 
-  // Determine color based on alignment (with smooth transitions)
-  const targetColor = useMemo(() => {
-    if (distanceMeters < 30) return COLORS.arrived;
-    if (absAngleDiff < 15) return COLORS.hot;
-    if (absAngleDiff < 40) return COLORS.warm;
-    if (absAngleDiff < 90) return COLORS.cool;
-    return COLORS.cold;
+  // Determine color and state based on alignment and distance
+  const { targetColor, state } = useMemo(() => {
+    if (distanceMeters < GEOFENCE_RADIUS) return { targetColor: COLORS.arrived, state: 'arrived' };
+    if (distanceMeters < 50 && absAngleDiff < 30) return { targetColor: COLORS.hot, state: 'very_close' };
+    if (absAngleDiff < 15) return { targetColor: COLORS.hot, state: 'hot' };
+    if (absAngleDiff < 40) return { targetColor: COLORS.warm, state: 'warm' };
+    if (absAngleDiff < 90) return { targetColor: COLORS.cool, state: 'cool' };
+    return { targetColor: COLORS.cold, state: 'cold' };
   }, [absAngleDiff, distanceMeters]);
+
+  // Geofence detection
+  useEffect(() => {
+    if (!isActive || !onGeofenceEnter) return;
+
+    if (distanceMeters < GEOFENCE_RADIUS && !hasEnteredGeofence.current) {
+      hasEnteredGeofence.current = true;
+      // Strong haptic feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onGeofenceEnter();
+    } else if (distanceMeters > GEOFENCE_RADIUS * 1.5) {
+      // Reset when user moves away
+      hasEnteredGeofence.current = false;
+    }
+  }, [distanceMeters, isActive, onGeofenceEnter]);
+
+  // Haptic feedback on state changes
+  useEffect(() => {
+    if (!isActive) return;
+
+    const currentState = state;
+    const prevState = lastHapticState.current;
+
+    if (currentState !== prevState) {
+      lastHapticState.current = currentState;
+
+      // Provide haptic feedback on warming up
+      if (currentState === 'arrived') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else if (currentState === 'very_close' && prevState !== 'arrived') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      } else if (currentState === 'hot' && (prevState === 'warm' || prevState === 'cool' || prevState === 'cold')) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else if (currentState === 'warm' && (prevState === 'cool' || prevState === 'cold')) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    }
+  }, [state, isActive]);
+
+  // Update hint text
+  useEffect(() => {
+    if (!showHints || !isActive) {
+      setHintText(null);
+      return;
+    }
+
+    let newHint: string | null = null;
+
+    if (state === 'arrived') {
+      newHint = "You've arrived! Scan to verify.";
+    } else if (state === 'very_close') {
+      newHint = "Almost there!";
+    } else if (state === 'hot') {
+      newHint = "You're on track!";
+    } else if (state === 'warm') {
+      newHint = "Getting warmer...";
+    } else if (state === 'cool') {
+      newHint = "Turn around...";
+    } else {
+      newHint = null; // No hint for cold
+    }
+
+    if (newHint !== hintText) {
+      setHintText(newHint);
+
+      // Animate hint in
+      if (newHint) {
+        Animated.sequence([
+          Animated.timing(hintOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+          Animated.delay(2000),
+          Animated.timing(hintOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+        ]).start();
+      }
+    }
+  }, [state, showHints, isActive, hintText, hintOpacity]);
 
   // Animate color changes
   useEffect(() => {
@@ -224,6 +319,15 @@ export const DirectionalGlow: React.FC<DirectionalGlowProps> = ({
           ]}
         />
       )}
+
+      {/* Text hint overlay */}
+      {showHints && hintText && (
+        <Animated.View style={[styles.hintContainer, { opacity: hintOpacity }]}>
+          <View style={[styles.hintBubble, { backgroundColor: currentColor + 'E6' }]}>
+            <Text style={styles.hintText}>{hintText}</Text>
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -243,6 +347,31 @@ const styles = StyleSheet.create({
   screenTint: {
     ...StyleSheet.absoluteFillObject,
     zIndex: -1,
+  },
+  hintContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1001,
+  },
+  hintBubble: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  hintText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
 });
 

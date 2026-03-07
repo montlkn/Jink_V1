@@ -26,7 +26,7 @@ import {
     View
 } from 'react-native';
 import { useAuth } from '../../auth/authProvider';
-import ArchetypePieChart from '../../components/charts/ArchetypePieChart';
+import DynamicDonutChart from '../../components/charts/DynamicDonutChart';
 import SegmentModal from '../../components/modals/SegmentModal';
 import AnimatedSummaryText from '../../components/profile/AnimatedSummaryText';
 import { getArchetypeColor } from '../../constants/archetypeColors';
@@ -382,10 +382,6 @@ const ProfileDetailScreen = ({ navigation }) => {
       const id = item.archetype || item.name || `slice-${index}`;
       const rawScore = Number(item.score ?? item.value ?? 0);
       const safeScore = Number.isFinite(rawScore) ? Math.max(0, rawScore) : 0;
-      const percentageValue = Number(item.percentage ?? 0);
-      const safePercentage = Number.isFinite(percentageValue)
-        ? Math.max(0, Math.round(percentageValue))
-        : 0;
       const labelBase = item.name || item.archetype || id;
 
       return {
@@ -393,7 +389,6 @@ const ProfileDetailScreen = ({ navigation }) => {
         value: safeScore,
         label: labelBase,
         color: item.color,
-        percentageLabel: `${safePercentage}%`,
       };
     });
   }, [chartData]);
@@ -420,7 +415,7 @@ const ProfileDetailScreen = ({ navigation }) => {
   );
 
   const donutSize = 300;
-  const centerOrbSize = 80;
+  const centerOrbSize = 100; // Slightly larger for better fit in donut hole
 
   // Removed loading spinner - show skeleton inline instead
   // The page now loads immediately with placeholders
@@ -534,9 +529,10 @@ const ProfileDetailScreen = ({ navigation }) => {
       >
         <View style={styles.chartSection}>
           <View style={[styles.donutWrapper, { width: donutSize, height: donutSize }]}>
-            <ArchetypePieChart
+            <DynamicDonutChart
               data={donutSlices}
               size={donutSize}
+              thickness={40}
             />
             <View style={styles.donutOrbOverlay} pointerEvents="none">
               <ArchetypeOrb

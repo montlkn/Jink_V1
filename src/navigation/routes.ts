@@ -2,7 +2,7 @@ import type { BuildingDetail } from "@/constants/passportContent";
 import type { NavigatorScreenParams } from "@react-navigation/native";
 
 export const screens = {
-  Quests: "Quests",
+  // Quests: "Quests", // ARCHIVED for v1 - Quest feature removed
   WalkSummary: "WalkSummary",
   AuthLogin: "Login",
   AuthCallback: "AuthCallback",
@@ -28,6 +28,16 @@ export const screens = {
   NotFound: "NotFound",
   PastWalksNolli: "PastWalksNolli",
   NolliSkia: "NolliSkia",
+  // Tour screens
+  TourSelect: "TourSelect",
+  TourNav: "TourNav",
+  TourComplete: "TourComplete",
+  SkylineAR: "SkylineAR",
+  // Listings
+  BuildingListings: "BuildingListings",
+  ListingDetail: "ListingDetail",
+  // Style map
+  StyleMap: "StyleMap",
   // add screens here as you migrate
 } as const;
 
@@ -57,7 +67,7 @@ type WalkNavParams = {
 };
 
 export type RootParams = {
-  Quests: { focus?: string } | undefined;
+  // Quests: { focus?: string } | undefined; // ARCHIVED for v1 - Quest feature removed
   WalkSummary: {
     walkId: string;
     stats?: {
@@ -96,6 +106,7 @@ export type RootParams = {
     };
     walkId?: string;
     returnScreen?: string;
+    tourMode?: boolean;
   } | undefined;
   ContributionScreen: undefined;
   WalkStartScreen: { filters?: WalkFilters } | undefined;
@@ -125,4 +136,34 @@ export type RootParams = {
   } | undefined;
   PastWalksNolli: { walkId?: string } | undefined;
   NolliSkia: { walkId?: string } | undefined;
+  // Tour screens
+  TourSelect: undefined;
+  TourNav: { tourId: string };
+  TourComplete: {
+    tourId?: string;
+    buildingsVisited?: number;
+    timeElapsed?: number;
+    tour?: any; // Full tour object
+    stats?: {
+      checkpointsVisited: number;
+      totalCheckpoints: number;
+    };
+  };
+  SkylineAR: {
+    tourId?: string;
+    checkpointIndex?: number;
+    viewpointBearing?: number;
+    checkpoint?: any; // TourCheckpoint from tour data
+  };
+  // Listings
+  BuildingListings: {
+    buildingBin: string;
+    buildingName: string;
+  };
+  ListingDetail: {
+    listingId: string;
+    listing?: any; // PropertyListing from listingsService
+  };
+  // Style map
+  StyleMap: undefined;
 };

@@ -193,7 +193,46 @@ export function getCandidateBuildingsInVision(params: {
 }
 
 /**
+ * Helper: Retry with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 1000,
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+
+      // Don't retry on abort (timeout) - but do retry on network errors
+      if (error instanceof Error && error.name === "AbortError") {
+        log.warn(
+          `[verification] CLIP attempt ${attempt + 1} timed out, retrying...`,
+        );
+      } else {
+        log.warn(
+          `[verification] CLIP attempt ${attempt + 1} failed: ${error}`,
+        );
+      }
+
+      // Exponential backoff: 1s, 2s, 4s
+      if (attempt < maxRetries - 1) {
+        const delay = baseDelayMs * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError || new Error("Max retries exceeded");
+}
+
+/**
  * Tier 1: Try CLIP/Embedding verification via backend
+ * Includes 45s timeout and 3x retry with exponential backoff
  */
 export async function verifyWithClip(params: {
   photo: any;
@@ -207,7 +246,7 @@ export async function verifyWithClip(params: {
   const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL ||
     "http://localhost:8000";
 
-  try {
+  const makeRequest = async (): Promise<Response> => {
     const formData = new FormData();
     formData.append("photo", {
       uri: photo.uri,
@@ -222,15 +261,26 @@ export async function verifyWithClip(params: {
     formData.append("altitude", (position.altitude || 0).toString());
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    // Increased timeout: 30s → 45s (CLIP cold start can take 25s+)
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-    const response = await fetch(`${BACKEND_URL}/api/scan`, {
-      method: "POST",
-      body: formData,
-      signal: controller.signal,
-    });
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/scan`, {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  };
 
-    clearTimeout(timeoutId);
+  try {
+    // Retry with exponential backoff: 3 attempts, 1s base delay
+    const response = await retryWithBackoff(makeRequest, 3, 1000);
 
     if (!response.ok) {
       log.warn("[verification] Backend scan failed", response.status);

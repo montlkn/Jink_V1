@@ -1,8 +1,9 @@
 import { useAuth } from "@/auth/authProvider";
 // eslint-disable-next-line no-restricted-imports
 import { RewardAnimationOverlay } from "@/components/rewards";
-import { questsActions } from "@/features/quests";
 import { screens } from "@/navigation/routes";
+// eslint-disable-next-line no-restricted-imports
+import { awardXp } from "@/services/gateways";
 import { DESIGNER_REPUBLIC_THEME } from "@/theme/designer_republic";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
@@ -25,14 +26,19 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const API_BASE = "https://lucienmount--nyc-scan-api-fastapi-app.modal.run/api";
 const DR = DESIGNER_REPUBLIC_THEME;
 
-// Contribution steps
+// Contribution steps - SIMPLIFIED for V1
+// Photo-only contribution is the primary flow (zero friction)
 const STEPS = {
   INITIAL: "initial",
-  CHOOSE_TYPE: "choose_type",
-  PHOTO_CAPTURE: "photo_capture",
-  INFO_FORM: "info_form",
+  PHOTO_CAPTURE: "photo_capture", // Simplified: photo + location only
   SUBMITTING: "submitting",
+  // Legacy steps (hidden for V1)
+  CHOOSE_TYPE: "choose_type",
+  INFO_FORM: "info_form",
 };
+
+// V1: Simple photo-only contribution by default
+const SIMPLIFIED_CONTRIBUTION = true;
 
 export default function NotFoundScreen({ route, navigation }) {
   const { session } = useAuth();
@@ -189,7 +195,7 @@ export default function NotFoundScreen({ route, navigation }) {
       // Award XP
       if (session?.user?.id) {
         try {
-          await questsActions.awardXp({
+          await awardXp({
             amount: xpEarned,
             source: "photo_contribution",
             userId: session.user.id,
@@ -275,7 +281,7 @@ export default function NotFoundScreen({ route, navigation }) {
       // Award XP
       if (session?.user?.id) {
         try {
-          await questsActions.awardXp({
+          await awardXp({
             amount: xpEarned,
             source: "building_contribution",
             userId: session.user.id,
@@ -356,10 +362,21 @@ export default function NotFoundScreen({ route, navigation }) {
 
       <TouchableOpacity
         style={styles.secondaryButton}
-        onPress={() => setCurrentStep(STEPS.CHOOSE_TYPE)}
+        onPress={() => {
+          // V1: Go directly to photo capture (zero friction)
+          if (SIMPLIFIED_CONTRIBUTION) {
+            setCurrentStep(STEPS.PHOTO_CAPTURE);
+          } else {
+            setCurrentStep(STEPS.CHOOSE_TYPE);
+          }
+        }}
       >
-        <Text style={styles.secondaryButtonText}>+ CONTRIBUTE DATA</Text>
+        <Text style={styles.secondaryButtonText}>+ ADD THIS BUILDING</Text>
       </TouchableOpacity>
+
+      <Text style={styles.contributionHint}>
+        Just take a photo - we'll handle the rest!
+      </Text>
 
       <TouchableOpacity style={styles.linkButton} onPress={goHome}>
         <Text style={styles.linkButtonText}>← HOME</Text>
@@ -742,6 +759,14 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  contributionHint: {
+    fontSize: DR.typography.fontSize.sm,
+    color: DR.colors.muted,
+    textAlign: "center",
+    marginTop: DR.spacing.sm,
+    marginBottom: DR.spacing.md,
+    fontStyle: "italic",
   },
   // Option cards
   optionCard: {

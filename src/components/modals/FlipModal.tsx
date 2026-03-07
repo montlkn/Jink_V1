@@ -27,7 +27,8 @@ export function FlipModal({ visible, onClose, children }: FlipModalProps): JSX.E
     if (visible) {
       opacity.value = withTiming(1, { duration: 300 });
       // Reset to 180 (back showing) then flip to 0 (front showing)
-      rotateY.value = withTiming(180, { duration: 600 });
+      rotateY.value = 180; // Ensure we start at back
+      rotateY.value = withTiming(0, { duration: 600 });
     } else {
       const close = () => {
         // Optional: animate out? For now just hide

@@ -1,7 +1,7 @@
 import Foundation
 import Supabase
 
-struct AwardXPParams: Encodable {
+struct AwardXPParams: Encodable, Sendable {
     let pUserId: String
     let pAmount: Int
 

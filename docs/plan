@@ -1,0 +1,475 @@
+Architecture App V1 Launch Plan (Revised)                                                                                                           
+                                                                                                                                                     
+ Executive Summary                                                                                                                                   
+                                                                                                                                                     
+ Goal: In 2-3 weeks, create a demo-ready app with flawless scanning, compelling building content, smooth compass-based walk experience, and a guided 
+  tour mode.                                                                                                                                         
+                                                                                                                                                     
+ Key Insight from User: The compass-based dérive experience is INTENTIONAL - it's about being activated, not having a map. Hot/cold proximity,       
+ mystery, exploration. The gamification (quests, XP, etc.) helps the algorithm learn preferences and creates retention - simplify but don't cut.     
+                                                                                                                                                     
+ What Actually Needs Work:                                                                                                                           
+ 1. Scanning reliability - 35% failure rate from timeouts, GPS issues                                                                                
+ 2. Building info content - "Lore" placeholder, thin context, RAG failures                                                                           
+ 3. Walk experience polish - hot/cold feedback, compass UX, arrival detection                                                                        
+ 4. Guided tour mode - doesn't exist yet (Brooklyn Bridge style)                                                                                     
+ 5. Gamification simplification - too complex/confusing, needs streamlining                                                                          
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Priority 1: Scanning Reliability (Days 1-5)                                                                                                         
+                                                                                                                                                     
+ Current Problems                                                                                                                                    
+                                                                                                                                                     
+ - CLIP backend cold-start timeouts (30s timeout, needs 25s+) - 15% failures                                                                         
+ - GPS reverse geocode wrong in dense areas - 10% failures                                                                                           
+ - Promise.race() logic is broken (line 445-448) - sequential not parallel                                                                           
+ - BIN format mismatch (.0 suffix) - 7% failures                                                                                                     
+ - No offline fallback                                                                                                                               
+                                                                                                                                                     
+ Fixes                                                                                                                                               
+                                                                                                                                                     
+ 1.1 GPS Grid Pre-Cache (Days 1-2)                                                                                                                   
+                                                                                                                                                     
+ Create: src/services/gpsGridCacheService.ts                                                                                                         
+ - On app startup, fetch buildings in 200m grid around user                                                                                          
+ - For walks, pre-cache route buildings at start                                                                                                     
+ - Impact: 95% of scans instant (0ms vs 5-30s)                                                                                                       
+                                                                                                                                                     
+ 1.2 Fix Promise.race() (Day 2)                                                                                                                      
+                                                                                                                                                     
+ File: src/screens/Scan/ScanScreen.js lines 445-448                                                                                                  
+ - Make GPS and CLIP truly parallel                                                                                                                  
+ - First success wins, don't wait for both                                                                                                           
+                                                                                                                                                     
+ 1.3 CLIP Timeout + Retry (Day 3)                                                                                                                    
+                                                                                                                                                     
+ File: src/services/buildingVerificationService.ts                                                                                                   
+ - Increase timeout 30s → 45s                                                                                                                        
+ - Add 3x retry with exponential backoff                                                                                                             
+ - Impact: 65% → 85% CLIP success                                                                                                                    
+                                                                                                                                                     
+ 1.4 Address Normalization (Day 4)                                                                                                                   
+                                                                                                                                                     
+ Create: src/utils/addressNormalizer.ts                                                                                                              
+ - "165A Main St" → "165", "Main St"                                                                                                                 
+ - Avenue ↔ Ave, Street ↔ St variations                                                                                                              
+ - Fuzzy match with Levenshtein                                                                                                                      
+ - Impact: 70% → 90% address matching                                                                                                                
+                                                                                                                                                     
+ 1.5 Tour Building Lookup (Day 5)                                                                                                                    
+                                                                                                                                                     
+ Create: src/data/tourBuildingLookup.ts                                                                                                              
+ - Hard-code locations for tour buildings                                                                                                            
+ - GPS proximity only in tour mode (no CLIP needed)                                                                                                  
+ - Impact: 99%+ scan success in tours                                                                                                                
+                                                                                                                                                     
+ Target: 95%+ overall scan success, 99%+ in tour mode                                                                                                
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Priority 2: Compelling Building Info (Days 6-9)                                                                                                     
+                                                                                                                                                     
+ Current Problems                                                                                                                                    
+                                                                                                                                                     
+ - "Lore" section is hardcoded placeholder: "No lore available yet."                                                                                 
+ - RAG-based history fails silently when backend down                                                                                                
+ - Content is thin - metadata only, no stories                                                                                                       
+ - Image fallback chain breaks on BIN mismatch                                                                                                       
+                                                                                                                                                     
+ Fixes                                                                                                                                               
+                                                                                                                                                     
+ 2.1 Curate Tour Building Content (Days 6-7)                                                                                                         
+                                                                                                                                                     
+ For ~10 Brooklyn Bridge tour buildings, manually create:                                                                                            
+ - 150-200 word narrative for each                                                                                                                   
+ - High-quality photos uploaded to Cloudflare                                                                                                        
+ - Complete metadata (architect, year, style, materials)                                                                                             
+ - Aesthetic profile populated                                                                                                                       
+ - Fun facts / "did you know"                                                                                                                        
+                                                                                                                                                     
+ No RAG dependency - content is pre-written and reliable.                                                                                            
+                                                                                                                                                     
+ 2.2 Fix Lore Section (Day 8)                                                                                                                        
+                                                                                                                                                     
+ File: src/screens/Scan/BuildingInfoScreen.tsx                                                                                                       
+                                                                                                                                                     
+ Replace placeholder with either:                                                                                                                    
+ - Curated content (for known buildings)                                                                                                             
+ - "Historical context loading..." with actual RAG                                                                                                   
+ - Graceful "Contribute the story of this building" CTA if no content                                                                                
+                                                                                                                                                     
+ 2.3 RAG Fallback Improvements (Day 9)                                                                                                               
+                                                                                                                                                     
+ File: src/services/ai/ragService.ts                                                                                                                 
+                                                                                                                                                     
+ - Add local cache of successful RAG results                                                                                                         
+ - Retry logic with backoff                                                                                                                          
+ - Better error messaging vs silent failure                                                                                                          
+ - Show partial content if available                                                                                                                 
+                                                                                                                                                     
+ Target: Every scanned building has SOMETHING interesting to show                                                                                    
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Priority 3: Walk Experience Polish (Days 10-13)                                                                                                     
+                                                                                                                                                     
+ Design Philosophy (Confirmed with User)                                                                                                             
+                                                                                                                                                     
+ - Compass-based dérive is INTENTIONAL                                                                                                               
+ - No full map - mystery and activation                                                                                                              
+ - Hot/cold proximity feedback                                                                                                                       
+ - BUT: Need clear, live-updating directions like Google Maps                                                                                        
+ - AND: Mini radar/circle map (video game style) for spatial awareness                                                                               
+                                                                                                                                                     
+ Current Issues                                                                                                                                      
+                                                                                                                                                     
+ - Hot/cold feedback could be more engaging                                                                                                          
+ - Turn-by-turn only shows first instruction, doesn't update                                                                                         
+ - Arrival detection has no geofence                                                                                                                 
+ - DirectionalGlow exists but could be more prominent                                                                                                
+ - Easy to get lost without better guidance                                                                                                          
+                                                                                                                                                     
+ Fixes                                                                                                                                               
+                                                                                                                                                     
+ 3.1 Live Turn-by-Turn Directions (Day 10)                                                                                                           
+                                                                                                                                                     
+ File: src/screens/Walk/WalkNavScreen.js lines 440-498                                                                                               
+                                                                                                                                                     
+ Make directions feel like Google Maps (without the map):                                                                                            
+ - Show next 2-3 steps, not just first instruction                                                                                                   
+ - Live updates based on current location                                                                                                            
+ - Clear formatting:                                                                                                                                 
+ ↑ Head north on Centre St (320 ft)                                                                                                                  
+ ↰ In 150 ft, turn left onto Chambers St                                                                                                             
+ ⬤ Then: Woolworth Building on your right                                                                                                            
+ - Recalculate if user deviates from route                                                                                                           
+ - Voice/haptic optional "turn now" alerts                                                                                                           
+                                                                                                                                                     
+ 3.2 Mini Radar Map (Day 11)                                                                                                                         
+                                                                                                                                                     
+ Create: src/components/walk/RadarMiniMap.tsx                                                                                                        
+                                                                                                                                                     
+ Video game style HUD element:                                                                                                                       
+ - Small circular radar (corner of screen)                                                                                                           
+ - Red dot = target building direction                                                                                                               
+ - Your heading indicator (like a compass rose)                                                                                                      
+ - Faint dots for other nearby buildings                                                                                                             
+ - Pulses when you're close                                                                                                                          
+ - NOT a street map, just spatial orientation                                                                                                        
+                                                                                                                                                     
+ This bridges the gap between "no map" and "totally lost."                                                                                           
+                                                                                                                                                     
+ 3.3 Enhanced Hot/Cold + Geofence (Day 12)                                                                                                           
+                                                                                                                                                     
+ Files: src/screens/Walk/WalkNavScreen.js, src/components/glow/DirectionalGlow.tsx                                                                   
+                                                                                                                                                     
+ Proximity feedback:                                                                                                                                 
+ - Color gradient: cold (blue) → warm (orange) → hot (red)                                                                                           
+ - Haptic pulses increase as you approach                                                                                                            
+ - "Getting warmer..." / "You're close!" text hints                                                                                                  
+ - Radar dot grows larger as you approach                                                                                                            
+                                                                                                                                                     
+ Geofence auto-prompt (30m):                                                                                                                         
+ - Auto-show "You've arrived! Scan to verify"                                                                                                        
+ - Strong haptic                                                                                                                                     
+ - DirectionalGlow at max intensity                                                                                                                  
+                                                                                                                                                     
+ 3.4 Walk Flow Polish (Day 13)                                                                                                                       
+                                                                                                                                                     
+ - Progress indicator (3/8 buildings)                                                                                                                
+ - XP earned visible during walk                                                                                                                     
+ - Smooth animations between buildings                                                                                                               
+ - "Skip" confirmation if skipping multiple                                                                                                          
+                                                                                                                                                     
+ Target: Navigate confidently without a full map, feel activated not lost                                                                            
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Priority 4: Guided Tour Mode (Days 14-18)                                                                                                           
+                                                                                                                                                     
+ What It Needs to Be                                                                                                                                 
+                                                                                                                                                     
+ - Linear, narrative-driven experience                                                                                                               
+ - Brooklyn Bridge + Financial District                                                                                                              
+ - Checkpoints with stories told in sequence                                                                                                         
+ - AR viewpoint at mid-span (point at skyline, see building labels)                                                                                  
+ - Clear start → middle → end                                                                                                                        
+                                                                                                                                                     
+ Implementation                                                                                                                                      
+                                                                                                                                                     
+ 4.1 Tour Data Structure (Day 14)                                                                                                                    
+                                                                                                                                                     
+ Create: src/data/tours/brooklynBridge.ts                                                                                                            
+                                                                                                                                                     
+ export const BROOKLYN_BRIDGE_TOUR = {                                                                                                               
+   id: 'brooklyn-bridge',                                                                                                                            
+   name: 'Brooklyn Bridge & Financial District',                                                                                                     
+   duration: '45-60 min',                                                                                                                            
+   distance: '2.1 miles',                                                                                                                            
+                                                                                                                                                     
+   checkpoints: [                                                                                                                                    
+     {                                                                                                                                               
+       type: 'waypoint',                                                                                                                             
+       name: 'Brooklyn Bridge Entrance',                                                                                                             
+       location: { lat, lng },                                                                                                                       
+       narrative: 'Built in 1883...',                                                                                                                
+       action: 'Start walking',                                                                                                                      
+     },                                                                                                                                              
+     {                                                                                                                                               
+       type: 'viewpoint',                                                                                                                            
+       name: 'Mid-Span Skyline',                                                                                                                     
+       narrative: 'Turn and face Manhattan...',                                                                                                      
+       ar_overlay: { buildings: ['woolworth', 'one-wtc'] },                                                                                          
+       action: 'Point camera at skyline',                                                                                                            
+     },                                                                                                                                              
+     {                                                                                                                                               
+       type: 'building',                                                                                                                             
+       bin: '1001831',                                                                                                                               
+       name: 'Woolworth Building',                                                                                                                   
+       narrative: 'The Cathedral of Commerce...',                                                                                                    
+       action: 'Scan to verify',                                                                                                                     
+     },                                                                                                                                              
+     // ... 8-10 total checkpoints                                                                                                                   
+   ],                                                                                                                                                
+                                                                                                                                                     
+   completion: {                                                                                                                                     
+     xp_reward: 500,                                                                                                                                 
+     summary: 'You explored 8 buildings...'                                                                                                          
+   }                                                                                                                                                 
+ };                                                                                                                                                  
+                                                                                                                                                     
+ 4.2 Tour Navigation Screen (Days 15-16)                                                                                                             
+                                                                                                                                                     
+ Create: src/screens/Tour/TourNavScreen.tsx                                                                                                          
+                                                                                                                                                     
+ Different from regular Jink:                                                                                                                        
+ - Linear progression (checkpoints in order)                                                                                                         
+ - Narrative panel at bottom (expandable)                                                                                                            
+ - "Next" disabled until checkpoint reached                                                                                                          
+ - Same compass-based navigation (not a map!)                                                                                                        
+ - Clear progress: "Stop 3 of 8"                                                                                                                     
+                                                                                                                                                     
+ 4.3 Skyline AR Overlay (Day 17)                                                                                                                     
+                                                                                                                                                     
+ Create: src/components/ar/SkylineOverlay.tsx                                                                                                        
+                                                                                                                                                     
+ At designated viewpoints:                                                                                                                           
+ - Camera opens                                                                                                                                      
+ - Building labels overlay on recognized structures                                                                                                  
+ - Tap label → mini info card                                                                                                                        
+ - "I found them all" to proceed                                                                                                                     
+                                                                                                                                                     
+ This is the "wow" moment for demos.                                                                                                                 
+                                                                                                                                                     
+ 4.4 Tour Selection & Completion (Day 18)                                                                                                            
+                                                                                                                                                     
+ - Tour picker screen (start with just Brooklyn Bridge)                                                                                              
+ - Tour completion summary                                                                                                                           
+ - XP and aesthetic profile impact                                                                                                                   
+ - "Share" option                                                                                                                                    
+                                                                                                                                                     
+ Target: One complete, polished tour that demonstrates full potential                                                                                
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Priority 5: Gamification Simplification (Days 19-21)                                                                                                
+                                                                                                                                                     
+ Current State                                                                                                                                       
+                                                                                                                                                     
+ - Too many systems competing for attention                                                                                                          
+ - Confusing from first open                                                                                                                         
+ - Helps algorithm but overwhelms users                                                                                                              
+                                                                                                                                                     
+ What to Simplify (not cut)                                                                                                                          
+                                                                                                                                                     
+ 5.1 Quests - Keep but Simplify (Day 19)                                                                                                             
+                                                                                                                                                     
+ Files: src/features/quests/, src/components/quests/                                                                                                 
+                                                                                                                                                     
+ - Keep daily/weekly quests (retention driver)                                                                                                       
+ - Reduce visual prominence on home screen                                                                                                           
+ - Simpler quest types: "Scan 3 buildings", "Complete a walk"                                                                                        
+ - Remove complex quest chains for v1                                                                                                                
+                                                                                                                                                     
+ 5.2 XP/Levels - Keep but Background (Day 19)                                                                                                        
+                                                                                                                                                     
+ - XP counter visible but not dominant                                                                                                               
+ - Level progress in profile, not everywhere                                                                                                         
+ - Remove milestone celebration modals (keep badge)                                                                                                  
+                                                                                                                                                     
+ 5.3 Streaks - Keep but Subtle (Day 20)                                                                                                              
+                                                                                                                                                     
+ - Show streak count                                                                                                                                 
+ - Remove elaborate streak milestone modals                                                                                                          
+ - Keep multiplier for algorithm value                                                                                                               
+                                                                                                                                                     
+ 5.4 Visas - Disable for V1 (Day 20)                                                                                                                 
+                                                                                                                                                     
+ File: src/config/featureFlags.ts                                                                                                                    
+ - Hide visa UI completely                                                                                                                           
+ - No one understands what it does                                                                                                                   
+ - Can enable post-launch once core is solid                                                                                                         
+                                                                                                                                                     
+ 5.5 Achievements - Keep Basic (Day 21)                                                                                                              
+                                                                                                                                                     
+ - Keep simple achievements ("First scan", "10 buildings")                                                                                           
+ - Remove obscure or complex achievements                                                                                                            
+ - Simplify achievement display                                                                                                                      
+                                                                                                                                                     
+ 5.6 Passport Polish (Day 21)                                                                                                                        
+                                                                                                                                                     
+ - Keep orb, aesthetic profile, stamps                                                                                                               
+ - Cleaner layout                                                                                                                                    
+ - Focus on profile evolution story                                                                                                                  
+                                                                                                                                                     
+ Target: Gamification adds value without overwhelming                                                                                                
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Files to Modify (Summary)                                                                                                                           
+                                                                                                                                                     
+ Critical (Days 1-9)                                                                                                                                 
+ ┌─────────────────────────────────────────────┬──────────────────────────────────┐                                                                  
+ │                    File                     │              Change              │                                                                  
+ ├─────────────────────────────────────────────┼──────────────────────────────────┤                                                                  
+ │ src/screens/Scan/ScanScreen.js              │ Fix Promise.race, add caching    │                                                                  
+ ├─────────────────────────────────────────────┼──────────────────────────────────┤                                                                  
+ │ src/services/buildingVerificationService.ts │ Timeout + retry                  │                                                                  
+ ├─────────────────────────────────────────────┼──────────────────────────────────┤                                                                  
+ │ Create src/services/gpsGridCacheService.ts  │ GPS pre-caching                  │                                                                  
+ ├─────────────────────────────────────────────┼──────────────────────────────────┤                                                                  
+ │ Create src/utils/addressNormalizer.ts       │ Address parsing                  │                                                                  
+ ├─────────────────────────────────────────────┼──────────────────────────────────┤                                                                  
+ │ src/screens/Scan/BuildingInfoScreen.tsx     │ Fix lore, better content display │                                                                  
+ ├─────────────────────────────────────────────┼──────────────────────────────────┤                                                                  
+ │ src/services/ai/ragService.ts               │ Caching, retry, fallbacks        │                                                                  
+ └─────────────────────────────────────────────┴──────────────────────────────────┘                                                                  
+ Tour Mode (Days 14-18)                                                                                                                              
+ ┌─────────────────────────────────────────────┬────────────────────┐                                                                                
+ │                    File                     │       Change       │                                                                                
+ ├─────────────────────────────────────────────┼────────────────────┤                                                                                
+ │ Create src/data/tours/brooklynBridge.ts     │ Tour content       │                                                                                
+ ├─────────────────────────────────────────────┼────────────────────┤                                                                                
+ │ Create src/screens/Tour/TourNavScreen.tsx   │ Tour navigation    │                                                                                
+ ├─────────────────────────────────────────────┼────────────────────┤                                                                                
+ │ Create src/components/ar/SkylineOverlay.tsx │ AR viewpoint       │                                                                                
+ ├─────────────────────────────────────────────┼────────────────────┤                                                                                
+ │ Tour building content files                 │ Curated narratives │                                                                                
+ └─────────────────────────────────────────────┴────────────────────┘                                                                                
+ Walk Polish (Days 10-13)                                                                                                                            
+ ┌─────────────────────────────────────────────┬─────────────────────────────────────┐                                                               
+ │                    File                     │               Change                │                                                               
+ ├─────────────────────────────────────────────┼─────────────────────────────────────┤                                                               
+ │ src/screens/Walk/WalkNavScreen.js           │ Live directions, hot/cold, geofence │                                                               
+ ├─────────────────────────────────────────────┼─────────────────────────────────────┤                                                               
+ │ src/components/glow/DirectionalGlow.tsx     │ Enhanced proximity feedback         │                                                               
+ ├─────────────────────────────────────────────┼─────────────────────────────────────┤                                                               
+ │ Create src/components/walk/RadarMiniMap.tsx │ Video game style radar HUD          │                                                               
+ └─────────────────────────────────────────────┴─────────────────────────────────────┘                                                               
+ Contributions (Integrated)                                                                                                                          
+ ┌────────────────────────────────────┬───────────────────────────────────┐                                                                          
+ │                File                │              Change               │                                                                          
+ ├────────────────────────────────────┼───────────────────────────────────┤                                                                          
+ │ src/screens/Scan/NotFoundScreen.js │ Simplify to photo + location only │                                                                          
+ └────────────────────────────────────┴───────────────────────────────────┘                                                                          
+ Gamification (Days 19-21)                                                                                                                           
+ ┌───────────────────────────────────┬──────────────────────────────────┐                                                                            
+ │               File                │              Change              │                                                                            
+ ├───────────────────────────────────┼──────────────────────────────────┤                                                                            
+ │ src/features/quests/              │ Simplify quest UI                │                                                                            
+ ├───────────────────────────────────┼──────────────────────────────────┤                                                                            
+ │ Create src/config/featureFlags.ts │ Disable visas                    │                                                                            
+ ├───────────────────────────────────┼──────────────────────────────────┤                                                                            
+ │ Various modal files               │ Reduce celebration interruptions │                                                                            
+ └───────────────────────────────────┴──────────────────────────────────┘                                                                            
+ ---                                                                                                                                                 
+ Testing & Demo Prep                                                                                                                                 
+                                                                                                                                                     
+ Before Demo                                                                                                                                         
+                                                                                                                                                     
+ 1. Test full Brooklyn Bridge tour end-to-end                                                                                                        
+ 2. Test scanning at each tour building (should be 99%+)                                                                                             
+ 3. Test walk compass navigation                                                                                                                     
+ 4. Test onboarding → quiz → first walk flow                                                                                                         
+ 5. Have backup WiFi/cellular in case of network issues                                                                                              
+                                                                                                                                                     
+ Demo Script                                                                                                                                         
+                                                                                                                                                     
+ 1. Show aesthetic quiz (establishes profile concept)                                                                                                
+ 2. Start Brooklyn Bridge tour                                                                                                                       
+ 3. Walk first segment, show compass navigation                                                                                                      
+ 4. Hit viewpoint, show AR skyline overlay                                                                                                           
+ 5. Scan Woolworth Building, show compelling info                                                                                                    
+ 6. Show how profile evolves                                                                                                                         
+ 7. Show simplified quests as retention hook                                                                                                         
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Priority 6: Simple User Contributions (Integrated Throughout)                                                                                       
+                                                                                                                                                     
+ Why Keep This                                                                                                                                       
+                                                                                                                                                     
+ - Accelerates data acquisition without you finding everything                                                                                       
+ - User engagement (they become invested in growing the database)                                                                                    
+ - Diverse photo angles improve CLIP training                                                                                                        
+ - Community-driven growth                                                                                                                           
+                                                                                                                                                     
+ Implementation: Photo + Location Only (Zero Friction)                                                                                               
+                                                                                                                                                     
+ File: src/screens/Scan/NotFoundScreen.js (already partially exists)                                                                                 
+                                                                                                                                                     
+ When building not found:                                                                                                                            
+ 1. User taps "Add this building"                                                                                                                    
+ 2. Camera opens                                                                                                                                     
+ 3. Take photo (GPS auto-captured)                                                                                                                   
+ 4. "Thanks! We'll add details soon."                                                                                                                
+ 5. Done - no forms, no friction                                                                                                                     
+                                                                                                                                                     
+ Backend:                                                                                                                                            
+ - Auto-approve if GPS matches known building footprint                                                                                              
+ - Queue for manual review otherwise                                                                                                                 
+ - You batch-review weekly                                                                                                                           
+ - Show "Pending" status to contributor                                                                                                              
+                                                                                                                                                     
+ Files to modify:                                                                                                                                    
+ - src/screens/Scan/NotFoundScreen.js - Simplify existing contribution flow                                                                          
+ - src/services/contributionService.ts - Remove complex form handling                                                                                
+                                                                                                                                                     
+ NOT Building (Deferred):                                                                                                                            
+                                                                                                                                                     
+ - Full metadata forms                                                                                                                               
+ - Photo cropping/editing                                                                                                                            
+ - User-submitted descriptions                                                                                                                       
+ - Community moderation system                                                                                                                       
+                                                                                                                                                     
+ Target: One-tap contributions that feed data growth                                                                                                 
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ What's NOT in This Plan (True Deferrals)                                                                                                            
+                                                                                                                                                     
+ - Nolli map (demo-only, complex to fix properly)                                                                                                    
+ - Complex contribution forms (keeping photo-only)                                                                                                   
+ - Multiple auth methods beyond Apple/Google                                                                                                         
+ - Lists/curation features                                                                                                                           
+ - Full offline mode                                                                                                                                 
+ - Midtown tour (stretch goal if time permits)                                                                                                       
+                                                                                                                                                     
+ ---                                                                                                                                                 
+ Success Metrics                                                                                                                                     
+ ┌──────────────────┬────────────────────────────────────────┐                                                                                       
+ │       Area       │                 Target                 │                                                                                       
+ ├──────────────────┼────────────────────────────────────────┤                                                                                       
+ │ Scanning         │ 95%+ success (99%+ tour mode)          │                                                                                       
+ ├──────────────────┼────────────────────────────────────────┤                                                                                       
+ │ Building info    │ Every scan shows compelling content    │                                                                                       
+ ├──────────────────┼────────────────────────────────────────┤                                                                                       
+ │ Walk nav         │ Smooth, engaging hot/cold experience   │                                                                                       
+ ├──────────────────┼────────────────────────────────────────┤                                                                                       
+ │ Tour             │ Brooklyn Bridge completable end-to-end │                                                                                       
+ ├──────────────────┼────────────────────────────────────────┤                                                                                       
+ │ First impression │ Clean, focused, not overwhelming       │                                                                                       
+ └──────────────────┴────────────────────────────────────────┘                                                                                       
+ ---                                                                                                                                                 
+ Timeline Summary                                                                                                                                    
+                                                                                                                                                     
+ Week 1 (Days 1-7): Scanning reliability + start building content                                                                                    
+ Week 2 (Days 8-14): Building info, walk polish (live directions + radar), tour data structure                                                       
+ Week 3 (Days 15-21): Tour mode completion, gamification simplification, testing                                                                     
+                                                                                                                                                     
+ Contributions: Simplify existing flow (1-2 days, integrated into Week 1 as part of NotFoundScreen cleanup)                                          
+                                                                                                                                                     
+ For Pratt demo: Brooklyn Bridge tour demonstrates the full vision - personalized architecture discovery with narrative-driven exploration. 

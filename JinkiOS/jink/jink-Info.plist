@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BUILDINGS_SUPABASE_ANON_KEY</key>
+	<string>$(BUILDINGS_SUPABASE_ANON_KEY)</string>
+	<key>BUILDINGS_SUPABASE_URL</key>
+	<string>$(BUILDINGS_SUPABASE_URL)</string>
+	<key>MBXAccessToken</key>
+	<string>$(MAPBOX_TOKEN)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Jink uses your camera to identify buildings.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Jink uses your location to find nearby buildings.</string>
+	<key>SCAN_API_URL</key>
+	<string>$(SCAN_API_URL)</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>SUPABASE_URL</key>
+	<string>$(SUPABASE_URL)</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>jink</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

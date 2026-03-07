@@ -6,7 +6,7 @@ type Loader = () => ComponentType<any>;
 const createLoader = (load: () => ScreenModule): Loader => () => load().default;
 
 export const ScreenLoaders: Record<string, Loader> = {
-  Quests: createLoader(() => require("@/screens/Quests/QuestsScreen")),
+  // Quests: createLoader(() => require("@/screens/Quests/QuestsScreen")), // ARCHIVED for v1 - Quest feature removed
   WalkSummary: createLoader(() => require("@/screens/Walk/WalkSummaryScreen")),
   Profile: createLoader(() => require("@/screens/Profile/ProfileScreen")),
   Passport: createLoader(() => require("@/screens/Passport/PassportScreen")),
@@ -47,4 +47,18 @@ export const ScreenLoaders: Record<string, Loader> = {
   ),
   NolliSkia: createLoader(() => require("@/screens/PastWalks/NolliMapScreen")),
   QuizResults: createLoader(() => require("@/screens/Quiz/QuizResultsScreen")),
+  // Tour screens
+  TourSelect: createLoader(() => require("@/screens/Tour/TourSelectScreen")),
+  TourNav: createLoader(() => require("@/screens/Tour/TourNavScreen")),
+  TourComplete: createLoader(() => require("@/screens/Tour/TourCompleteScreen")),
+  SkylineAR: createLoader(() => require("@/screens/Tour/SkylineARScreen")),
+  // Listings
+  BuildingListings: createLoader(() =>
+    require("@/screens/Listings/BuildingListingsScreen")
+  ),
+  ListingDetail: createLoader(() =>
+    require("@/screens/Listings/ListingDetailScreen")
+  ),
+  // Style map
+  StyleMap: createLoader(() => require("@/screens/Walk/StyleMapScreen")),
 };

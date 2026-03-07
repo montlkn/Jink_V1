@@ -8,7 +8,6 @@
  * - ./supabaseClient - for supabase client instance
  * - ./authGateway - for auth operations
  * - ./xpGateway - for XP operations
- * - ./questGateway - for quest operations
  * - ./profileGateway - for profile operations
  * - ./walksGateway - for walk operations
  * - ./streakGateway - for streak operations
@@ -39,15 +38,6 @@ export {
   type FetchXpSummaryResult,
   type XpSnapshot,
 } from "./xpGateway";
-
-// Re-export quest functions
-export {
-  fetchActiveQuests,
-  completeQuest,
-  type FetchActiveQuestsResult,
-  type ActiveQuestsResponse,
-  type CompleteQuestResult,
-} from "./questGateway";
 
 // Re-export profile functions
 export {

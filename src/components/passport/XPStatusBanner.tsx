@@ -11,6 +11,8 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import XPGlassOrb from "../three/orb/XPGlassOrb";
+import { XPDetailModal } from "../modals/XPDetailModal";
+import { getProgressToNextLevel } from "@/constants/xpLevels";
 
 type Props = {
   currentXP: number;
@@ -27,160 +29,94 @@ const COLLAPSED_WIDTH = 80;
 const HEIGHT = 80;
 
 function XPStatusBanner({
-  currentXP,
-  level,
-  xpForNextLevel,
-  streakCount,
+  currentXP = 0,
+  level = 1,
+  xpForNextLevel = 100,
+  streakCount = 0,
   multiplier,
   multiplierColor,
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const width = useSharedValue(COLLAPSED_WIDTH);
-  const contentOpacity = useSharedValue(0);
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const streakInfo = getStreakMultiplier(streakCount);
-  const progressPercent = currentXP / xpForNextLevel;
-  const remainingXP = xpForNextLevel - currentXP;
+  const safeXp = Number(currentXP) || 0;
+  const progress = getProgressToNextLevel(safeXp);
+  const streakInfo = getStreakMultiplier(Number(streakCount) || 0);
+  const progressPercent = progress.xpNeededForNext > 0 ? progress.xpInCurrentLevel / progress.xpNeededForNext : 0;
 
   // Check if we're in multiplier mode
   const isMultiplierMode = multiplier !== undefined && multiplier > 1.0;
 
   const handlePress = () => {
-    // Allow expansion in all modes
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const nextState = !isExpanded;
-    setIsExpanded(nextState);
-
-    width.value = withSpring(nextState ? EXPANDED_WIDTH : COLLAPSED_WIDTH, {
-      damping: 15,
-      stiffness: 100,
-    });
-    contentOpacity.value = withTiming(nextState ? 1 : 0, { duration: 300 });
+    setModalVisible(true);
   };
 
-  const containerStyle = useAnimatedStyle(() => ({
-    width: width.value,
-  }));
-
-  const contentStyle = useAnimatedStyle(() => ({
-    opacity: contentOpacity.value,
-  }));
-
   return (
-    <Animated.View style={[styles.container, containerStyle]}>
-      <Pressable onPress={handlePress} style={styles.pressable}>
-        {/* Background Layer for Expanded State */}
-        {/* Background Layer (Animate opacity/styles if needed, currently covers all) */}
-        <Animated.View style={[styles.background, contentStyle]} />
+    <>
+      <View style={styles.container}>
+        <Pressable onPress={handlePress} style={styles.pressable}>
+          {/* Background Layer */}
+          <View style={styles.background} />
 
-        {/* Orb Section (Always Visible, but moves/scales slightly if needed) */}
-        <View style={styles.orbWrapper}>
-          <View style={styles.orbContainer} pointerEvents="none">
-            <XPGlassOrb
-              size={HEIGHT}
-              level={level}
-              progress={progressPercent}
-              tintColor={isMultiplierMode ? multiplierColor : undefined}
-            />
-          </View>
-          {/* Level/Multiplier Overlay */}
-          <View style={styles.centerContent} pointerEvents="none">
-            {isMultiplierMode ? (
-              // Multiplier mode: show multiplier text only
-              <Text style={styles.multiplierText}>{multiplier}X</Text>
-            ) : (
-              // Normal mode: show star icon and level
-              <>
-                <Ionicons name="star" size={18} color={theme.colors.warning} />
-                <Text style={styles.levelText}>{level}</Text>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Expanded Content Section */}
-        <Animated.View style={[styles.detailsContainer, contentStyle]}>
-          {isExpanded && (
-            <View style={styles.grid}>
-              {/* Top Row: XP Progress */}
-              <View style={styles.row}>
-                <View style={styles.statBlock}>
-                  <View style={styles.row}>
-                     <Text style={styles.label}>XP PROGRESS</Text>
-                     <Text style={styles.value}>{currentXP.toLocaleString()} / {xpForNextLevel.toLocaleString()}</Text>
-                  </View>
-                  <View style={styles.progressBar}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        { width: `${Math.min(progressPercent * 100, 100)}%` },
-                      ]}
-                    />
-                  </View>
-                  <View style={styles.row}>
-                     <Text style={styles.subtext}>
-                        {remainingXP.toLocaleString()} XP TO NEXT LEVEL
-                     </Text>
-                     <Text style={styles.subtext}>
-                        {Math.floor(progressPercent * 100)}%
-                     </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Bottom Row: Streak & Multiplier */}
-              <View style={[styles.row, { marginTop: 8 }]}>
-                <View style={styles.statBlock}>
-                  <View style={styles.inline}>
-                    <Ionicons
-                      name="flame"
-                      size={14}
-                      color={theme.colors.accent}
-                      style={{ marginRight: 4 }}
-                    />
-                    <Text style={styles.label}>STREAK</Text>
-                  </View>
-                  <Text style={[styles.value, { marginLeft: 16 }]}>
-                    {streakCount} {streakCount === 1 ? "DAY" : "DAYS"}
-                  </Text>
-                </View>
-
-                <View style={styles.divider} />
-
-                <View style={styles.statBlock}>
-                   <Text style={styles.label}>BONUS</Text>
-                   <Text style={[styles.value, { color: streakInfo.color }]}>{streakInfo.multiplier}</Text>
-                </View>
-              </View>
+          {/* Orb Section */}
+          <View style={styles.orbWrapper}>
+            <View style={styles.orbContainer} pointerEvents="none">
+              <XPGlassOrb
+                size={HEIGHT}
+                level={Number(level) || 1}
+                progress={progressPercent}
+                tintColor={isMultiplierMode ? multiplierColor : undefined}
+              />
             </View>
-          )}
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
+            {/* Level/Multiplier Overlay */}
+            <View style={styles.centerContent} pointerEvents="none">
+              {isMultiplierMode ? (
+                <Text style={styles.multiplierText}>{multiplier}X</Text>
+              ) : (
+                <>
+                  <Ionicons name="star" size={18} color={theme.colors.warning} />
+                  <Text style={styles.levelText}>{Number(level) || 1}</Text>
+                </>
+              )}
+            </View>
+          </View>
+        </Pressable>
+      </View>
+
+      <XPDetailModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        xp={safeXp}
+        level={level}
+        levelTitle={progress.currentLevelTitle}
+        tier={progress.tier}
+        xpForNextLevel={progress.cumulativeXp + progress.xpNeededForNext}
+        streakCount={streakCount}
+        multiplier={parseFloat(streakInfo.multiplier)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     height: HEIGHT,
+    width: HEIGHT, // Fixed width since we removed expansion
     borderRadius: 35,
     overflow: "hidden",
-    flexDirection: "row",
     alignItems: "center",
-    // Remove static border/bg from container to allow orb to stand alone when collapsed
+    justifyContent: "center",
   },
   pressable: {
-    flex: 1,
-    flexDirection: "row",
+    width: '100%',
+    height: '100%',
     alignItems: "center",
+    justifyContent: "center",
   },
   background: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.surface,
-    borderWidth: theme.layout.borderWidth.thin,
-    borderColor: theme.colors.border,
-    borderRadius: 35,
-    ...SHADOWS.small,
+    backgroundColor: "transparent",
+    // Remove visual container elements to show only the orb
   },
   orbWrapper: {
     width: HEIGHT,
@@ -213,64 +149,6 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
-  },
-  detailsContainer: {
-    flex: 1,
-    paddingRight: theme.spacing.lg,
-    paddingLeft: theme.spacing.sm, 
-    justifyContent: "center",
-  },
-  grid: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  statBlock: {
-    justifyContent: "center",
-    flex: 1,
-  },
-  inline: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  label: {
-    fontSize: 8,
-    color: theme.colors.muted,
-    fontWeight: "bold",
-    letterSpacing: 1,
-  },
-  value: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text,
-    fontWeight: "bold",
-    fontFamily: theme.typography.fontFamily.monospace,
-  },
-  subtext: {
-    fontSize: 8,
-    color: theme.colors.muted,
-    marginTop: 2,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: theme.colors.border,
-    width: "100%", 
-    marginTop: 2,
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: theme.colors.accent,
-    borderRadius: 2,
-  },
-  divider: {
-    width: 1,
-    height: 20,
-    backgroundColor: theme.colors.border,
-    marginHorizontal: 12,
   },
 });
 

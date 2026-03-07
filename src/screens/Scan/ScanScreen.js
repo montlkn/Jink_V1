@@ -1,6 +1,7 @@
 import { useAuth } from '@/auth/authProvider';
-import { questsActions } from '@/features/quests';
 import { log } from '@/lib/log';
+// eslint-disable-next-line no-restricted-imports
+import { awardXp } from '@/services/gateways';
 import { screens } from "@/navigation/routes";
 import { theme } from '@/theme/tokens';
 import { APP_COLORS } from '@/constants/appColors';
@@ -24,11 +25,15 @@ import { verifyBuilding } from '@/services/buildingVerificationService';
 import { createAestheticEvent } from '@/services/gateways/aestheticEventGateway';
 // eslint-disable-next-line no-restricted-imports
 import { fetchContributionsByLocation } from '@/services/contributionsService';
+// eslint-disable-next-line no-restricted-imports
+import { initializeGridCache, findBuildingByGPS, findBuildingByAddress, findBuildingByBIN, shouldRefreshCache } from '@/services/gpsGridCacheService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNetworkStatus } from '@/utils/networkStatus';
 
 export default function ScanScreen({ navigation, route }) {
   const { session } = useAuth();
-  
+  const { isOnline } = useNetworkStatus();
+
   // Vision Camera hooks for device selection and permissions
   const { hasPermission, requestPermission } = useCameraPermission();
   
@@ -63,7 +68,41 @@ export default function ScanScreen({ navigation, route }) {
   });
 
   const [isScanning, setIsScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState('Checking nearby buildings...');
+  const [showRetry, setShowRetry] = useState(false);
   const [nearbyBuildings, setNearbyBuildings] = useState([]);
+
+  // Progressive loading messages during scan
+  const scanTimersRef = useRef([]);
+  useEffect(() => {
+    if (isScanning) {
+      setScanMessage('Checking nearby buildings...');
+      setShowRetry(false);
+
+      const t1 = setTimeout(() => setScanMessage('Analyzing architecture...'), 3000);
+      const t2 = setTimeout(() => setScanMessage('Running deep scan...'), 8000);
+      const t3 = setTimeout(() => {
+        setScanMessage('Still working...');
+        setShowRetry(true);
+      }, 15000);
+      const t4 = setTimeout(() => {
+        // Hard timeout — abort and show retry
+        setIsScanning(false);
+        setScanMessage('Scan timed out.');
+        setShowRetry(true);
+      }, 30000);
+
+      scanTimersRef.current = [t1, t2, t3, t4];
+    } else {
+      scanTimersRef.current.forEach(clearTimeout);
+      scanTimersRef.current = [];
+      setShowRetry(false);
+    }
+    return () => {
+      scanTimersRef.current.forEach(clearTimeout);
+      scanTimersRef.current = [];
+    };
+  }, [isScanning]);
 
   // Verification mode params from WalkNav
   const verificationMode = route.params?.verificationMode || false;
@@ -245,6 +284,12 @@ export default function ScanScreen({ navigation, route }) {
               altitude: loc.coords.altitude ?? null,
             });
             lastGPSTime.current = Date.now();
+
+            // Initialize/refresh GPS grid cache when location updates significantly
+            if (shouldRefreshCache(loc.coords.latitude, loc.coords.longitude)) {
+              initializeGridCache(loc.coords.latitude, loc.coords.longitude)
+                .catch(err => log.warn('[scan] Failed to refresh grid cache', err));
+            }
           }
         );
       } catch (error) {
@@ -376,13 +421,43 @@ export default function ScanScreen({ navigation, route }) {
         return;
       }
 
-      // Normal scan mode - try CLIP/multi-tier verification first, fallback to backend GPS
-      log.info('[scan] Starting parallel scan (GPS lookups + CLIP)');
+      // Normal scan mode - use tiered lookup strategy
+      log.info('[scan] Starting tiered scan (Cache → GPS → CLIP)');
 
-      // 1. Start GPS-based lookups immediately (Parallel Task)
+      // TIER 0: Check GPS Grid Cache FIRST (instant, 0ms)
+      const cachedBuilding = findBuildingByGPS(position.latitude, position.longitude, 0.03);
+      if (cachedBuilding && cachedBuilding.name) {
+        log.info('[scan] INSTANT CACHE HIT!', { building: cachedBuilding.name });
+
+        // Award XP
+        await awardXp({ amount: 50, source: 'building_scan' });
+
+        // Track event
+        try {
+          if (session?.user?.id && cachedBuilding.bbl) {
+            await createAestheticEvent({
+              userId: session.user.id,
+              eventType: 'building_scan',
+              eventSubtype: 'cache_hit',
+              buildingBbl: cachedBuilding.bbl,
+              payload: { scan_method: 'gps_cache' },
+            });
+          }
+        } catch (error) {
+          log.warn('[scan] Failed to create aesthetic event', error);
+        }
+
+        navigation.navigate(screens.BuildingInfo, { buildingData: cachedBuilding });
+        return;
+      }
+
+      // TIER 1-3: Run GPS lookups and CLIP truly in parallel using Promise.allSettled
+      // This fixes the broken Promise.race logic - now both run simultaneously
+
+      // Start all lookups in parallel
       const gpsLookupPromise = (async () => {
         try {
-          // Tier 2: Check user-contributed buildings table (by GPS proximity)
+          // Check user-contributed buildings table (by GPS proximity)
           log.info('[scan] Starting user_contributed_buildings lookup');
           const contributedMatch = await fetchContributedBuildingBySearch({
             lat: position.latitude,
@@ -398,7 +473,7 @@ export default function ScanScreen({ navigation, route }) {
         }
 
         try {
-          // Tier 3: Try reverse geocoding + address lookup
+          // Try reverse geocoding + address lookup
           log.info('[scan] Starting address lookup');
           const reverseGeocode = await Location.reverseGeocodeAsync({
             latitude: position.latitude,
@@ -408,15 +483,22 @@ export default function ScanScreen({ navigation, route }) {
           if (reverseGeocode && reverseGeocode.length > 0) {
             const geo = reverseGeocode[0];
             const streetAddress = `${geo.streetNumber || ''} ${geo.street || ''}`.trim();
-            
+
             if (streetAddress) {
-              const addressMatch = await fetchBuildingBySearch({ 
+              // Try cache first for address
+              const cachedAddressMatch = findBuildingByAddress(streetAddress, position.latitude, position.longitude);
+              if (cachedAddressMatch && cachedAddressMatch.name) {
+                return { type: 'address_cache', data: cachedAddressMatch, address: streetAddress };
+              }
+
+              // Fall back to DB lookup
+              const addressMatch = await fetchBuildingBySearch({
                 address: streetAddress,
                 lat: position.latitude,
                 lng: position.longitude,
                 radiusKm: 0.05, // 50m radius
               });
-              
+
               if (addressMatch && addressMatch.name) {
                 return { type: 'address', data: addressMatch, address: streetAddress };
               }
@@ -428,7 +510,7 @@ export default function ScanScreen({ navigation, route }) {
         return null;
       })();
 
-      // 2. Start CLIP verification (Parallel Task - needs photo)
+      // Start CLIP verification in parallel (doesn't block GPS)
       const clipPromise = verifyBuilding({
         photo,
         position,
@@ -438,14 +520,20 @@ export default function ScanScreen({ navigation, route }) {
         nearbyBuildings: nearbyBuildings || [],
       });
 
-      // 3. Race them! Prioritize GPS if fast, but wait for CLIP if GPS fails
-      // We create a race where if GPS returns a match, we use it.
-      // If GPS returns null, we wait for CLIP.
-      
-      const result = await Promise.race([
-        gpsLookupPromise.then(res => res ? res : clipPromise),
-        clipPromise
-      ]);
+      // Wait for BOTH to complete (or fail/timeout) - truly parallel
+      const [gpsResult, clipResult] = await Promise.allSettled([gpsLookupPromise, clipPromise]);
+
+      // Process results - prefer GPS (faster user experience) over CLIP
+      const gpsMatch = gpsResult.status === 'fulfilled' ? gpsResult.value : null;
+      const clipMatch = clipResult.status === 'fulfilled' ? clipResult.value : null;
+
+      // Use GPS result if available
+      let result = gpsMatch;
+
+      // If no GPS match, use CLIP result
+      if (!result && clipMatch && clipMatch.verified) {
+        result = clipMatch;
+      }
 
       // Handle the winner
       if (result && result.type === 'contributed') {
@@ -456,7 +544,7 @@ export default function ScanScreen({ navigation, route }) {
         });
 
         // Award XP
-        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+        await awardXp({ amount: 50, source: 'building_scan' });
 
         // Track event
         try {
@@ -480,15 +568,16 @@ export default function ScanScreen({ navigation, route }) {
         return;
       }
 
-      if (result && result.type === 'address') {
+      if (result && (result.type === 'address' || result.type === 'address_cache')) {
         const addressMatch = result.data;
         log.info('[scan] FAST MATCH: Address lookup match found!', {
             building: addressMatch.name,
             address: result.address,
+            fromCache: result.type === 'address_cache',
         });
 
         // Award XP
-        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+        await awardXp({ amount: 50, source: 'building_scan' });
 
         // Track event
         try {
@@ -496,10 +585,10 @@ export default function ScanScreen({ navigation, route }) {
                 await createAestheticEvent({
                 userId: session.user.id,
                 eventType: 'building_scan',
-                eventSubtype: 'address_match',
+                eventSubtype: result.type === 'address_cache' ? 'address_cache_hit' : 'address_match',
                 buildingBbl: addressMatch.bbl,
                 payload: {
-                    scan_method: 'address_lookup',
+                    scan_method: result.type === 'address_cache' ? 'address_cache' : 'address_lookup',
                     address: result.address,
                 },
                 });
@@ -512,31 +601,28 @@ export default function ScanScreen({ navigation, route }) {
         return;
       }
 
-      // If we are here, it means either CLIP won, or GPS failed and we fell back to CLIP
-      // Check CLIP result (which might be the result of the race or awaited after GPS failed)
-      const clipResult = result && result.verified ? result : await clipPromise;
-
-      if (clipResult && clipResult.verified && clipResult.buildingData) {
+      // Check if CLIP returned a match
+      if (clipMatch && clipMatch.verified && clipMatch.buildingData) {
         log.info('[scan] CLIP match found!', {
-          building: clipResult.buildingData.name,
-          method: clipResult.method,
-          confidence: clipResult.confidence,
+          building: clipMatch.buildingData.name,
+          method: clipMatch.method,
+          confidence: clipMatch.confidence,
         });
 
         // Award XP for successful scan
-        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+        await awardXp({ amount: 50, source: 'building_scan' });
 
         // Track aesthetic event
         try {
-          if (session?.user?.id && clipResult.buildingData?.bbl) {
+          if (session?.user?.id && clipMatch.buildingData?.bbl) {
             await createAestheticEvent({
               userId: session.user.id,
               eventType: 'building_scan',
               eventSubtype: 'clip_match',
-              buildingBbl: clipResult.buildingData.bbl,
+              buildingBbl: clipMatch.buildingData.bbl,
               payload: {
-                scan_method: clipResult.method,
-                confidence: clipResult.confidence,
+                scan_method: clipMatch.method,
+                confidence: clipMatch.confidence,
               },
             });
           }
@@ -544,7 +630,7 @@ export default function ScanScreen({ navigation, route }) {
           log.warn('[scan] Failed to create aesthetic event', error);
         }
 
-        navigation.navigate(screens.BuildingInfo, { buildingData: clipResult.buildingData });
+        navigation.navigate(screens.BuildingInfo, { buildingData: clipMatch.buildingData });
         return;
       }
 
@@ -584,7 +670,7 @@ export default function ScanScreen({ navigation, route }) {
               });
 
               // Award XP for successful scan
-              await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+              await awardXp({ amount: 50, source: 'building_scan' });
 
               // Track aesthetic event
               try {
@@ -665,7 +751,7 @@ export default function ScanScreen({ navigation, route }) {
       // Normal scan mode - navigate to building info
       if (data.building && data.building.name) {
         // Award XP for successful scan (50 XP base)
-        await questsActions.awardXp({ amount: 50, source: 'building_scan' });
+        await awardXp({ amount: 50, source: 'building_scan' });
 
         // Track aesthetic event for building scan
         try {
@@ -853,6 +939,13 @@ export default function ScanScreen({ navigation, route }) {
         </View>
       )}
 
+      {/* Offline Banner */}
+      {!isOnline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>You're offline — scans may fail</Text>
+        </View>
+      )}
+
       {/* Sensor Panel */}
       <View style={styles.sensorPanel}>
         <Text style={styles.sensorText}>
@@ -937,10 +1030,21 @@ export default function ScanScreen({ navigation, route }) {
       </View>
 
       {/* Loading Overlay with Orb */}
-      {isScanning && (
+      {(isScanning || showRetry) && (
         <View style={styles.loadingOverlay}>
           <ArchetypeOrb size={260} />
-          <Text style={styles.loadingText}>Identifying building...</Text>
+          <Text style={styles.loadingText}>{scanMessage}</Text>
+          {showRetry && (
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => {
+                setShowRetry(false);
+                handleCapture();
+              }}
+            >
+              <Text style={styles.retryButtonText}>Retry Scan</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -1068,6 +1172,36 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.lg,
     fontWeight: '600',
     marginTop: 30,
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  retryButtonText: {
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: '600',
+  },
+  offlineBanner: {
+    position: 'absolute',
+    top: 120,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(198, 40, 40, 0.9)',
+    padding: 10,
+    borderRadius: 8,
+    zIndex: 14,
+    alignItems: 'center',
+  },
+  offlineBannerText: {
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: '600',
   },
   verificationBanner: {
     position: 'absolute',

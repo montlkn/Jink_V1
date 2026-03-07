@@ -1,19 +1,16 @@
 import PassportHeader from "@/components/passport/PassportHeader";
-import QuestCard from "@/components/quests/QuestCard";
-import QuestDetailModal from "@/components/quests/QuestDetailModal";
 import AestheticAuraSheet, { type AuraSegment } from "@/components/sheets/AestheticAuraSheet";
 import { getArchetypeColor } from "@/constants/archetypeColors";
 import {
     passportLists as passportListContent
 } from "@/constants/passportContent";
+import { FEATURE_FLAGS } from "@/config/featureFlags";
 import ArchetypeOrb from "@/features/orb/ArchetypeOrb";
 import { useAestheticProfile } from "@/hooks/useAestheticProfile";
 import { usePassportData } from "@/hooks/usePassportData";
-import { useQuestsData } from "@/hooks/useQuestsData";
 import { log } from "@/lib/log";
 import { screens, type RootParams } from "@/navigation/routes";
 import { useOrbTransition } from "@/state/orbTransitionContext";
-import { getStreakMultiplier } from "@/theme/designConstants";
 import { theme, SPACING, BORDER_RADIUS, TYPOGRAPHY } from "@/theme/tokens";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -86,11 +83,8 @@ function PassportSkeleton() {
 export function PassportView(): JSX.Element {
   const navigation = useNavigation<PassportNavigation>();
   const passportState = usePassportData();
-  const questsState = useQuestsData();
   const { profile } = useAestheticProfile();
   const { orbData } = useOrbTransition();
-  const [selectedQuest, setSelectedQuest] = useState<any>(null);
-  const [questModalVisible, setQuestModalVisible] = useState(false);
   const [auraModalVisible, setAuraModalVisible] = useState(false);
 
   // Debug: log profile to understand its structure
@@ -159,8 +153,7 @@ export function PassportView(): JSX.Element {
   const handleRefresh = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => null);
     passportState.refresh();
-    questsState.refresh();
-  }, [passportState, questsState]);
+  }, [passportState]);
 
   const handleCardPress = useCallback(
     (category: string) => {
@@ -178,6 +171,9 @@ export function PassportView(): JSX.Element {
         case "Visas":
           navigation.navigate(screens.PassportVisas);
           return;
+        case "Tours":
+          navigation.navigate(screens.TourSelect);
+          return;
         case "Past Walks":
         case "Past Jinks":
           navigation.navigate(screens.PastWalksNolli);
@@ -189,22 +185,8 @@ export function PassportView(): JSX.Element {
     [navigation]
   );
 
-  const handleQuestPress = useCallback((quest: any) => {
-    if (!quest) return;
-    setSelectedQuest(quest);
-    setQuestModalVisible(true);
-  }, []);
-
-  const handleStartQuest = useCallback(
-    (params?: RootParams[typeof screens.Quests]) => {
-      navigation.navigate(screens.Quests, params);
-    },
-    [navigation]
-  );
-
   const content = useMemo(() => {
-    // Show skeleton for idle, loading states
-    if (passportState.status === "idle" || passportState.status === "loading" || questsState.status === "loading") {
+    if (passportState.status === "idle" || passportState.status === "loading") {
       return <PassportSkeleton />;
     }
 
@@ -223,14 +205,12 @@ export function PassportView(): JSX.Element {
     return (
       <PassportContent
         data={passportState.value}
-        questsData={questsState.status === "ready" ? questsState.value : null}
         onCardPress={handleCardPress}
-        onQuestPress={handleQuestPress}
         onOrbPress={() => setAuraModalVisible(true)}
         orbData={orbData || []}
       />
     );
-  }, [handleCardPress, handleQuestPress, passportState, questsState, handleRefresh, orbData]);
+  }, [handleCardPress, passportState, handleRefresh, orbData]);
 
 
   const refreshControl =
@@ -260,16 +240,11 @@ export function PassportView(): JSX.Element {
           style={styles.absoluteHeader}
           issueDate={passportState.value.issueDateLabel ?? undefined}
           totalBuildingsScanned={passportState.value.totalBuildingsScanned}
+          levelTitle={passportState.value.levelTitle}
+          levelTier={passportState.value.levelTier}
           onLogout={handleLogout}
         />
       ) : null}
-
-      <QuestDetailModal
-        visible={questModalVisible}
-        onClose={() => setQuestModalVisible(false)}
-        quest={selectedQuest}
-        onStartQuest={handleStartQuest}
-      />
 
       <AestheticAuraSheet
         visible={auraModalVisible}
@@ -284,38 +259,12 @@ export function PassportView(): JSX.Element {
 
 type PassportContentProps = {
   data: PassportUiData;
-  questsData: any;
   onCardPress: (category: string) => void;
-  onQuestPress: (quest: any) => void;
   onOrbPress: () => void;
   orbData: any[];
 };
 
-// ... existing imports
-
-function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPress, orbData }: PassportContentProps) {
-  // These state variables are prepared for future dropdown expansion feature
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_expanded, _setExpanded] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_showXPModal, _setShowXPModal] = useState(false);
-  
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _progressPercent = Math.round(data.xpProgress * 100);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _remainingXP = data.xpForNextLevel - data.xpTotal;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _streakInfo = getStreakMultiplier(data.dailyStreak ?? 0); // Assuming data has streak, or pass it in
-
-  // Circle SVG properties for dropdown
-  const size = 80;
-  const strokeWidth = 5;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _strokeDashoffset = circumference - (data.xpProgress) * circumference;
-
-  // Use real counts from database queries
+function PassportContent({ data, onCardPress, onOrbPress, orbData }: PassportContentProps) {
   const stampCount = data.stampCount;
   const achievementCount = data.achievementCount;
   const visaCount = data.visaCount;
@@ -325,29 +274,6 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
       ? data.lists
       : passportListContent.map((list) => ({ id: list.id, name: list.name }));
   const listCount = listSource.length;
-
-  // Extract quest data
-  const dailyQuest = questsData?.quests?.daily || {
-    type: 'daily',
-    title: "Daily Quest",
-    description: "Complete your daily objective",
-    xpReward: 100,
-    progress: 0,
-    total: 1,
-    additionalRewards: [],
-    completed: false,
-  };
-  const weeklyQuest = questsData?.quests?.weekly || {
-    type: 'weekly',
-    title: "Weekly Quest",
-    description: "Complete your weekly challenge",
-    xpReward: 500,
-    progress: 0,
-    total: 1,
-    additionalRewards: [],
-    completed: false,
-  };
-  // Use shared orb data from context (same as WalkStart screen)
   const archetypeData = orbData || [];
 
   return (
@@ -362,73 +288,6 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
           glowOpacityMultiplier={0.2}
           onPress={onOrbPress}
         />
-      </View>
-
-      {/* Daily Quest Card - Always visible */}
-      <View style={styles.questCardWrapper}>
-        <QuestCard
-          type="daily"
-          title={dailyQuest.title || "Daily Quest"}
-          description={dailyQuest.description || "Complete your daily objective"}
-          xpReward={dailyQuest.xpReward}
-          progress={dailyQuest.progress}
-          total={dailyQuest.total || 1}
-          additionalRewards={dailyQuest.additionalRewards || []}
-          completed={dailyQuest.completed}
-          onPress={() => onQuestPress(dailyQuest)}
-        />
-      </View>
-
-      {/* Weekly Quest Card - Always visible */}
-      <View style={styles.questCardWrapper}>
-        <QuestCard
-          type="weekly"
-          title={weeklyQuest.title || "Weekly Quest"}
-          description={weeklyQuest.description || "Complete your weekly challenge"}
-          xpReward={weeklyQuest.xpReward}
-          progress={weeklyQuest.progress}
-          total={weeklyQuest.total || 1}
-          additionalRewards={weeklyQuest.additionalRewards || []}
-          completed={weeklyQuest.completed}
-          onPress={() => onQuestPress(weeklyQuest)}
-        />
-      </View>
-
-      {/* Bearer XP Status Section */}
-      <View style={styles.questCardWrapper}>
-        <TouchableOpacity
-          onPress={() => _setShowXPModal(true)}
-          activeOpacity={0.9}
-        >
-          <ImageBackground
-            source={require("../../../assets/cards/bearer_status_card.png")}
-            style={{
-              width: '100%',
-              aspectRatio: 390/150,
-              padding: 0,
-              justifyContent: 'center',
-            }}
-            resizeMode="contain"
-          >
-  
-            {/* Level Display */}
-            {/* Level Display */}
-            <View style={{ position: 'absolute', top: 50, left: 104 }}>
-              <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxl, color: theme.colors.text }}>{data.level}</Text>
-            </View>
-
-            {/* XP Progress Bar */}
-            <View style={{ position: 'absolute', bottom: 28, left: 24, right: 24 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                 <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, fontWeight: 'bold', color: theme.colors.text, opacity: 0.6 }}>XP PROGRESS</Text>
-                 <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, fontWeight: 'bold', color: theme.colors.text, opacity: 0.6 }}>{Math.round(data.xpProgress * 100)}%</Text>
-              </View>
-              <View style={{ height: 6, width: '100%', backgroundColor: theme.colors.border, borderRadius: 3, overflow: 'hidden' }}>
-                <View style={{ height: '100%', width: `${Math.round(data.xpProgress * 100)}%`, backgroundColor: theme.colors.text, borderRadius: 3 }} />
-              </View>
-            </View>
-          </ImageBackground>
-        </TouchableOpacity>
       </View>
 
       {/* Grid Layout for Categories */}
@@ -488,59 +347,86 @@ function PassportContent({ data, questsData, onCardPress, onQuestPress, onOrbPre
             </ImageBackground>
           </TouchableOpacity>
 
-          {/* Visas */}
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            onPress={() => onCardPress("Visas")}
-            activeOpacity={0.8}
-          >
-            <ImageBackground
-               source={require("../../../assets/cards/visas_card.png")}
-               style={{ width: '100%', aspectRatio: 186/110, padding: 0, justifyContent: 'center' }}
-               resizeMode="contain"
+          {/* Visas - HIDDEN when feature flag disabled */}
+          {FEATURE_FLAGS.visas.showInPassport && (
+            <TouchableOpacity
+              style={{ flex: 1 }}
+              onPress={() => onCardPress("Visas")}
+              activeOpacity={0.8}
             >
-               <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxxl, color: theme.colors.text, marginTop: 20 }}>{visaCount}</Text>
-               </View>
-            </ImageBackground>
-          </TouchableOpacity>
+              <ImageBackground
+                 source={require("../../../assets/cards/visas_card.png")}
+                 style={{ width: '100%', aspectRatio: 186/110, padding: 0, justifyContent: 'center' }}
+                 resizeMode="contain"
+              >
+                 <View style={{ padding: 16, width: '100%', height: '100%', justifyContent: 'center' }}>
+                    <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.xxxl, color: theme.colors.text, marginTop: 20 }}>{visaCount}</Text>
+                 </View>
+              </ImageBackground>
+            </TouchableOpacity>
+          )}
+
+          {/* Tours - Entry Point */}
+          {FEATURE_FLAGS.tours && (
+            <TouchableOpacity
+              style={{ flex: 1 }}
+              onPress={() => onCardPress("Tours")}
+              activeOpacity={0.8}
+            >
+              <View style={{
+                width: '100%',
+                aspectRatio: 186/110,
+                backgroundColor: '#1a1a2e',
+                borderRadius: 12,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: '#00AEEF',
+              }}>
+                <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.lg, color: '#00AEEF' }}>🗺️ TOURS</Text>
+                <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, color: '#fff', opacity: 0.7, marginTop: 4 }}>GUIDED WALKS</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      {/* Past Jinks - Full Width */}
-      <View style={styles.questCardWrapper}>
-        <TouchableOpacity
-          onPress={() => onCardPress("Past Jinks")}
-          style={{ width: '100%' }}
-          activeOpacity={0.8}
-        >
-            <ImageBackground
-               source={require("../../../assets/cards/past_walks_card.png")}
-               style={{ width: '100%', aspectRatio: 390/220, padding: 0}}
-               resizeMode="contain"
-            >
-               <View style={{ padding: 20, paddingTop: 40, width: '100%', height: '100%' }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 }}>
-                     <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, fontWeight: 'bold', color: theme.colors.text, opacity: 0.8 }}>{data.walks.length.toString().padStart(2, '0')}</Text>
-                  </View>
+      {/* Past Jinks - HIDDEN when Nolli map disabled */}
+      {FEATURE_FLAGS.maps.nolliMap && (
+        <View style={styles.questCardWrapper}>
+          <TouchableOpacity
+            onPress={() => onCardPress("Past Jinks")}
+            style={{ width: '100%' }}
+            activeOpacity={0.8}
+          >
+              <ImageBackground
+                 source={require("../../../assets/cards/past_walks_card.png")}
+                 style={{ width: '100%', aspectRatio: 390/220, padding: 0}}
+                 resizeMode="contain"
+              >
+                 <View style={{ padding: 20, paddingTop: 40, width: '100%', height: '100%' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 10 }}>
+                       <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, fontWeight: 'bold', color: theme.colors.text, opacity: 0.8 }}>{data.walks.length.toString().padStart(2, '0')}</Text>
+                    </View>
 
-                  <View style={{ gap: 14 }}>
-                     {data.walks.slice(0, 5).map((walk: any) => (
-                       <View key={walk.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, color: theme.colors.text, opacity: 0.8 }}>
-                           {walk.date} | {walk.duration} | {walk.buildingCount} Buildings
-                         </Text>
-                         <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.sm, color: theme.colors.text }}>{walk.style}</Text>
-                       </View>
-                     ))}
-                     {data.walks.length === 0 && (
-                        <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.sm, color: theme.colors.text, opacity: 0.6, textAlign: 'center', marginTop: 20 }}>NO ENTRIES RECORDED</Text>
-                     )}
-                  </View>
-               </View>
-            </ImageBackground>
-        </TouchableOpacity>
-      </View>
+                    <View style={{ gap: 14 }}>
+                       {data.walks.slice(0, 5).map((walk: any) => (
+                         <View key={walk.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                           <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.xs, color: theme.colors.text, opacity: 0.8 }}>
+                             {walk.date} | {walk.duration} | {walk.buildingCount} Buildings
+                           </Text>
+                           <Text style={{ fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.fontSize.sm, color: theme.colors.text }}>{walk.style}</Text>
+                         </View>
+                       ))}
+                       {data.walks.length === 0 && (
+                          <Text style={{ fontFamily: 'Courier', fontSize: theme.typography.fontSize.sm, color: theme.colors.text, opacity: 0.6, textAlign: 'center', marginTop: 20 }}>NO ENTRIES RECORDED</Text>
+                       )}
+                    </View>
+                 </View>
+              </ImageBackground>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

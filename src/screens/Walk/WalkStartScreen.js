@@ -2,9 +2,11 @@ import { useAuth } from "@/auth/authProvider";
 // eslint-disable-next-line no-restricted-imports
 import XPStatusBanner from "@/components/passport/XPStatusBanner";
 import { useAestheticProfile } from "@/hooks/useAestheticProfile";
-import { useQuestsData } from "@/hooks/useQuestsData";
 import { log } from "@/lib/log";
+// eslint-disable-next-line no-restricted-imports
+import { getProgressToNextLevel } from "@/constants/xpLevels";
 import { screens } from "@/navigation/routes";
+import { fetchXpSummary } from "@/services/gateways";
 // eslint-disable-next-line no-restricted-imports
 import { getUserStyleExposure } from '@/services/gateways/userBehaviorGateway';
 // eslint-disable-next-line no-restricted-imports
@@ -15,20 +17,24 @@ import { fetchNearbyBuildingsFromDB } from '@/services/buildingService';
 import { startWalk } from '@/services/gateways';
 // eslint-disable-next-line no-restricted-imports
 import { getCachedLocation } from "@/services/locationCacheService";
+// eslint-disable-next-line no-restricted-imports
+import { preCacheWalkBuildings } from "@/services/gpsGridCacheService";
+import { theme } from "@/theme/tokens";
 import { fetchUserScannedBuildings, filterVisitedBuildings } from '@/utils/visitedBuildingsUtils';
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, LayoutAnimation, Platform, StyleSheet, Text, UIManager, View } from "react-native";
-import { TactileButton } from "../../components/tactile/TactileButton";
+import { Alert, Animated, LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from "react-native";
+import { GeneralOnboardingModal } from "../../components/modals/GeneralOnboardingModal";
+import XPGlassOrb from "../../components/three/orb/XPGlassOrb";
 import StreamingInstructionText from "../../components/walk/StreamingInstructionText";
 import TimeSlider from "../../components/walk/TimeSlider";
 import ArchetypeOrb from "../../features/orb/ArchetypeOrb";
 import { useOrbTransition } from "../../state/orbTransitionContext";
 import { DESIGNER_REPUBLIC_THEME } from "../../theme/designer_republic";
-import { theme } from "@/theme/tokens";
 import { getWalkDurationBonus } from "../../utils/walkXpBonus";
 
 if (Platform.OS === 'android') {
@@ -41,28 +47,81 @@ if (Platform.OS === 'android') {
 const WalkStartScreen = ({ navigation, route }) => {
   const { pinToJink, orbData, startHomeToJinkTransition } = useOrbTransition();
   const { profile } = useAestheticProfile();
-  const questsData = useQuestsData();
+  const [xpData, setXpData] = useState({ xp: 0, level: 1, xpForNextLevel: 100 });
   const { session } = useAuth();
-  const [time, setTime] = useState(45);
+  const [time, setTime] = useState(5);
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [includeVisited, setIncludeVisited] = useState(false);
+  const [onboardingVisible, setOnboardingVisible] = useState(false);
   const hapticsCancelRef = useRef(null);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const seen = await AsyncStorage.getItem('@onboarding_seen');
+      if (!seen) {
+        setOnboardingVisible(true);
+      }
+    };
+    checkOnboarding();
+  }, []);
+
+  const closeOnboarding = async () => {
+    setOnboardingVisible(false);
+    await AsyncStorage.setItem('@onboarding_seen', 'true');
+  };
 
   // Orb fade animation - keeps orb mounted, just fades opacity
   // Start at 1 so orb is visible on initial mount
   const orbOpacity = useRef(new Animated.Value(1)).current;
+
+  // Toggle animation for NEW/ALL underline selector
+  const toggleFade = useRef(new Animated.Value(1)).current;
+  const underlineAnim = useRef(new Animated.Value(includeVisited ? 1 : 0)).current;
+
+  const handleToggleVisited = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(toggleFade, { toValue: 0, duration: 80, useNativeDriver: true }),
+        Animated.timing(toggleFade, { toValue: 1, duration: 160, useNativeDriver: true }),
+      ]),
+      Animated.timing(underlineAnim, {
+        toValue: includeVisited ? 0 : 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    setIncludeVisited(prev => !prev);
+  }, [toggleFade, underlineAnim, includeVisited]);
 
   // Start at 1 so content is visible immediately on mount (no flash of invisible content)
   const entryProgress = useRef(new Animated.Value(1)).current;
 
   // Track if this is the first mount
   const isFirstMount = useRef(true);
-  
+
   // Performance tracking
   const screenMountTime = useRef(performance.now());
-  
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    fetchXpSummary(session.user.id)
+      .then((xpSummary) => {
+        const progress = getProgressToNextLevel(xpSummary.xp);
+        setXpData({
+          xp: xpSummary.xp,
+          level: xpSummary.level,
+          xpForNextLevel: progress.xpNeededForNext ?? 100,
+        });
+      })
+      .catch((error) => {
+        log.warn('[WalkStart] Failed to fetch XP data', error);
+      });
+  }, [session?.user?.id]);
+
   useEffect(() => {
     const mountEnd = performance.now();
     log.info('[WalkStart] Screen mounted', {
@@ -207,17 +266,17 @@ const WalkStartScreen = ({ navigation, route }) => {
     const fetchLocation = async () => {
       try {
         log.info("[walkStart] Fetching location from cache...");
-        
+
         // First, try to get cached location (pre-warmed at app startup)
         const cachedLoc = await getCachedLocation({ maxAge: 60000 }); // 60 second max age
-        
+
         if (cachedLoc) {
           setLocation({ latitude: cachedLoc.latitude, longitude: cachedLoc.longitude });
           setLocationLoading(false);
-          log.info("[walkStart] Location acquired from cache", { 
-            latitude: cachedLoc.latitude, 
+          log.info("[walkStart] Location acquired from cache", {
+            latitude: cachedLoc.latitude,
             longitude: cachedLoc.longitude,
-            accuracy: cachedLoc.accuracy 
+            accuracy: cachedLoc.accuracy
           });
           return;
         }
@@ -249,7 +308,7 @@ const WalkStartScreen = ({ navigation, route }) => {
           message: error.message,
           code: error.code,
         });
-        
+
         Alert.alert(
           "Location Error",
           "Unable to get your location. Please check that Location Services are enabled.",
@@ -267,7 +326,7 @@ const WalkStartScreen = ({ navigation, route }) => {
 
   const handleStartWalk = useCallback(async () => {
     if (isFetching) return;
-    
+
     // Block start if location not yet acquired
     if (!location) {
       Alert.alert(
@@ -331,7 +390,7 @@ const WalkStartScreen = ({ navigation, route }) => {
           const beforeCount = mappedBuildings.length;
           mappedBuildings = filterVisitedBuildings(mappedBuildings, scannedIds);
           const afterCount = mappedBuildings.length;
-          
+
           log.info('[walkStart] Filtered out visited buildings', {
             beforeCount,
             afterCount,
@@ -430,6 +489,14 @@ const WalkStartScreen = ({ navigation, route }) => {
         return;
       }
 
+      // Pre-cache walk buildings for instant scan lookups
+      try {
+        await preCacheWalkBuildings(routeResult.buildings);
+        log.info('[walkStart] Pre-cached walk buildings for fast scanning');
+      } catch (cacheError) {
+        log.warn('[walkStart] Failed to pre-cache walk buildings, continuing anyway', cacheError);
+      }
+
       pinToJink(false);
       navigation.navigate(screens.WalkNav, {
         walkId: walkSession.walkId,                    // NEW: Pass walk session ID
@@ -469,124 +536,128 @@ const WalkStartScreen = ({ navigation, route }) => {
   return (
     <View style={styles.safeArea}>
       <View style={styles.container}>
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.uiLayer, 
+            styles.uiLayer,
             { opacity: entryAnimations.uiOpacity, transform: [{ translateY: entryAnimations.uiTranslateY }] }
-          ]} 
+          ]}
           pointerEvents="box-none"
         >
-          {/* Header Row */}
+          {/* Header Row: XP banner · · · Map button */}
           <View style={styles.headerRow}>
-             <View style={styles.xpIndicatorWrapper}>
-                <XPStatusBanner
-                  currentXP={questsData.status === "ready" ? questsData.value.xp.xp : 0}
-                  level={questsData.status === "ready" ? questsData.value.xp.level : 1}
-                  xpForNextLevel={questsData.status === "ready" ? questsData.value.xp.xpForNextLevel : 100}
-                  streakCount={0}
-                  multiplier={xpBonus.multiplier > 1.0 ? xpBonus.multiplier : undefined}
-                  multiplierColor={xpBonus.multiplier > 1.0 ? xpBonus.color : undefined}
-                />
-             </View>
-             <TactileButton
-                style={styles.mapButton}
-                onPress={() => Alert.alert("Coming Soon", "Map view integration in progress.")}
-                intensity={40}
-             >
-                <Ionicons name="map-outline" size={24} color={theme.colors.black} />
-             </TactileButton>
+            <XPStatusBanner
+              currentXP={xpData.xp}
+              level={xpData.level}
+              xpForNextLevel={xpData.xpForNextLevel}
+              streakCount={0}
+              multiplier={xpBonus.multiplier > 1.0 ? xpBonus.multiplier : undefined}
+              multiplierColor={xpBonus.multiplier > 1.0 ? xpBonus.color : undefined}
+            />
+            <View style={styles.mapOrb}>
+              <Pressable onPress={() => navigation.navigate(screens.StyleMap)} style={styles.mapOrbPressable}>
+                <View style={styles.mapOrbCanvas} pointerEvents="none">
+                  <XPGlassOrb size={80} level={1} progress={0} />
+                </View>
+                <View style={styles.mapOrbContent} pointerEvents="none">
+                  <Ionicons name="map-outline" size={24} color={theme.colors.black} style={{ opacity: 0.55 }} />
+                </View>
+              </Pressable>
+            </View>
           </View>
 
-          {/* Center Controls: Stepper + Slider + Orb */}
+          {/* Center: time + steppers + slider + orb */}
           <View style={styles.centerControls}>
-             {/* Stepper Buttons */}
-             <View style={styles.stepperRow}>
-                <TactileButton 
-                  onPress={() => adjustTime(-1)} 
-                  style={styles.stepperButton}
-                  intensity={20}
-                >
-                   <Text style={styles.stepperText}>-</Text>
-                </TactileButton>
+            {/* Time number with flanking steppers */}
+            <View style={styles.timeRow}>
+              <Pressable
+                onPress={() => adjustTime(-1)}
+                hitSlop={20}
+                style={({ pressed }) => [styles.stepperPressable, pressed && styles.stepperPressed]}
+              >
+                <Text style={styles.stepperText}>−</Text>
+              </Pressable>
 
-                <TactileButton 
-                  onPress={() => adjustTime(1)} 
-                  style={styles.stepperButton}
-                  intensity={20}
-                >
-                   <Text style={styles.stepperText}>+</Text>
-                </TactileButton>
-             </View>
+              <Text style={[styles.bigTimeText, { color: xpBonus.color }]}>{time}</Text>
 
-             {/* Slider Area - TimeSlider is the interactive base layer */}
-             <View style={styles.sliderContainer}>
-                {/* Interactive Slider - FIRST so it's at the bottom of the z-stack */}
-                <View style={styles.sliderWrapper}>
-                  <TimeSlider
-                    min={5}
-                    max={95}
-                    initialValue={time}
-                    setValue={setTime}
-                    onPress={handleStartWalk}
-                    color={xpBonus.color}
+              <Pressable
+                onPress={() => adjustTime(1)}
+                hitSlop={20}
+                style={({ pressed }) => [styles.stepperPressable, pressed && styles.stepperPressed]}
+              >
+                <Text style={styles.stepperText}>+</Text>
+              </Pressable>
+            </View>
+
+            {/* Slider + Orb */}
+            <View style={styles.sliderContainer}>
+              <View style={styles.sliderWrapper}>
+                <TimeSlider
+                  min={5}
+                  max={95}
+                  initialValue={time}
+                  setValue={setTime}
+                  onPress={handleStartWalk}
+                  color={xpBonus.color}
+                />
+              </View>
+              <View style={styles.centerVisuals} pointerEvents="none">
+                <Animated.View style={[styles.orbWrapper, { opacity: orbOpacity }]}>
+                  <ArchetypeOrb
+                    archetypeData={orbData}
+                    size={190}
+                    interactive={false}
+                    lod="low"
+                    showGlow={false}
+                    glowOpacityMultiplier={0.05}
                   />
-                </View>
-
-                {/* Visual Layer: Orb + Text - ON TOP but non-interactive */}
-                <View style={styles.centerVisuals} pointerEvents="none">
-                   {/* Orb Underlay */}
-                   <Animated.View style={[styles.orbWrapper, { opacity: orbOpacity }]}>
-                     <ArchetypeOrb
-                        archetypeData={orbData}
-                        size={190}
-                        interactive={false}
-                        lod="low"
-                        showGlow={false}
-                        glowOpacityMultiplier={0.05}
-                     />
-                   </Animated.View>
-
-                   {/* Huge Time Text Overlay */}
-                   <Text style={[styles.bigTimeText, { color: xpBonus.color }]}>{time}</Text>
-                </View>
-             </View>
+                </Animated.View>
+              </View>
+            </View>
           </View>
 
-          
-          {/* Footer Controls: Toggles + Instruction */}
+          {/* Footer: instruction + toggle */}
           <View style={styles.footerControls}>
-             <View style={styles.toggleRow}>
-               <TactileButton 
-                  onPress={() => setIncludeVisited(true)} 
-                  style={[styles.toggleButton, includeVisited && styles.toggleActive]}
-                  intensity={includeVisited ? 60 : 30}
-               >
-                  <Text style={[styles.toggleText, includeVisited && styles.toggleTextActive]}>Some Old</Text>
-               </TactileButton>
+            <StreamingInstructionText
+              text={isFetching ? "Generating your jink..." : locationLoading ? "Acquiring location..." : "Press orb to start jink"}
+              duration={2600}
+              baseColor={theme.colors.text}
+              baseOpacity={isFetching ? 0.18 : 0.25}
+              highlightColor={theme.colors.white}
+              fontSize={15}
+              letterSpacing={2}
+            />
+            <Pressable onPress={handleToggleVisited} hitSlop={14} style={styles.togglePressable}>
+              <Animated.View style={[styles.toggleRow, { opacity: toggleFade }]}>
+                <View style={styles.toggleOption}>
+                  <Text style={[styles.toggleOptionText, !includeVisited && styles.toggleOptionActive]}>NEW</Text>
+                </View>
+                <View style={styles.toggleSeparator} />
+                <View style={styles.toggleOption}>
+                  <Text style={[styles.toggleOptionText, includeVisited && styles.toggleOptionActive]}>ALL</Text>
+                </View>
+              </Animated.View>
 
-               <TactileButton 
-                  onPress={() => setIncludeVisited(false)} 
-                  style={[styles.toggleButton, !includeVisited && styles.toggleActive]}
-                  intensity={!includeVisited ? 60 : 30}
-               >
-                  <Text style={[styles.toggleText, !includeVisited && styles.toggleTextActive]}>All New</Text>
-               </TactileButton>
-             </View>
-
-             <StreamingInstructionText
-                text={isFetching ? "Generating your jink..." : locationLoading ? "Acquiring location..." : "Press orb to start jink"}
-                duration={2600}
-                baseColor={theme.colors.text}
-                baseOpacity={isFetching ? 0.18 : 0.22}
-                highlightColor={theme.colors.white}
-                fontSize={14}
-                letterSpacing={1.5}
-                style={styles.instructionText}
-             />
+              <View style={styles.toggleTrack}>
+                <Animated.View
+                  style={[styles.toggleIndicator, {
+                    transform: [{
+                      translateX: underlineAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 48],
+                      }),
+                    }],
+                  }]}
+                />
+              </View>
+            </Pressable>
           </View>
 
         </Animated.View>
       </View>
+      <GeneralOnboardingModal
+        visible={onboardingVisible}
+        onClose={closeOnboarding}
+      />
     </View>
   );
 };
@@ -605,7 +676,7 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingTop: 60,
     justifyContent: 'space-between',
-    paddingBottom: 0, // Footer handles its own spacing
+    paddingBottom: 0,
   },
   headerRow: {
     flexDirection: 'row',
@@ -614,58 +685,77 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     zIndex: 10,
   },
-  xpIndicatorWrapper: {
-    alignItems: 'flex-start',
-    overflow: 'visible',
+  mapOrb: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    overflow: 'hidden',
   },
-  mapButton: {
-    width: 50,
-    height: 50,
-    top: 12,
-    borderRadius: 16, // Squircle-ish
+  mapOrbPressable: {
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  
+  mapOrbCanvas: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+  },
+  mapOrbContent: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   centerControls: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
   },
-  stepperRow: {
+  timeRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: 200,
-    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginBottom: 16,
     zIndex: 20,
   },
-  stepperButton: {
-    width: 90,
-    height: 50,
-    borderRadius: 25,
-    // Enhanced recessed look
-    backgroundColor: 'rgba(0, 0, 0, 0.08)',
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.25)',
-    borderLeftColor: 'rgba(0, 0, 0, 0.2)',
-    borderBottomColor: 'rgba(255, 255, 255, 0.6)',
-    borderRightColor: 'rgba(255, 255, 255, 0.4)',
+  bigTimeText: {
+    fontSize: 88,
+    fontWeight: '800',
+    letterSpacing: -4,
+    lineHeight: 88,
+    width: 120,
+    textAlign: 'center',
   },
-  stepperText: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: theme.colors.text,
-  },
-  
-  sliderContainer: {
-    width: 370, // Match TimeSlider HIT_AREA_SIZE (290 + 40*2 = 370)
-    height: 370,
+  stepperPressable: {
+    width: 52,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  stepperPressed: {
+    opacity: 0.25,
+  },
+  stepperText: {
+    fontSize: 44,
+    fontWeight: '200',
+    color: theme.colors.text,
+    lineHeight: 48,
+    opacity: 0.5,
+  },
+
+  sliderContainer: {
+    width: 370,
+    height: 310,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
   sliderWrapper: {
-    // The slider handles its own hit area sizing
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -675,49 +765,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   orbWrapper: {
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bigTimeText: {
-    fontSize: 45,
-    fontWeight: '800',
-    top: -110,
-    // Centered in the visual container (on top of orb)
-    textShadowColor: 'rgba(255,255,255,0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   footerControls: {
     alignItems: 'center',
-    gap: 16,
-    paddingBottom: 120, // Space to clear bottom tab bar
+    gap: 22,
+    paddingBottom: 130,
+  },
+  togglePressable: {
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
   },
   toggleRow: {
     flexDirection: 'row',
-    gap: 16,
+    alignItems: 'center',
   },
-  toggleButton: {
-    width: 140,
-    height: 50,
-    borderRadius: 25,
+  toggleOption: {
+    width: 46,
+    alignItems: 'center',
+    paddingBottom: 6,
   },
-  toggleActive: {
-    borderWidth: 1,
-    borderColor: theme.colors.white,
-  },
-  toggleText: {
-    fontSize: 14,
+  toggleOptionText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.muted,
-    letterSpacing: 0.5,
-  },
-  toggleTextActive: {
+    letterSpacing: 2.5,
     color: theme.colors.text,
+    opacity: 0.32,
   },
-  instructionText: {
-    marginTop: 8,
+  toggleOptionActive: {
+    opacity: 0.9,
+    fontWeight: '700',
+  },
+  toggleSeparator: {
+    width: 1,
+    height: 12,
+    backgroundColor: theme.colors.text,
+    opacity: 0.18,
+    marginHorizontal: 2,
+  },
+  toggleTrack: {
+    width: 96,
+    height: 2,
+    backgroundColor: theme.colors.text,
+    opacity: 0.12,
+  },
+  toggleIndicator: {
+    width: 48,
+    height: 2,
+    backgroundColor: theme.colors.text,
+    opacity: 0.85,
   },
 });
 

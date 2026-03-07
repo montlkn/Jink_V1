@@ -21,7 +21,7 @@ export const linking: LinkingOptions<RootParams> = {
           [screens.Passport]: "passport",
         },
       },
-      [screens.Quests]: "quests",
+      // [screens.Quests]: "quests", // ARCHIVED for v1 - Quest feature removed
       [screens.WalkSummary]: "walks/:walkId",
       [screens.Profile]: "u/:userId",
       [screens.PassportStamps]: "passport/stamps",

@@ -59,12 +59,13 @@ export async function createAestheticEvent(
       }
     }
 
-    // Validate and truncate building_bbl if needed (safety check)
+    // Truncate building_bbl to fit DB column (VARCHAR(10) until migration 20251219 applied; then VARCHAR(20))
+    const BBL_MAX_LEN = 10;
     const buildingBbl = params.buildingBbl
-      ? params.buildingBbl.substring(0, 20) // Match new VARCHAR(20) limit
+      ? params.buildingBbl.substring(0, BBL_MAX_LEN)
       : undefined;
 
-    if (params.buildingBbl && params.buildingBbl.length > 20) {
+    if (params.buildingBbl && params.buildingBbl.length > BBL_MAX_LEN) {
       log.warn("[aestheticEventGateway] Truncating long building_bbl", {
         original: params.buildingBbl,
         truncated: buildingBbl,

@@ -21,6 +21,8 @@ export type PassportList = {
 export type PassportSnapshot = {
   xpTotal: number;
   level: number;
+  levelTitle?: string;
+  levelTier?: string;
   xpSpent: number;
   stamps: string[];
   achievements: string[];
@@ -67,6 +69,8 @@ export async function fetchPassport(userId: string): Promise<PassportSnapshot> {
 
   const xpTotal = xpSnapshot?.xp ?? 0;
   const level = xpSnapshot?.level ?? 1;
+  const levelTitle = xpSnapshot?.levelTitle;
+  const levelTier = xpSnapshot?.levelTier;
   const xpSpent = xpSnapshot?.xpSpent ?? 0;
 
   // Fetch scanned buildings count from AsyncStorage

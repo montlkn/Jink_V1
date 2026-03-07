@@ -6,12 +6,15 @@ import { PassportLogoutButton } from './PassportLogoutButton';
 
 import { LinearGradient } from 'expo-linear-gradient';
 
-const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout, style }) => {
+const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout, levelTitle, levelTier, style }) => {
   const [idRef, setIdRef] = useState('DR-LOAD-ING');
 
   useEffect(() => {
     generateIdRef().then(setIdRef);
   }, []);
+
+  const displayTitle = levelTitle || 'NEWCOMER';
+  const displayTier = levelTier || 'EXPLORER';
 
   return (
     <LinearGradient
@@ -39,20 +42,30 @@ const PassportHeader = ({ issueDate, totalBuildingsScanned, onLogout, style }) =
             {idRef}
           </Text>
         </View>
-        
-        {issueDate && (
-          <View style={styles.dataRow}>
-            <Text style={styles.passportLabel}>ISSUED</Text>
-            <Text style={styles.passportDate}>{issueDate}</Text>
-          </View>
-        )}
 
-        {totalBuildingsScanned !== undefined && (
-          <View style={styles.dataRow}>
-            <Text style={styles.passportLabel}>BUILDINGS</Text>
-            <Text style={styles.passportDate}>{totalBuildingsScanned} SCANNED</Text>
-          </View>
-        )}
+        <View style={styles.dataRow}>
+          <Text style={styles.passportLabel}>RANK</Text>
+          <Text style={styles.rankTitle}>
+            {displayTitle.toUpperCase()} 
+            <Text style={styles.tierText}> • {displayTier.toUpperCase()}</Text>
+          </Text>
+        </View>
+        
+        <View style={styles.metaRow}>
+          {issueDate && (
+            <View style={styles.metaItem}>
+              <Text style={styles.passportLabel}>ISSUED</Text>
+              <Text style={styles.passportDate}>{issueDate}</Text>
+            </View>
+          )}
+
+          {totalBuildingsScanned !== undefined && (
+            <View style={styles.metaItem}>
+              <Text style={styles.passportLabel}>BUILDINGS</Text>
+              <Text style={styles.passportDate}>{totalBuildingsScanned} SCANNED</Text>
+            </View>
+          )}
+        </View>
       </View>
     </LinearGradient>
   );
@@ -70,7 +83,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 0, // Let container padding handle spacing
+    marginBottom: 12, // Space between top bar and info
   },
   statusRow: {
     flexDirection: 'row',
@@ -90,9 +103,17 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   passportInfo: {
-    gap: 6,
+    gap: 8,
   },
   dataRow: {
+    gap: 2,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: 24,
+    marginTop: 4,
+  },
+  metaItem: {
     gap: 2,
   },
   passportLabel: {
@@ -107,6 +128,18 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     letterSpacing: 1,
     fontFamily: theme.typography.fontFamily.bold,
+  },
+  rankTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+    letterSpacing: 1,
+    fontFamily: theme.typography.fontFamily.bold,
+  },
+  tierText: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    fontWeight: '600',
   },
   passportDate: {
     fontSize: 14,

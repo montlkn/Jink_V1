@@ -36,7 +36,7 @@ export function AppStack() {
         <PassportProvider>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name={screens.Main} component={BottomTabNavigator} />
-            <Stack.Screen name={screens.Quests} getComponent={ScreenLoaders.Quests} />
+            {/* <Stack.Screen name={screens.Quests} getComponent={ScreenLoaders.Quests} /> ARCHIVED for v1 - Quest feature removed */}
             <Stack.Screen
               name={screens.WalkSummary}
               getComponent={ScreenLoaders.WalkSummary}
@@ -104,6 +104,37 @@ export function AppStack() {
             <Stack.Screen
               name={screens.QuizResults}
               getComponent={ScreenLoaders.QuizResults}
+            />
+            {/* Tour screens */}
+            <Stack.Screen
+              name={screens.TourSelect}
+              getComponent={ScreenLoaders.TourSelect}
+            />
+            <Stack.Screen
+              name={screens.TourNav}
+              getComponent={ScreenLoaders.TourNav}
+            />
+            <Stack.Screen
+              name={screens.TourComplete}
+              getComponent={ScreenLoaders.TourComplete}
+            />
+            <Stack.Screen
+              name={screens.SkylineAR}
+              getComponent={ScreenLoaders.SkylineAR}
+            />
+            {/* Listings */}
+            <Stack.Screen
+              name={screens.BuildingListings}
+              getComponent={ScreenLoaders.BuildingListings}
+            />
+            <Stack.Screen
+              name={screens.ListingDetail}
+              getComponent={ScreenLoaders.ListingDetail}
+            />
+            {/* Style map */}
+            <Stack.Screen
+              name={screens.StyleMap}
+              getComponent={ScreenLoaders.StyleMap}
             />
           </Stack.Navigator>
         </PassportProvider>

@@ -1,10 +1,4 @@
-
 import { useAuth } from '@/auth/authProvider';
-import {
-    fetchActiveQuests,
-    recordQuestEvent,
-    verifyQuestScan,
-} from '@/features/quests';
 import {
     awardXpWithLevelDetection,
     BuildingInfoSkeleton,
@@ -42,6 +36,10 @@ import {
     View
 } from 'react-native';
 import { BuildingContributionSection } from '../BuildingDetails/BuildingContributionSection';
+import { useNetworkStatus } from '@/utils/networkStatus';
+import { getListingsFlags } from '@/config/featureFlags';
+import { ListingsTeaser } from '@/components/listings/ListingsTeaser';
+import { fetchListingsForBuilding, type PropertyListing } from '@/services/listingsService';
 
 // Helper function to convert text to Title Case
 function titleCase(str: string | undefined | null): string {
@@ -62,10 +60,12 @@ export default function BuildingInfoScreen(): JSX.Element {
   const { session } = useAuth() as any;
   const buildingParam = route.params?.buildingData;
   const skipAestheticTracking = route.params?.skipAestheticTracking ?? false;
+  const { isOnline } = useNetworkStatus();
 
   const [building, setBuilding] = useState<any>(buildingParam);
   const [loading, setLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [isDisliked, setIsDisliked] = useState(false);
   const [cloudflareImageUrl, setCloudflareImageUrl] = useState<string | null>(null);
   const [fallbackImageFailed, setFallbackImageFailed] = useState(false);
   const [showRewardOverlay, setShowRewardOverlay] = useState(false);
@@ -84,6 +84,13 @@ export default function BuildingInfoScreen(): JSX.Element {
   const [streakData, setStreakData] = useState<StreakMilestoneResult | null>(null);
   const [showVisaModal, setShowVisaModal] = useState(false);
   const [visaData, setVisaData] = useState<any>(null);
+
+  // Listings state
+  const [listings, setListings] = useState<PropertyListing[]>([]);
+  const listingsFlags = getListingsFlags();
+
+  // Overflow menu state
+  const [showOverflowMenu, setShowOverflowMenu] = useState(false);
 
   // Dwell time tracking
   const dwellStartTime = useRef(Date.now());
@@ -173,7 +180,7 @@ export default function BuildingInfoScreen(): JSX.Element {
   // Fetch historical info from RAG and summarize with Gemini
   useEffect(() => {
     async function fetchHistoricalInfo() {
-      if (!building?.name) return;
+      if (!building?.name || !isOnline) return;
 
       setHistoricalLoading(true);
       try {
@@ -229,7 +236,7 @@ Output ONLY the cleaned text.`
     }
 
     fetchHistoricalInfo();
-  }, [building?.name]);
+  }, [building?.name, isOnline]);
 
   // Load Cloudflare image when building data is available
   useEffect(() => {
@@ -247,6 +254,28 @@ Output ONLY the cleaned text.`
       setCloudflareImageUrl(null);
     }
   }, [building?.bin]);
+
+  // Fetch listings when flag is on and building has a BIN
+  useEffect(() => {
+    if (!listingsFlags.enabled || !listingsFlags.showOnBuildingInfo) return;
+    if (!building?.bin || !isOnline) return;
+
+    log.info('[BuildingInfo] Fetching listings for building:', {
+      name: building.name,
+      bin: building.bin,
+      binType: typeof building.bin,
+    });
+
+    fetchListingsForBuilding(building.bin)
+      .then((results) => {
+        log.info('[BuildingInfo] Listings fetched:', {
+          count: results.length,
+          bin: building.bin,
+        });
+        setListings(results);
+      })
+      .catch((err) => log.warn('[BuildingInfo] Failed to fetch listings', err));
+  }, [building?.bin, isOnline, listingsFlags.enabled, listingsFlags.showOnBuildingInfo]);
 
   // Track detail view event on mount (skip if coming from lists)
   useEffect(() => {
@@ -286,54 +315,6 @@ Output ONLY the cleaned text.`
               log.info('[BuildingInfo] Streak milestone detected:', streakResult);
             }
 
-            // Record quest events for active quests
-            try {
-              const activeQuests = await fetchActiveQuests(session.user.id);
-
-              // Process daily quest
-              if (activeQuests.daily && !activeQuests.daily.completed) {
-                const isValid = await verifyQuestScan({
-                  userId: session.user.id,
-                  questId: activeQuests.daily.id,
-                  buildingBbl: building.bbl || building.bin,
-                  buildingStyle: building.style,
-                  buildingNeighborhood: building.neighborhood,
-                });
-
-                if (isValid) {
-                  await recordQuestEvent(session.user.id, activeQuests.daily.id, {
-                    eventType: 'scan',
-                    buildingBbl: building.bbl || building.bin,
-                    neighborhood: building.neighborhood,
-                    style: building.style,
-                  });
-                  log.info('[BuildingInfo] Quest event recorded for daily quest');
-                }
-              }
-
-              // Process weekly quest
-              if (activeQuests.weekly && !activeQuests.weekly.completed) {
-                const isValid = await verifyQuestScan({
-                  userId: session.user.id,
-                  questId: activeQuests.weekly.id,
-                  buildingBbl: building.bbl || building.bin,
-                  buildingStyle: building.style,
-                  buildingNeighborhood: building.neighborhood,
-                });
-
-                if (isValid) {
-                  await recordQuestEvent(session.user.id, activeQuests.weekly.id, {
-                    eventType: 'scan',
-                    buildingBbl: building.bbl || building.bin,
-                    neighborhood: building.neighborhood,
-                    style: building.style,
-                  });
-                  log.info('[BuildingInfo] Quest event recorded for weekly quest');
-                }
-              }
-            } catch (questError) {
-              log.warn('[BuildingInfo] Failed to record quest events', questError);
-            }
 
             // Check for visa awards
             try {
@@ -462,6 +443,7 @@ Output ONLY the cleaned text.`
   const handleLike = async () => {
     const newLiked = !isLiked;
     setIsLiked(newLiked);
+    if (newLiked) setIsDisliked(false); // Clear dislike if liking
 
     if (session?.user?.id && building?.bbl) {
       try {
@@ -473,6 +455,25 @@ Output ONLY the cleaned text.`
         });
       } catch (error) {
         log.warn('[BuildingInfo] Failed to track like event', error);
+      }
+    }
+  };
+
+  const handleDislike = async () => {
+    const newDisliked = !isDisliked;
+    setIsDisliked(newDisliked);
+    if (newDisliked) setIsLiked(false); // Clear like if disliking
+
+    if (session?.user?.id && building?.bbl) {
+      try {
+        await createAestheticEvent({
+          userId: session.user.id,
+          eventType: 'dislike',
+          buildingBbl: building.bbl,
+          payload: { building_name: building.name },
+        });
+      } catch (error) {
+        log.warn('[BuildingInfo] Failed to track dislike event', error);
       }
     }
   };
@@ -492,10 +493,6 @@ Output ONLY the cleaned text.`
   // Handlers for navigating to related buildings by category
   const handleCategoryPress = (category: string, value: string | undefined) => {
     if (!value || value === 'Unknown') return;
-    
-    // TODO: Navigate to RelatedBuildings screen with filter
-    // For now, show an alert as a placeholder
-    log.info('[BuildingInfo] Category pressed:', { category, value });
     
     // Store the current building's location for proximity sorting
     const currentLat = parseFloat(building?.latitude) || parseFloat(building?.lat) || undefined;
@@ -535,7 +532,15 @@ Output ONLY the cleaned text.`
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
+      {/* Offline Banner */}
+      {!isOnline && (
+        <View style={styles.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={16} color={theme.colors.white} />
+          <Text style={styles.offlineBannerText}>You're offline — some info may be unavailable</Text>
+        </View>
+      )}
+
       {/* Reward Animation Overlay */}
       <RewardAnimationOverlay
         visible={showRewardOverlay}
@@ -639,29 +644,98 @@ Output ONLY the cleaned text.`
             }
           })()}
           
-          {/* Header Overlay - X button and heart */}
+          {/* Header Overlay - X button and overflow menu */}
           <SafeAreaView style={styles.headerOverlay}>
             <View style={styles.header}>
               <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
                 <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
-              <View style={styles.headerActions}>
-                 <TouchableOpacity style={styles.actionIcon} onPress={handleLike}>
-                   <Ionicons
-                     name={isLiked ? 'heart' : 'heart-outline'}
-                     size={24}
-                     color={isLiked ? theme.colors.primary : theme.colors.text}
-                   />
-                 </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowOverflowMenu(true)}
+              >
+                <Ionicons name="ellipsis-horizontal" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
             </View>
           </SafeAreaView>
         </View>
-        
-        {/* Building Name Banner - Below image */}
+
+        {/* Overflow Menu Modal */}
+        <Modal
+          visible={showOverflowMenu}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={() => setShowOverflowMenu(false)}
+        >
+          <TouchableOpacity
+            style={styles.overflowBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowOverflowMenu(false)}
+          >
+            <View style={styles.overflowMenu}>
+              <TouchableOpacity
+                style={styles.overflowMenuItem}
+                onPress={() => {
+                  setShowOverflowMenu(false);
+                  navigation.navigate(screens.SimilarBuildings, { buildingData: building });
+                }}
+              >
+                <Ionicons name="git-compare-outline" size={20} color={theme.colors.text} />
+                <Text style={styles.overflowMenuText}>Find Similar Buildings</Text>
+              </TouchableOpacity>
+              <View style={styles.overflowMenuDivider} />
+              <TouchableOpacity
+                style={styles.overflowMenuItem}
+                onPress={() => {
+                  setShowOverflowMenu(false);
+                  handleDirections();
+                }}
+              >
+                <Ionicons name="navigate-outline" size={20} color={theme.colors.text} />
+                <Text style={styles.overflowMenuText}>Open in Maps</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Thumbs Up/Down Row */}
+        <View style={styles.thumbsRow}>
+          <TouchableOpacity
+            style={[styles.thumbButton, isLiked && styles.thumbButtonActive]}
+            onPress={handleLike}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isLiked ? 'thumbs-up' : 'thumbs-up-outline'}
+              size={24}
+              color={isLiked ? theme.colors.white : theme.colors.success}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.thumbButton, isDisliked && styles.thumbButtonActiveRed]}
+            onPress={handleDislike}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isDisliked ? 'thumbs-down' : 'thumbs-down-outline'}
+              size={24}
+              color={isDisliked ? theme.colors.white : theme.colors.error}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Building Name Banner - with inline actions */}
         <View style={styles.nameBanner}>
           <Ionicons name="location-sharp" size={16} color={theme.colors.primary} />
           <Text style={styles.nameText}>{building.name}</Text>
+          <View style={styles.inlineActions}>
+            <TouchableOpacity style={styles.inlineActionButton} onPress={handleContribute}>
+              <Ionicons name="camera-outline" size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.inlineActionButton} onPress={handleAddToList}>
+              <Ionicons name="list-outline" size={20} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Info Card - Separate section */}
@@ -733,38 +807,9 @@ Output ONLY the cleaned text.`
           <TimePeriodSlider year={building.year || 1930} />
         </View>
 
-        {/* Actions Row */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleContribute}>
-            <Ionicons name="camera-outline" size={24} color={theme.colors.text} />
-            <Text style={styles.actionText}>contribute</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton} 
-            onPress={() => navigation.navigate(screens.SimilarBuildings, { buildingData: building })}
-          >
-            <Ionicons name="git-compare-outline" size={24} color={theme.colors.text} />
-            <Text style={styles.actionText}>find similar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleAddToList}>
-            <Ionicons name="list-outline" size={24} color={theme.colors.text} />
-            <Text style={styles.actionText}>add to list</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Directions Button */}
-        <TouchableOpacity 
-          style={styles.directionsButton}
-          onPress={handleDirections}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="navigate-outline" size={20} color={theme.colors.text} />
-          <Text style={styles.directionsText}>Open in Maps</Text>
-        </TouchableOpacity>
-
-        {/* Information Section */}
+        {/* Combined Lore/Info Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>information</Text>
+          <Text style={styles.sectionTitle}>lore/info</Text>
           <View style={styles.infoTextContainer}>
              <View style={styles.verticalLine} />
              {historicalLoading ? (
@@ -773,6 +818,11 @@ Output ONLY the cleaned text.`
                </View>
              ) : historicalInfo ? (
                <Text style={styles.bodyText}>{historicalInfo}</Text>
+             ) : building.funFact ? (
+               <View style={styles.loreContent}>
+                 <Text style={styles.loreLabel}>Did you know?</Text>
+                 <Text style={styles.bodyText}>{building.funFact}</Text>
+               </View>
              ) : (
                <Text style={styles.bodyText}>
                  {building.description || building.summary ||
@@ -828,11 +878,14 @@ Output ONLY the cleaned text.`
           </View>
         </Modal>
 
-        {/* Lore Section */}
-        <View style={styles.section}>
-           <Text style={styles.sectionTitle}>lore:</Text>
-           <Text style={styles.placeholderText}>No lore available yet.</Text>
-        </View>
+        {/* Listings Teaser — always shown when feature enabled */}
+        {listingsFlags.enabled && listingsFlags.showOnBuildingInfo && (
+          <ListingsTeaser
+            listings={listings}
+            buildingBin={building.bin}
+            buildingName={building.name}
+          />
+        )}
 
         {/* Community Contributions Section */}
         {building.bin && session?.user?.id && (
@@ -851,6 +904,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.error,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  offlineBannerText: {
+    color: theme.colors.white,
+    fontSize: theme.typography.fontSize.xs,
+    fontFamily: 'monospace',
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -1099,6 +1167,33 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
+  thumbsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  thumbButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.success,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbButtonActive: {
+    backgroundColor: theme.colors.success,
+    borderColor: theme.colors.success,
+  },
+  thumbButtonActiveRed: {
+    backgroundColor: theme.colors.error,
+    borderColor: theme.colors.error,
+  },
   nameBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1117,6 +1212,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     flex: 1,
+  },
+  inlineActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inlineActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   historicalLoading: {
     flex: 1,
@@ -1210,6 +1319,67 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  loreContent: {
+    flex: 1,
+  },
+  loreLabel: {
+    fontSize: theme.typography.fontSize.xs,
+    fontWeight: '700',
+    color: theme.colors.accent,
+    fontFamily: 'monospace',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  contributeLoreButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  contributeLoreText: {
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: '600',
+    color: theme.colors.primary,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  overflowBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overflowMenu: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minWidth: 240,
+    overflow: 'hidden',
+  },
+  overflowMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  overflowMenuText: {
+    fontSize: theme.typography.fontSize.md,
+    color: theme.colors.text,
+    fontFamily: 'monospace',
+    fontWeight: '600',
+  },
+  overflowMenuDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
   },
 });
 

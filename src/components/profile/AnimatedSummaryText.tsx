@@ -12,6 +12,14 @@ type AnimatedSummaryTextProps = Omit<TextProps, "children"> & {
 
 const CURSOR_CHARACTER = "▌";
 
+const THINKING_MESSAGES = [
+  "Analyzing architectural DNA...",
+  "Consulting historical archives...",
+  "Triangulating aesthetic patterns...",
+  "Synthesizing stylistic preferences...",
+  "Calibrating your architectural aura...",
+];
+
 const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
   text,
   isActive = true,
@@ -23,11 +31,40 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
   ...textProps
 }) => {
   const [displayedText, setDisplayedText] = useState<string>(placeholder ? text : "");
+  const [thinkingMessage, setThinkingMessage] = useState(THINKING_MESSAGES[0]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousTextRef = useRef<string>("");
   const animationKeyRef = useRef<typeof animationKey>(animationKey);
   const cursorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const thinkingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [cursorVisible, setCursorVisible] = useState(true);
+
+  // Handle thinking messages
+  useEffect(() => {
+    const isThinking = isActive && !placeholder && (!text || text === "");
+    
+    if (isThinking) {
+      if (!thinkingIntervalRef.current) {
+        let msgIndex = 0;
+        thinkingIntervalRef.current = setInterval(() => {
+          msgIndex = (msgIndex + 1) % THINKING_MESSAGES.length;
+          setThinkingMessage(THINKING_MESSAGES[msgIndex]);
+        }, 2000);
+      }
+    } else {
+      if (thinkingIntervalRef.current) {
+        clearInterval(thinkingIntervalRef.current);
+        thinkingIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (thinkingIntervalRef.current) {
+        clearInterval(thinkingIntervalRef.current);
+        thinkingIntervalRef.current = null;
+      }
+    };
+  }, [isActive, placeholder, text]);
 
   useEffect(() => {
     return () => {
@@ -39,6 +76,10 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
         clearInterval(cursorIntervalRef.current);
         cursorIntervalRef.current = null;
       }
+      if (thinkingIntervalRef.current) {
+        clearInterval(thinkingIntervalRef.current);
+        thinkingIntervalRef.current = null;
+      }
     };
   }, []);
 
@@ -47,14 +88,18 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
     const keyChanged = animationKeyRef.current !== animationKey;
     animationKeyRef.current = animationKey;
     const hasChanged = previousTextRef.current !== nextText || keyChanged;
-    const shouldAnimate = isActive && !placeholder && hasChanged;
+    const shouldAnimate = isActive && !placeholder && hasChanged && nextText !== "";
 
     if (!shouldAnimate) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      setDisplayedText(nextText);
+      if (!isActive || placeholder) {
+        setDisplayedText(nextText);
+      } else if (nextText === "") {
+        setDisplayedText("");
+      }
       previousTextRef.current = nextText;
       return;
     }
@@ -88,6 +133,7 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
   }, [animationKey, isActive, placeholder, text, typingDelayMs]);
 
   const targetLength = (text || "").length;
+  const isThinking = isActive && !placeholder && targetLength === 0;
   const shouldShowCursor =
     showCursor &&
     !placeholder &&
@@ -123,7 +169,7 @@ const AnimatedSummaryText: React.FC<AnimatedSummaryTextProps> = ({
 
   return (
     <Text style={style} {...textProps}>
-      {displayedText}
+      {isThinking ? thinkingMessage : displayedText}
       {shouldShowCursor ? (cursorVisible ? CURSOR_CHARACTER : " ") : ""}
     </Text>
   );
