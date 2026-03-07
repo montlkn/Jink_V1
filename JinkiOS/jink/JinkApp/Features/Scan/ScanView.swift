@@ -7,6 +7,7 @@ import CoreLocation
 struct ScanView: View {
     @Environment(AppState.self) private var appState
     @Environment(LocationService.self) private var locationService
+    @Environment(\.dismiss) private var dismiss
     @State private var vm: ScanViewModel
     @State private var capturedImage: UIImage? = nil
 
@@ -26,6 +27,17 @@ struct ScanView: View {
 
                 // UI overlay
                 VStack {
+                    HStack {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "xmark")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .padding()
+                                .background(.ultraThinMaterial, in: Circle())
+                        }
+                        .padding()
+                        Spacer()
+                    }
                     Spacer()
 
                     // GPS status
