@@ -205,6 +205,12 @@ final class WalkViewModel {
         let altitude = location.altitude
         let lat = location.coordinate.latitude
         let lng = location.coordinate.longitude
+        let gpsAccuracy = location.horizontalAccuracy
+        let speed = max(location.speed, 0)
+        let movementType: String
+        if speed < 0.5 { movementType = "stationary" }
+        else if speed < 2.0 { movementType = "walking" }
+        else { movementType = "moving" }
 
         do {
             let result = try await ScanAPIService.shared.scan(
@@ -213,7 +219,9 @@ final class WalkViewModel {
                 lng: lng,
                 bearing: bearing,
                 pitch: pitch,
-                altitude: altitude
+                altitude: altitude,
+                gpsAccuracy: gpsAccuracy,
+                movementType: movementType
             )
 
             if let building = result.building, building.bin == currentStop?.id {
@@ -226,7 +234,8 @@ final class WalkViewModel {
                         var dict: [String: Double] = [:]
                         for item in profile.all { dict[item.name.lowercased()] = item.score }
                         return dict
-                    }
+                    },
+                    subtype: "walk_scan"
                 )
                 // Award XP and visit
                 try? await XPService.shared.awardXP(userId: userId, amount: 25)

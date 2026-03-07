@@ -49,7 +49,7 @@ final class GPSGridCacheService {
         return cache[binStr] ?? cache["\(binStr).0"]
     }
 
-    func findByGPS(lat: Double, lng: Double, radiusM: Double = 20) -> Building? {
+    func findByGPS(lat: Double, lng: Double, radiusM: Double = 30) -> Building? {
         let center = CLLocation(latitude: lat, longitude: lng)
         var closest: Building? = nil
         var minDistance: Double = radiusM

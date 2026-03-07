@@ -30,12 +30,13 @@ final class AestheticService {
     func insertScanEvent(
         userId: String,
         buildingBbl: String?,
-        aestheticVector: [String: Double]?
+        aestheticVector: [String: Double]?,
+        subtype: String? = nil
     ) async throws {
         let event = AestheticEventPayload(
             userId: userId,
             eventType: "building_scan",
-            eventSubtype: nil,
+            eventSubtype: subtype,
             buildingBbl: buildingBbl.map { String($0.prefix(10)) },
             payload: [:],
             aestheticVector: aestheticVector,

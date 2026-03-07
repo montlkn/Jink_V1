@@ -13,8 +13,13 @@ struct ScanAPIResponse: Decodable {
     let confidence: Double?
     let message: String?
 
-    // Derived: verified if the API returned a building with a bin
-    var verified: Bool { building?.bin != nil }
+    // Derived: verified if the API returned a building with a bin or bbl
+    var verified: Bool {
+        guard let b = building else { return false }
+        let hasBin = b.bin.map { !$0.isEmpty } ?? false
+        let hasBbl = b.bbl.map { !$0.isEmpty } ?? false
+        return hasBin || hasBbl
+    }
 
     init(building: BuildingResult?, confidence: Double?, message: String?) {
         self.building = building
@@ -64,14 +69,14 @@ final class ScanAPIService {
         return url
     }
 
-    func scan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, altitude: Double) async throws -> ScanAPIResponse {
+    func scan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, altitude: Double, gpsAccuracy: Double, movementType: String) async throws -> ScanAPIResponse {
         let delays = [1.0, 2.0, 4.0]
         var attempt = 0
         var lastError: Error?
 
         while attempt < delays.count + 1 {
             do {
-                return try await performScan(image: image, lat: lat, lng: lng, bearing: bearing, pitch: pitch, altitude: altitude)
+                return try await performScan(image: image, lat: lat, lng: lng, bearing: bearing, pitch: pitch, altitude: altitude, gpsAccuracy: gpsAccuracy, movementType: movementType)
             } catch {
                 lastError = error
                 if attempt < delays.count {
@@ -85,8 +90,9 @@ final class ScanAPIService {
         throw lastError ?? URLError(.unknown)
     }
 
-    private func performScan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, altitude: Double) async throws -> ScanAPIResponse {
-        let endpoint = apiURL.appendingPathComponent("/api/scan")
+    private func performScan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, altitude: Double, gpsAccuracy: Double, movementType: String) async throws -> ScanAPIResponse {
+        let baseString = apiURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let endpoint = URL(string: "\(baseString)/api/scan") else { throw URLError(.badURL) }
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = 45
@@ -119,12 +125,19 @@ final class ScanAPIService {
         appendField("phone_pitch", "\(pitch)")
         appendField("phone_roll", "0")
         appendField("altitude", "\(altitude)")
+        appendField("gps_accuracy", String(format: "%.1f", gpsAccuracy))
+        appendField("movement_type", movementType)
 
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+            let body = String(data: data, encoding: .utf8) ?? "no body"
+            throw NSError(domain: "ScanAPI", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode): \(body)"])
+        }
         let decoder = JSONDecoder()
         return try decoder.decode(ScanAPIResponse.self, from: data)
     }

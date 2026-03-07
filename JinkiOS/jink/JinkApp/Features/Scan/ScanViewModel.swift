@@ -15,7 +15,7 @@ final class ScanViewModel {
     var scanPhoto: UIImage? = nil
     var showRetryButton = false
 
-    private let locationService: LocationService
+    let locationService: LocationService
 
     init(locationService: LocationService) {
         self.locationService = locationService
@@ -40,14 +40,22 @@ final class ScanViewModel {
         let lat = location.coordinate.latitude
         let lng = location.coordinate.longitude
 
+        let gpsAccuracy = location.horizontalAccuracy
+        let speed = max(location.speed, 0)
+        let movementType: String
+        if speed < 0.5 { movementType = "stationary" }
+        else if speed < 2.0 { movementType = "walking" }
+        else { movementType = "moving" }
+
         // 2. Try GPSGridCacheService
-        if let cached = GPSGridCacheService.shared.findByGPS(lat: lat, lng: lng, radiusM: 20) {
+        if let cached = GPSGridCacheService.shared.findByGPS(lat: lat, lng: lng, radiusM: 30) {
              let result = ScanAPIResponse(building: BuildingResult(
                  bin: cached.bin, bbl: cached.bbl, name: cached.name, address: cached.address,
                  architect: cached.architect, yearBuilt: Int(cached.yearBuilt ?? "0"),
                  style: cached.style, description: cached.description,
                  aestheticProfile: cached.aestheticProfile, latitude: cached.latitude, longitude: cached.longitude
              ), confidence: 1.0, message: "Cached")
+             await handleVerifiedScan(result: result, userId: userId, subtype: "cache_hit")
              self.scanResult = result
              self.showResult = true
              isScanning = false
@@ -80,27 +88,15 @@ final class ScanViewModel {
                 lng: lng,
                 bearing: bearing,
                 pitch: pitch,
-                altitude: altitude
+                altitude: altitude,
+                gpsAccuracy: gpsAccuracy,
+                movementType: movementType
             )
 
             messageTask.cancel()
 
             if result.verified {
-                // Insert aesthetic event
-                try? await AestheticService.shared.insertScanEvent(
-                    userId: userId,
-                    buildingBbl: result.building?.bbl,
-                    aestheticVector: result.building?.aestheticProfile.map { profile in
-                        var dict: [String: Double] = [:]
-                        for item in profile.all { dict[item.name.lowercased()] = item.score }
-                        return dict
-                    }
-                )
-                // Award XP
-                try? await XPService.shared.awardXP(userId: userId, amount: 50)
-
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                
+                await handleVerifiedScan(result: result, userId: userId, subtype: "api_scan")
                 self.scanResult = result
                 self.showResult = true
             } else {
@@ -114,6 +110,21 @@ final class ScanViewModel {
         }
         
         isScanning = false
+    }
+
+    private func handleVerifiedScan(result: ScanAPIResponse, userId: String, subtype: String) async {
+        try? await AestheticService.shared.insertScanEvent(
+            userId: userId,
+            buildingBbl: result.building?.bbl,
+            aestheticVector: result.building?.aestheticProfile.map { profile in
+                var dict: [String: Double] = [:]
+                for item in profile.all { dict[item.name.lowercased()] = item.score }
+                return dict
+            },
+            subtype: subtype
+        )
+        try? await XPService.shared.awardXP(userId: userId, amount: 50)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
     /// Check if a building is within the scan cone (±30°, 20m)
