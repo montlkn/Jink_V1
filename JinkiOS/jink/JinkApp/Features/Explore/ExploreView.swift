@@ -110,6 +110,7 @@ struct ExploreView: View {
     // Track where we last loaded so we know when the map has drifted far enough
     @State private var lastLoadCenter: CLLocationCoordinate2D? = nil
     @State private var showSearchHere = false
+    @State private var searchText = ""
 
     private var mapItems: [MapItem] {
         let buildings = vm.buildings
@@ -147,57 +148,72 @@ struct ExploreView: View {
             .onChange(of: region.center.latitude) { _, _ in updateSearchHereVisibility() }
             .onChange(of: region.center.longitude) { _, _ in updateSearchHereVisibility() }
 
-            // Top bar — search pill (centre) + Done button (right)
-            HStack(spacing: 12) {
-                Spacer()
-                Button {
-                    guard !vm.isLoading else { return }
+            // Top Content (Search Bar & Actions)
+            VStack(spacing: 12) {
+                // Search Bar
+                ExploreSearchBar(searchText: $searchText) {
+                    guard !searchText.isEmpty else { return }
                     Task {
-                        showSearchHere = false
-                        let coord = region.center
-                        lastLoadCenter = coord
-                        let userId = appState.currentUser?.id.uuidString
-                        await vm.load(near: coord, userId: userId)
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        if vm.isLoading {
-                            ProgressView().scaleEffect(0.7).tint(.primary)
-                            Text("Searching…")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(.primary)
-                        } else if showSearchHere {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 12, weight: .semibold))
-                            Text("Search this area")
-                                .font(.system(size: 14, weight: .semibold))
-                        } else {
-                            Image(systemName: "map")
-                                .font(.system(size: 12, weight: .semibold))
-                            Text("Explore")
-                                .font(.system(size: 14, weight: .semibold))
+                        await vm.search(query: searchText)
+                        if let first = vm.buildings.first, let lat = first.latitude, let lng = first.longitude {
+                            withAnimation {
+                                region.center = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+                                region.span = MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
+                            }
                         }
                     }
-                    .foregroundStyle(showSearchHere ? .white : .primary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        showSearchHere
-                            ? AnyShapeStyle(AppColors.accent)
-                            : AnyShapeStyle(.regularMaterial),
-                        in: Capsule()
-                    )
-                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 2)
-                    .animation(.easeInOut(duration: 0.2), value: showSearchHere)
-                    .animation(.easeInOut(duration: 0.2), value: vm.isLoading)
                 }
-                Spacer()
-                DismissButton()
+                .padding(.top, 60) // status bar height
+                
+                // Top bar — search pill (centre) + Done button (right)
+                HStack(spacing: 12) {
+                    Spacer()
+                    Button {
+                        guard !vm.isLoading else { return }
+                        Task {
+                            showSearchHere = false
+                            let coord = region.center
+                            lastLoadCenter = coord
+                            let userId = appState.currentUser?.id.uuidString
+                            await vm.load(near: coord, userId: userId)
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if vm.isLoading {
+                                ProgressView().scaleEffect(0.7).tint(.primary)
+                                Text("Searching…")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                            } else if showSearchHere {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("Search this area")
+                                    .font(.system(size: 14, weight: .semibold))
+                            } else {
+                                Image(systemName: "map")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("Explore")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                        }
+                        .foregroundStyle(showSearchHere ? .white : .primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            showSearchHere
+                                ? AnyShapeStyle(AppColors.accent)
+                                : AnyShapeStyle(.regularMaterial),
+                            in: Capsule()
+                        )
+                        .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 2)
+                        .animation(.easeInOut(duration: 0.2), value: showSearchHere)
+                        .animation(.easeInOut(duration: 0.2), value: vm.isLoading)
+                    }
+                    Spacer()
+                    DismissButton()
+                }
+                .padding(.horizontal, 16)
             }
-            .padding(.top, 60) // status bar height
-            .padding(.horizontal, 16)
-
-            // FAB stack — bottom right
             VStack {
                 Spacer()
                 HStack(alignment: .bottom) {

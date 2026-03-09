@@ -40,7 +40,7 @@ struct RootView: View {
             }
         }
         .fullScreenCover(isPresented: $showOnboardingQuiz) {
-            OnboardingQuizView()
+            OnboardingCarouselView()
         }
     }
 

@@ -143,4 +143,31 @@ final class ExploreViewModel {
 
         return 0
     }
+
+    // MARK: - Search
+    
+    func search(query: String) async {
+        guard !query.isEmpty else { return }
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            // Very simple search using ilike on name or address
+            let data = try await SupabaseService.shared.client
+                .from("buildings_full_merge_scanning")
+                .select()
+                .or("name.ilike.%\(query)%,address.ilike.%\(query)%")
+                .limit(20)
+                .execute()
+            
+            let decoder = JSONDecoder()
+            let decoded = try decoder.decode([Building].self, from: data.data)
+            
+            if !decoded.isEmpty {
+                buildings = decoded
+            }
+        } catch {
+            print("[ExploreViewModel] ❌ Search error: \(error)")
+        }
+    }
 }
