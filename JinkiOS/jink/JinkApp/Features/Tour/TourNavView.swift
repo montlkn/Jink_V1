@@ -13,6 +13,9 @@ struct TourNavView: View {
         span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
     )
     @State private var trackingMode: MapUserTrackingMode = .follow
+    
+    // View Mode
+    @State private var useARMode = true
 
     var body: some View {
         Group {
@@ -26,28 +29,33 @@ struct TourNavView: View {
 
     private var tourActiveBody: some View {
         ZStack(alignment: .bottom) {
-            // Background ambient glow or Map
-            Map(coordinateRegion: $region,
-                interactionModes: .all,
-                showsUserLocation: true,
-                userTrackingMode: $trackingMode,
-                annotationItems: vm.currentCheckpoint != nil ? [vm.currentCheckpoint!] : []) { checkpoint in
-                MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: checkpoint.latitude, longitude: checkpoint.longitude)) {
-                    VStack(spacing: 0) {
-                        Image(systemName: "mappin.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(AppColors.accent)
-                            .background(Circle().fill(.white))
-                        
-                        Text(checkpoint.name)
-                            .font(.caption.bold())
-                            .padding(4)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
-                            .offset(y: 4)
+            // Background ambient glow or Map/AR
+            if useARMode {
+                TourARView(checkpoint: vm.currentCheckpoint, isNear: vm.isNearCurrentCheckpoint)
+                    .ignoresSafeArea()
+            } else {
+                Map(coordinateRegion: $region,
+                    interactionModes: .all,
+                    showsUserLocation: true,
+                    userTrackingMode: $trackingMode,
+                    annotationItems: vm.currentCheckpoint != nil ? [vm.currentCheckpoint!] : []) { checkpoint in
+                    MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: checkpoint.latitude, longitude: checkpoint.longitude)) {
+                        VStack(spacing: 0) {
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.title)
+                                .foregroundStyle(AppColors.accent)
+                                .background(Circle().fill(.white))
+                            
+                            Text(checkpoint.name)
+                                .font(.caption.bold())
+                                .padding(4)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
+                                .offset(y: 4)
+                        }
                     }
                 }
+                .ignoresSafeArea(edges: .top)
             }
-            .ignoresSafeArea(edges: .top)
 
             if vm.isNearCurrentCheckpoint {
                 Color.green.opacity(0.1).ignoresSafeArea()
@@ -135,9 +143,17 @@ struct TourNavView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: recenterMap) {
-                    Image(systemName: "location.fill")
-                        .foregroundStyle(AppColors.accent)
+                HStack(spacing: 16) {
+                    Button(action: { withAnimation { useARMode.toggle() } }) {
+                        Image(systemName: useARMode ? "map.fill" : "arkit")
+                            .foregroundStyle(AppColors.accent)
+                    }
+                    if !useARMode {
+                        Button(action: recenterMap) {
+                            Image(systemName: "location.fill")
+                                .foregroundStyle(AppColors.accent)
+                        }
+                    }
                 }
             }
         }

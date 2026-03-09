@@ -12,6 +12,7 @@
 		15EDB6EAC352AD3DBCDCC97F /* WalkStopInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */; };
 		1A1EDD14EEB88155C6913FA1 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EF1ABA857D47ED939BC5DB4 /* NotFoundView.swift */; };
 		1BE17B48E35F54A163105B1A /* WalkVerificationCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */; };
+		32680E7CE72BB6A78BFCF539 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADCCE9DC05363D3BF703541 /* NotFoundViewModel.swift */; };
 		3DCBA1F0004087131BD3C992 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21975B511EB152E6FE0DCD6D /* NotFoundView.swift */; };
 		552C5CAF2F4D500B00F48FA7 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CAE2F4D500B00F48FA7 /* MapboxMaps */; };
 		552C5CB22F4D50CD00F48FA7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CB12F4D50CD00F48FA7 /* Supabase */; };
@@ -46,6 +47,7 @@
 		683190724902C7833ED49E85 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E790E3D71BB86758907B6AB /* NotFoundViewModel.swift */; };
 		7026D44E55D24C24A5B13764 /* MetalOrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87067BA19B54B16B37B128B /* MetalOrbView.swift */; };
 		89A16F75AFC87D93EF17A929 /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 671D22F6EDD07978EDAFC71B /* GPSGridCacheService.swift */; };
+		8CB817F47F371B43A9805F1B /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B069AD7BA1A83B505B2523D9 /* GPSGridCacheService.swift */; };
 		979C32D86876C31AA7ADDB36 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4308AC75DA3D30A1CC132000 /* NotFoundView.swift */; };
 		9B08ED470BC23C905905F81F /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE398129521FE1E061166289 /* GPSGridCacheService.swift */; };
 		A315834750106C87B1AE0609 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F3C43EE85937532560149E4 /* NotFoundViewModel.swift */; };
@@ -79,6 +81,7 @@
 		BB003001AA003001AA003001 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB003001BB003001BB003001 /* ExploreViewModel.swift */; };
 		BB003002AA003002AA003002 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB003002BB003002BB003002 /* ExploreView.swift */; };
 		BD66930E4F9240649EF480C5 /* ProfileDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B76CBEC29C4317A3B10BCB /* ProfileDetailView.swift */; };
+		BE563CAAFEB02184342CA2C2 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F380FA785615408FEB3E6F5F /* NotFoundView.swift */; };
 		C1A2B3C4D5E6F7081920A1B3 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */; };
 		D6045A7FE5BCAE69A2E63F8C /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B11A5F1549A516E0871F62 /* NotFoundViewModel.swift */; };
 		F8D079DCF29E4B1181E89E4C /* ArchetypeOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */; };
@@ -149,6 +152,7 @@
 		748DB82A9A40F295A21A398D /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		8EF1ABA857D47ED939BC5DB4 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		9268A79DC54497609BBC6147 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		9ADCCE9DC05363D3BF703541 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkVerificationCameraView.swift; sourceTree = "<group>"; };
 		A56D290BD1252160D9C96864 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkStopInsightsView.swift; sourceTree = "<group>"; };
@@ -180,12 +184,14 @@
 		AA002023BB002023BB002023 /* QuizResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuizResultsView.swift; sourceTree = "<group>"; };
 		AD0E8ED6BF2648EC88F0D3E8 /* XPGlassOrb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPGlassOrb.swift; sourceTree = "<group>"; };
 		AE398129521FE1E061166289 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		B069AD7BA1A83B505B2523D9 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		B87067BA19B54B16B37B128B /* MetalOrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalOrbView.swift; sourceTree = "<group>"; };
 		BB003001BB003001BB003001 /* ExploreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreViewModel.swift; sourceTree = "<group>"; };
 		BB003002BB003002BB003002 /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiService.swift; sourceTree = "<group>"; };
 		CD0529397345179F40059684 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchetypeOrb.swift; sourceTree = "<group>"; };
+		F380FA785615408FEB3E6F5F /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -305,6 +311,8 @@
 				CD0529397345179F40059684 /* NotFoundViewModel.swift */,
 				4308AC75DA3D30A1CC132000 /* NotFoundView.swift */,
 				6F3C43EE85937532560149E4 /* NotFoundViewModel.swift */,
+				F380FA785615408FEB3E6F5F /* NotFoundView.swift */,
+				9ADCCE9DC05363D3BF703541 /* NotFoundViewModel.swift */,
 			);
 			path = Scan;
 			sourceTree = "<group>";
@@ -378,6 +386,7 @@
 				671D22F6EDD07978EDAFC71B /* GPSGridCacheService.swift */,
 				9268A79DC54497609BBC6147 /* GPSGridCacheService.swift */,
 				A56D290BD1252160D9C96864 /* GPSGridCacheService.swift */,
+				B069AD7BA1A83B505B2523D9 /* GPSGridCacheService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -671,6 +680,9 @@
 				630C461922A1DBEF9DAABD80 /* GPSGridCacheService.swift in Sources */,
 				979C32D86876C31AA7ADDB36 /* NotFoundView.swift in Sources */,
 				A315834750106C87B1AE0609 /* NotFoundViewModel.swift in Sources */,
+				8CB817F47F371B43A9805F1B /* GPSGridCacheService.swift in Sources */,
+				BE563CAAFEB02184342CA2C2 /* NotFoundView.swift in Sources */,
+				32680E7CE72BB6A78BFCF539 /* NotFoundViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
