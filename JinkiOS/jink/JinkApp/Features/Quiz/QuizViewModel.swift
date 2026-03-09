@@ -115,7 +115,7 @@ final class QuizViewModel {
             }
             try await SupabaseService.shared.client
                 .from("quiz_responses")
-                .insert(rows)
+                .upsert(rows, onConflict: "user_id,question_id")
                 .execute()
 
             // Call RPC to calculate aesthetic profile

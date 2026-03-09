@@ -113,7 +113,7 @@ struct ProfileDetailView: View {
                 ArchetypeDetailSheet(info: info)
             }
             .sheet(isPresented: $showQuiz) {
-                QuizPlaceholderView()
+                OnboardingQuizView()
             }
         }
     }
@@ -309,6 +309,9 @@ struct ArchetypeDetailSheet: View {
     let info: ArchetypeInfo
     @Environment(\.dismiss) var dismiss
 
+    @State private var personalBio: String? = nil
+    @State private var loadingBio = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -362,6 +365,27 @@ struct ArchetypeDetailSheet: View {
                                 .font(.body)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+
+                        // Personal bio (Gemini-generated)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Your Profile")
+                                .font(.headline)
+                            if let bio = personalBio {
+                                Text(bio)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            } else if loadingBio {
+                                HStack(spacing: 8) {
+                                    ProgressView().scaleEffect(0.75)
+                                    Text("Generating your profile…")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
@@ -445,6 +469,17 @@ struct ArchetypeDetailSheet: View {
                         .foregroundStyle(.white)
                 }
             }
+        }
+        .task(id: info.name) {
+            guard info.score > 0 else { return }
+            loadingBio = true
+            let prompt = """
+            Write 2 sentences (max 40 words total) describing what it means that someone has \(Int(info.score * 100))% affinity \
+            for \(info.name) architecture. Be personal and specific — mention the \(info.vibes.prefix(3).joined(separator: ", ")) qualities \
+            they're drawn to. Speak directly to them ("You are drawn to…").
+            """
+            personalBio = await GeminiService.generate(prompt: prompt, maxTokens: 100, temperature: 0.75)
+            loadingBio = false
         }
     }
 }

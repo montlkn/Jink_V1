@@ -1,6 +1,57 @@
 import SwiftUI
 import Auth
 
+// MARK: - Image cache
+
+/// Disk+memory cached image loader so quiz images don't re-download on every question.
+@Observable
+private final class CachedImageLoader {
+    var image: UIImage? = nil
+    private static let cache: URLCache = {
+        URLCache(memoryCapacity: 20 * 1024 * 1024,   // 20 MB memory
+                 diskCapacity: 100 * 1024 * 1024,     // 100 MB disk
+                 diskPath: "quiz_images")
+    }()
+
+    func load(url: URL) {
+        let req = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30)
+        if let cached = Self.cache.cachedResponse(for: req),
+           let img = UIImage(data: cached.data) {
+            image = img
+            return
+        }
+        Task {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: req)
+                let cached = CachedURLResponse(response: response, data: data)
+                Self.cache.storeCachedResponse(cached, for: req)
+                if let img = UIImage(data: data) {
+                    await MainActor.run { image = img }
+                }
+            } catch {}
+        }
+    }
+}
+
+private struct CachedAsyncImage: View {
+    let url: URL
+    @State private var loader = CachedImageLoader()
+
+    var body: some View {
+        Group {
+            if let img = loader.image {
+                Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                Color(.systemGray6)
+                    .overlay(ProgressView().scaleEffect(0.7))
+            }
+        }
+        .task(id: url.absoluteString) { loader.load(url: url) }
+    }
+}
+
 // MARK: - OnboardingQuizView
 
 struct OnboardingQuizView: View {
@@ -69,29 +120,34 @@ private struct QuizQuestionView: View {
     let question: QuizQuestion
     let onNext: () -> Void
 
-    let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    // Image questions: 2-col grid. Text-only: single column.
+    private var hasImages: Bool { question.options.contains { $0.imageUrl != nil } }
+    private var columns: [GridItem] {
+        hasImages
+            ? [GridItem(.flexible()), GridItem(.flexible())]
+            : [GridItem(.flexible())]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Progress bar + counter
-            VStack(spacing: 8) {
+            // ── Progress ─────────────────────────────────────────
+            VStack(spacing: 10) {
                 HStack {
                     if vm.canGoBack {
-                        Button(action: { vm.goBack() }) {
+                        Button { vm.goBack() } label: {
                             Image(systemName: "chevron.left")
                                 .font(.body.bold())
                                 .foregroundStyle(.primary)
                         }
                     } else {
-                        Spacer().frame(width: 24)
+                        Spacer().frame(width: 28)
                     }
                     Spacer()
-                    Text("Q \(vm.currentIndex + 1) OF \(vm.questions.count)")
+                    Text("\(vm.currentIndex + 1) / \(vm.questions.count)")
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
-                        .kerning(1)
                     Spacer()
-                    Spacer().frame(width: 24)
+                    Spacer().frame(width: 28)
                 }
 
                 GeometryReader { geo in
@@ -107,73 +163,76 @@ private struct QuizQuestionView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 12)
+            .padding(.bottom, 16)
 
+            // ── Content ───────────────────────────────────────────
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 24) {
                     // Question text
-                    Text(question.questionText.uppercased())
-                        .font(.system(.headline, design: .monospaced, weight: .bold))
+                    Text(question.questionText)
+                        .font(.system(size: 28, weight: .bold))
                         .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 20)
 
-                    // Optional question image
-                    if let imageUrl = question.imageUrl, let url = URL(string: imageUrl) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let img):
-                                img.resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 180)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            default:
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.systemGray5))
-                                    .frame(height: 180)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                    }
-
-                    // 2×2 option grid
-                    LazyVGrid(columns: columns, spacing: 12) {
+                    // Options
+                    LazyVGrid(columns: columns, spacing: hasImages ? 14 : 10) {
                         ForEach(question.options) { option in
                             OptionCard(
                                 option: option,
                                 isSelected: vm.selectedOptionId == option.id,
-                                onTap: { vm.selectOption(option.id) }
+                                hasImages: hasImages,
+                                onTap: {
+                                    vm.selectOption(option.id)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                        onNext()
+                                    }
+                                }
                             )
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 16)
                 }
-                .padding(.bottom, 100)
+                .padding(.bottom, 32)
             }
 
-            // Next / Submit button
-            VStack {
-                Button(action: onNext) {
-                    if vm.isSubmitting {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                    } else {
-                        Text(vm.isLastQuestion ? "SUBMIT" : "NEXT →")
-                            .font(.headline.bold())
-                            .kerning(1)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .foregroundStyle(.white)
-                            .background(
-                                vm.selectedOptionId != nil ? AppColors.accent : Color(.systemGray4),
-                                in: Capsule()
-                            )
+            // ── Bottom bar ────────────────────────────────────────
+            Group {
+                if vm.isLastQuestion {
+                    Button(action: onNext) {
+                        if vm.isSubmitting {
+                            ProgressView().frame(maxWidth: .infinity).padding(.vertical, 16)
+                        } else {
+                            Text("SUBMIT")
+                                .font(.headline.bold())
+                                .kerning(1)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .foregroundStyle(.white)
+                                .background(
+                                    vm.selectedOptionId != nil ? AppColors.accent : Color(.systemGray4),
+                                    in: Capsule()
+                                )
+                        }
                     }
+                    .disabled(vm.selectedOptionId == nil || vm.isSubmitting)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                } else if vm.canGoBack {
+                    Button { vm.goBack() } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                    }
+                    .padding(.horizontal, 20)
+                } else {
+                    Spacer().frame(height: 52)
                 }
-                .disabled(vm.selectedOptionId == nil || vm.isSubmitting)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
             }
             .background(.ultraThinMaterial)
         }
@@ -185,47 +244,40 @@ private struct QuizQuestionView: View {
 private struct OptionCard: View {
     let option: QuestionOption
     let isSelected: Bool
+    let hasImages: Bool
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 8) {
+            VStack(spacing: 0) {
                 if let imageUrl = option.imageUrl, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 90)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        default:
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.systemGray5))
-                                .frame(height: 90)
-                        }
-                    }
+                    CachedAsyncImage(url: url)
+                        .frame(maxWidth: .infinity)
+                        // aspect fit so image is never cropped — height determined by content
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: isSelected ? 11 : 11))
                 }
 
-                if let text = option.optionText {
+                if let text = option.optionText, !text.isEmpty {
                     Text(text)
-                        .font(.caption.bold())
+                        .font(.system(size: hasImages ? 14 : 17, weight: .semibold))
                         .multilineTextAlignment(.center)
-                        .lineLimit(3)
                         .foregroundStyle(isSelected ? AppColors.accent : .primary)
-                        .padding(.horizontal, 8)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, hasImages ? 8 : 14)
+                        .frame(maxWidth: .infinity)
                 }
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, minHeight: 60)
-            .background(
-                isSelected ? AppColors.accent.opacity(0.1) : Color(.systemGray6),
-                in: RoundedRectangle(cornerRadius: 12)
-            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? AppColors.accent : Color.clear, lineWidth: 2)
+                    .stroke(
+                        isSelected ? AppColors.accent : Color(.systemGray4),
+                        lineWidth: isSelected ? 2.5 : 1
+                    )
             )
+            .animation(.easeOut(duration: 0.15), value: isSelected)
         }
         .buttonStyle(.plain)
     }

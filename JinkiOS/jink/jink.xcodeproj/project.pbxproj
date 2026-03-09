@@ -31,6 +31,7 @@
 		5592A83C2F4D4ADF006AD44E /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8242F4D4ADF006AD44E /* LocationService.swift */; };
 		5592A83D2F4D4ADF006AD44E /* AestheticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8232F4D4ADF006AD44E /* AestheticService.swift */; };
 		5592A83E2F4D4ADF006AD44E /* ScanAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8252F4D4ADF006AD44E /* ScanAPIService.swift */; };
+		C1A2B3C4D5E6F7081920A1B3 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */; };
 		5592A83F2F4D4ADF006AD44E /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8142F4D4ADF006AD44E /* ScanView.swift */; };
 		5592A8402F4D4ADF006AD44E /* Building.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A81D2F4D4ADF006AD44E /* Building.swift */; };
 		5592A8412F4D4ADF006AD44E /* WalkNavView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8172F4D4ADF006AD44E /* WalkNavView.swift */; };
@@ -124,6 +125,7 @@
 		5592A8232F4D4ADF006AD44E /* AestheticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AestheticService.swift; sourceTree = "<group>"; };
 		5592A8242F4D4ADF006AD44E /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		5592A8252F4D4ADF006AD44E /* ScanAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanAPIService.swift; sourceTree = "<group>"; };
+		C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiService.swift; sourceTree = "<group>"; };
 		5592A8262F4D4ADF006AD44E /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		5592A8272F4D4ADF006AD44E /* XPService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPService.swift; sourceTree = "<group>"; };
 		5592A8422F4D4BAB006AD44E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
@@ -342,6 +344,7 @@
 				5592A8232F4D4ADF006AD44E /* AestheticService.swift */,
 				5592A8242F4D4ADF006AD44E /* LocationService.swift */,
 				5592A8252F4D4ADF006AD44E /* ScanAPIService.swift */,
+				C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */,
 				5592A8262F4D4ADF006AD44E /* SupabaseService.swift */,
 				5592A8272F4D4ADF006AD44E /* XPService.swift */,
 				AA001003BB001003BB001003 /* ListStorageService.swift */,
@@ -591,6 +594,7 @@
 				5592A83C2F4D4ADF006AD44E /* LocationService.swift in Sources */,
 				5592A83D2F4D4ADF006AD44E /* AestheticService.swift in Sources */,
 				5592A83E2F4D4ADF006AD44E /* ScanAPIService.swift in Sources */,
+					C1A2B3C4D5E6F7081920A1B3 /* GeminiService.swift in Sources */,
 				5592A83F2F4D4ADF006AD44E /* ScanView.swift in Sources */,
 				5592A8402F4D4ADF006AD44E /* Building.swift in Sources */,
 				5592A8412F4D4ADF006AD44E /* WalkNavView.swift in Sources */,

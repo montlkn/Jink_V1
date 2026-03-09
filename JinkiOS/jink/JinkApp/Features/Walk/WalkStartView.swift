@@ -302,16 +302,9 @@ struct WalkStartView: View {
                     .presentationDragIndicator(.hidden)
             }
             .sheet(isPresented: $showExplore) {
-                NavigationStack {
-                    ExploreView()
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") { showExplore = false }
-                            }
-                        }
-                }
-                .environment(locationService)
+                ExploreView()
+                    .environment(locationService)
+                    .environment(appState)
             }
             .alert("Error", isPresented: .constant(vm.errorMessage != nil)) {
                 Button("OK") { vm.errorMessage = nil }
