@@ -14,6 +14,7 @@
 		1BE17B48E35F54A163105B1A /* WalkVerificationCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */; };
 		32680E7CE72BB6A78BFCF539 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ADCCE9DC05363D3BF703541 /* NotFoundViewModel.swift */; };
 		3DCBA1F0004087131BD3C992 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21975B511EB152E6FE0DCD6D /* NotFoundView.swift */; };
+		4D32B44B296FF890E3D94AFA /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F7682737484F42D31BA903 /* ARKit.framework */; };
 		552C5CAF2F4D500B00F48FA7 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CAE2F4D500B00F48FA7 /* MapboxMaps */; };
 		552C5CB22F4D50CD00F48FA7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CB12F4D50CD00F48FA7 /* Supabase */; };
 		5592A82A2F4D4ADF006AD44E /* ScanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8152F4D4ADF006AD44E /* ScanViewModel.swift */; };
@@ -84,6 +85,7 @@
 		BE563CAAFEB02184342CA2C2 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F380FA785615408FEB3E6F5F /* NotFoundView.swift */; };
 		C1A2B3C4D5E6F7081920A1B3 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */; };
 		D6045A7FE5BCAE69A2E63F8C /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B11A5F1549A516E0871F62 /* NotFoundViewModel.swift */; };
+		F314018BC69FF87356C7076A /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */; };
 		F8D079DCF29E4B1181E89E4C /* ArchetypeOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */; };
 		FF6622CD26EC4D6BB13806C1 /* XPLevels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481827E6343741BF9106F345 /* XPLevels.swift */; };
 /* End PBXBuildFile section */
@@ -117,6 +119,7 @@
 		34B11A5F1549A516E0871F62 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		4308AC75DA3D30A1CC132000 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		481827E6343741BF9106F345 /* XPLevels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevels.swift; sourceTree = "<group>"; };
+		4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = System/Library/Frameworks/SceneKit.framework; sourceTree = SDKROOT; };
 		5592A7F72F4D493D006AD44E /* jink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = jink.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5592A8072F4D4ADF006AD44E /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		5592A8082F4D4ADF006AD44E /* JinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JinkApp.swift; sourceTree = "<group>"; };
@@ -155,6 +158,7 @@
 		9ADCCE9DC05363D3BF703541 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkVerificationCameraView.swift; sourceTree = "<group>"; };
 		A56D290BD1252160D9C96864 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		A6F7682737484F42D31BA903 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
 		A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkStopInsightsView.swift; sourceTree = "<group>"; };
 		A9B76CBEC29C4317A3B10BCB /* ProfileDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileDetailView.swift; sourceTree = "<group>"; };
 		AA001001BB001001BB001001 /* PassportContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportContent.swift; sourceTree = "<group>"; };
@@ -222,6 +226,8 @@
 			files = (
 				552C5CB22F4D50CD00F48FA7 /* Supabase in Frameworks */,
 				552C5CAF2F4D500B00F48FA7 /* MapboxMaps in Frameworks */,
+				4D32B44B296FF890E3D94AFA /* ARKit.framework in Frameworks */,
+				F314018BC69FF87356C7076A /* SceneKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -411,6 +417,8 @@
 			children = (
 				559B6B462F5A1145004117CF /* WidgetKit.framework */,
 				559B6B482F5A1145004117CF /* SwiftUI.framework */,
+				A6F7682737484F42D31BA903 /* ARKit.framework */,
+				4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
