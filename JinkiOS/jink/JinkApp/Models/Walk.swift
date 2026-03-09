@@ -47,6 +47,8 @@ struct WalkSummary: Identifiable, Decodable {
     let startedAt: Date?
     let endedAt: Date?
     let xpEarned: Int?
+    let distanceKm: Double?
+    let customLabel: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -54,5 +56,7 @@ struct WalkSummary: Identifiable, Decodable {
         case startedAt = "started_at"
         case endedAt = "ended_at"
         case xpEarned = "xp_earned"
+        case distanceKm = "distance_km"
+        case customLabel = "custom_label"
     }
 }

@@ -257,6 +257,21 @@ struct WalkRow: View {
         return String(format: "%02d:%02d", hours, minutes)
     }
 
+    var walkTitleStr: String {
+        if let label = walk.customLabel, !label.isEmpty {
+            return label.uppercased()
+        }
+        if let type = walk.routeTier {
+            return type.uppercased()
+        }
+        return "JINK"
+    }
+
+    var walkDistanceStr: String? {
+        guard let dist = walk.distanceKm else { return nil }
+        return String(format: "%.1f km", dist)
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "figure.walk")
@@ -266,19 +281,26 @@ struct WalkRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(walkDateStr)
                     .font(.caption.monospaced())
-                Text(walkDurationStr)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                
+                HStack(spacing: 4) {
+                    Text(walkDurationStr)
+                    if let distStr = walkDistanceStr {
+                        Text("·")
+                        Text(distStr)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                if let type = walk.routeTier {
-                    Text(type.uppercased())
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                }
+                Text(walkTitleStr)
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                
                 if let xp = walk.xpEarned {
                     Text("+\(xp) XP")
                         .font(.caption2.bold())

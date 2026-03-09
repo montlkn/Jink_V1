@@ -104,12 +104,12 @@ final class PassportViewModel {
         }
     }
 
-    // walk_summaries table: id, route_tier, started_at, ended_at, xp_earned
+    // walk_summaries table/view: id, route_tier, started_at, ended_at, xp_earned, distance_km, custom_label
     private func fetchWalkSummaries(userId: String) async {
         do {
             let summaries: [WalkSummary] = try await SupabaseService.shared.client
                 .from("walk_summaries")
-                .select("id, route_tier, started_at, ended_at, xp_earned")
+                .select("id, route_tier, started_at, ended_at, xp_earned, distance_km, custom_label")
                 .eq("user_id", value: userId)
                 .not("ended_at", operator: .is, value: "null")
                 .order("ended_at", ascending: false)
