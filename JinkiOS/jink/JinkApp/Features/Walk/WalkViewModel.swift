@@ -384,6 +384,15 @@ final class WalkViewModel {
                     .reduce(0.0) { $0 + haversine($1.0, $1.1) } / 1000.0
                 : nil
 
+            // Persist distance to the walk record
+            if let distanceKm = distance {
+                try? await SupabaseService.shared.client
+                    .from("walks")
+                    .update(["distance_km": AnyJSON.double(distanceKm)])
+                    .eq("id", value: walkId)
+                    .execute()
+            }
+
             completionStats = WalkCompletionStats(
                 walkId: walkId,
                 xpEarned: totalXP,
