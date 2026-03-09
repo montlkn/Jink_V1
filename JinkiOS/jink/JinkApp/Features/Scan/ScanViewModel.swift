@@ -124,6 +124,10 @@ final class ScanViewModel {
             subtype: subtype
         )
         try? await XPService.shared.awardXP(userId: userId, amount: 50)
+        
+        // Trigger real-time progress updates (Streaks, Achievements, Stamps, Algo)
+        await ProgressService.shared.processScan(userId: userId, building: result.building)
+        
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 

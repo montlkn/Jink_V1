@@ -392,6 +392,9 @@ final class WalkViewModel {
                     .eq("id", value: walkId)
                     .execute()
             }
+            
+            // Trigger real-time progress updates (Streaks, Achievements, Algo)
+            await ProgressService.shared.processWalk(userId: userId)
 
             completionStats = WalkCompletionStats(
                 walkId: walkId,
