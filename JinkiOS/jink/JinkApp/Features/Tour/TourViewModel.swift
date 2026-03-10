@@ -109,7 +109,7 @@ final class TourViewModel: NSObject {
         if let checkpoint = currentCheckpoint {
             let target = CLLocation(latitude: checkpoint.latitude, longitude: checkpoint.longitude)
             let distance = location.distance(from: target)
-            isNearCurrentCheckpoint = distance <= 30
+            isNearCurrentCheckpoint = distance <= 60 // Increased from 30m to handle NYC GPS drift
         }
     }
 

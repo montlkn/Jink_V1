@@ -131,13 +131,13 @@ final class ScanViewModel {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
-    /// Check if a building is within the scan cone (±30°, 20m)
+    /// Check if a building is within the scan cone (±30°, 40m)
     func isInScanCone(buildingLat: Double, buildingLng: Double) -> Bool {
         guard let location = locationService.location else { return false }
 
         let buildingLocation = CLLocation(latitude: buildingLat, longitude: buildingLng)
         let distance = location.distance(from: buildingLocation)
-        guard distance <= 20 else { return false }
+        guard distance <= 40 else { return false } // Increased from 20m for GPS drift
 
         let bearing = locationService.compassBearing
         let angleToBldg = location.coordinate.bearing(to: CLLocationCoordinate2D(latitude: buildingLat, longitude: buildingLng))

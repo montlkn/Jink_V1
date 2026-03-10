@@ -82,12 +82,12 @@ final class WalkViewModel {
 
     var distanceToCurrentStop: Double? {
         guard let loc = currentLocation, let stop = currentStop else { return nil }
-        return haversine(loc, stop.coordinate)
+        return loc.distance(to: stop.coordinate)
     }
 
     var bearingToCurrentStop: Double? {
         guard let loc = currentLocation, let stop = currentStop else { return nil }
-        return bearing(from: loc, to: stop.coordinate)
+        return loc.bearing(to: stop.coordinate)
     }
 
     var progressFraction: Double {
@@ -127,8 +127,8 @@ final class WalkViewModel {
         let midLat = (loc.latitude + stop.latitude) / 2
         let midLng = (loc.longitude + stop.longitude) / 2
         let midCoord = CLLocationCoordinate2D(latitude: midLat, longitude: midLng)
-        let finalBearing = bearing(from: midCoord, to: stop.coordinate)
-        let currentBrng = bearing(from: loc, to: stop.coordinate)
+        let finalBearing = midCoord.bearing(to: stop.coordinate)
+        let currentBrng = loc.bearing(to: stop.coordinate)
         var diff = finalBearing - currentBrng
         while diff > 180 { diff -= 360 }
         while diff < -180 { diff += 360 }
@@ -381,7 +381,7 @@ final class WalkViewModel {
             let duration = walkStartTime.map { Int(Date().timeIntervalSince($0) / 60) }
             let distance: Double? = routeCoordinates.count > 1
                 ? zip(routeCoordinates, routeCoordinates.dropFirst())
-                    .reduce(0.0) { $0 + haversine($1.0, $1.1) } / 1000.0
+                    .reduce(0.0) { $0 + $1.0.distance(to: $1.1) } / 1000.0
                 : nil
 
             // Persist distance to the walk record
@@ -449,30 +449,6 @@ final class WalkViewModel {
             return bbl == stopBbl
         }
         return false
-    }
-
-    // MARK: - Private geo helpers
-
-    private func haversine(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
-        let R = 6_371_000.0
-        let lat1 = a.latitude * .pi / 180
-        let lat2 = b.latitude * .pi / 180
-        let dLat = (b.latitude - a.latitude) * .pi / 180
-        let dLon = (b.longitude - a.longitude) * .pi / 180
-        let sinDLat = sin(dLat / 2)
-        let sinDLon = sin(dLon / 2)
-        let x = sinDLat * sinDLat + cos(lat1) * cos(lat2) * sinDLon * sinDLon
-        return R * 2 * atan2(sqrt(x), sqrt(1 - x))
-    }
-
-    private func bearing(from a: CLLocationCoordinate2D, to b: CLLocationCoordinate2D) -> Double {
-        let lat1 = a.latitude * .pi / 180
-        let lat2 = b.latitude * .pi / 180
-        let dLon = (b.longitude - a.longitude) * .pi / 180
-        let y = sin(dLon) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        let deg = atan2(y, x) * 180 / .pi
-        return (deg + 360).truncatingRemainder(dividingBy: 360)
     }
 
     // MARK: - Aesthetic ranking

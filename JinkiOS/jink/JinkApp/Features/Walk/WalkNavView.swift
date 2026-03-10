@@ -399,8 +399,8 @@ private struct CardRadar: View {
 
             // Target dot (current stop)
             if let stop = vm.currentStop, let userCoord = vm.currentLocation {
-                let dist = haversine(userCoord, stop.coordinate)
-                let brng = bearing(from: userCoord, to: stop.coordinate)
+                let dist = userCoord.distance(to: stop.coordinate)
+                let brng = userCoord.bearing(to: stop.coordinate)
                 let relBrng = (brng - vm.userHeading).truncatingRemainder(dividingBy: 360)
                 let rad = relBrng * .pi / 180
                 let scale = CGFloat(min(dist / 200, 0.9))
@@ -428,23 +428,6 @@ private struct CardRadar: View {
                        with: .color(.primary.opacity(0.25)), lineWidth: 1.5)
         }
         .clipShape(Circle())
-    }
-
-    private func haversine(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
-        let R = 6_371_000.0
-        let lat1 = a.latitude * .pi / 180, lat2 = b.latitude * .pi / 180
-        let dLat = (b.latitude - a.latitude) * .pi / 180
-        let dLon = (b.longitude - a.longitude) * .pi / 180
-        let x = sin(dLat/2)*sin(dLat/2) + cos(lat1)*cos(lat2)*sin(dLon/2)*sin(dLon/2)
-        return R * 2 * atan2(sqrt(x), sqrt(1 - x))
-    }
-
-    private func bearing(from a: CLLocationCoordinate2D, to b: CLLocationCoordinate2D) -> Double {
-        let lat1 = a.latitude * .pi / 180, lat2 = b.latitude * .pi / 180
-        let dLon = (b.longitude - a.longitude) * .pi / 180
-        let y = sin(dLon) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        return ((atan2(y, x) * 180 / .pi) + 360).truncatingRemainder(dividingBy: 360)
     }
 }
 

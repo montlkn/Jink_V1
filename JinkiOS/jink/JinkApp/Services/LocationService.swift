@@ -76,3 +76,28 @@ extension LocationService: CLLocationManagerDelegate {
         print("[LocationService] Error: \(error.localizedDescription)")
     }
 }
+
+// MARK: - Geo Math Helpers
+
+extension CLLocationCoordinate2D {
+    func bearing(to other: CLLocationCoordinate2D) -> Double {
+        let lat1 = latitude * .pi / 180
+        let lat2 = other.latitude * .pi / 180
+        let dLng = (other.longitude - longitude) * .pi / 180
+        let y = sin(dLng) * cos(lat2)
+        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLng)
+        return (atan2(y, x) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
+    }
+
+    func distance(to other: CLLocationCoordinate2D) -> Double {
+        let R = 6_371_000.0
+        let lat1 = latitude * .pi / 180
+        let lat2 = other.latitude * .pi / 180
+        let dLat = (other.latitude - latitude) * .pi / 180
+        let dLon = (other.longitude - longitude) * .pi / 180
+        let sinDLat = sin(dLat / 2)
+        let sinDLon = sin(dLon / 2)
+        let x = sinDLat * sinDLat + cos(lat1) * cos(lat2) * sinDLon * sinDLon
+        return R * 2 * atan2(sqrt(x), sqrt(1 - x))
+    }
+}
