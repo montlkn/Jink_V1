@@ -71,7 +71,7 @@ final class BuildingInfoViewModel {
                                 try await SupabaseService.shared.buildingsClient
                                     .from(table)
                                     .select(fields)
-                                    .ilike("building_name", value: name)
+                                    .ilike("building_name", pattern: name)
                                     .limit(1)
                                     .execute()
                                     .value
@@ -109,14 +109,39 @@ final class BuildingInfoViewModel {
         }
     }
     
-    func toggleLike() {
-        isLiked.toggle()
-        if isLiked { isDisliked = false }
+    func toggleLike(userId: String) {
+        guard !isLiked, let building = building else { return }
+        isLiked = true
+        isDisliked = false
+        sendAestheticEvent(userId: userId, building: building, subtype: "like")
     }
     
-    func toggleDislike() {
-        isDisliked.toggle()
-        if isDisliked { isLiked = false }
+    func toggleDislike(userId: String) {
+        guard !isDisliked, let building = building else { return }
+        isDisliked = true
+        isLiked = false
+        sendAestheticEvent(userId: userId, building: building, subtype: "dislike")
+    }
+    
+    func recordDwellTime(userId: String, timeSpentSeconds: TimeInterval) {
+        guard timeSpentSeconds > 10, let building = building else { return }
+        sendAestheticEvent(userId: userId, building: building, subtype: "dwell")
+    }
+    
+    private func sendAestheticEvent(userId: String, building: Building, subtype: String) {
+        Task {
+            do {
+                try await AestheticService.shared.insertScanEvent(
+                    userId: userId,
+                    buildingBbl: building.bin, // using BIN as fallback for BBL in aesthetic profile
+                    aestheticVector: building.aestheticProfile,
+                    subtype: subtype
+                )
+                await ProgressService.shared.processScan(userId: userId, building: nil)
+            } catch {
+                print("[BuildingInfoViewModel] Failed to send aesthetic event: \(error)")
+            }
+        }
     }
 }
 
@@ -135,7 +160,10 @@ struct BuildingInfoView: View {
     @State private var vm = BuildingInfoViewModel()
     @State private var showAddToList = false
     @State private var showListings = false
+    @State private var showSimilar = false
     @State private var scrollOffset: CGFloat = 0
+
+    @State private var viewStartTime: Date? = nil
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -172,11 +200,25 @@ struct BuildingInfoView: View {
         .sheet(isPresented: $showAddToList) {
             AddToListSheet(bin: vm.building?.bin ?? bin, buildingName: vm.building?.name ?? name, address: vm.building?.address ?? address)
         }
+        .sheet(isPresented: $showSimilar) {
+            if let aesthetic = vm.building?.primaryAesthetic {
+                SimilarBuildingsView(aesthetic: aesthetic)
+            }
+        }
         .navigationDestination(isPresented: $showListings) {
             BuildingListingsView(buildingBin: vm.building?.bin ?? bin, buildingName: vm.building?.name ?? name)
         }
         .task {
             await vm.load(bin: bin.isEmpty ? nil : bin, name: name, latitude: latitude, longitude: longitude)
+        }
+        .onAppear {
+            viewStartTime = Date()
+        }
+        .onDisappear {
+            if let start = viewStartTime, let userId = appState.currentUser?.id.uuidString {
+                let duration = Date().timeIntervalSince(start)
+                vm.recordDwellTime(userId: userId, timeSpentSeconds: duration)
+            }
         }
     }
 
@@ -235,7 +277,7 @@ struct BuildingInfoView: View {
             Spacer()
             
             Menu {
-                Button(action: { /* Navigate to similar */ }) {
+                Button(action: { showSimilar = true }) {
                     Label("Find Similar Buildings", systemImage: "square.on.square")
                 }
                 Button(action: { openInMaps() }) {
@@ -293,7 +335,11 @@ struct BuildingInfoView: View {
     private var thumbsRow: some View {
         HStack(spacing: 20) {
             Spacer()
-            Button(action: { vm.toggleLike() }) {
+            Button(action: {
+                if let userId = appState.currentUser?.id.uuidString {
+                    vm.toggleLike(userId: userId)
+                }
+            }) {
                 Image(systemName: vm.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup")
                     .font(.title2)
                     .foregroundStyle(vm.isLiked ? .white : AppColors.success)
@@ -303,7 +349,11 @@ struct BuildingInfoView: View {
                     .clipShape(Circle())
             }
             
-            Button(action: { vm.toggleDislike() }) {
+            Button(action: {
+                if let userId = appState.currentUser?.id.uuidString {
+                    vm.toggleDislike(userId: userId)
+                }
+            }) {
                 Image(systemName: vm.isDisliked ? "hand.thumbsdown.fill" : "hand.thumbsdown")
                     .font(.title2)
                     .foregroundStyle(vm.isDisliked ? .white : AppColors.error)
