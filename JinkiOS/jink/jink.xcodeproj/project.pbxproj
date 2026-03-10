@@ -7,9 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		068D1A3D51310FED2F8B7B7B /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCAE2C9D97C15230BE71B73 /* GPSGridCacheService.swift */; };
+		0779174BA2041F87317CE542 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631ADC1BADA50A9E458A7174 /* NotFoundView.swift */; };
+		144B1EBF8A8D4AE5F9E2B099 /* WalkARProximityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C74FDFCD4B0DCC1EB56075 /* WalkARProximityView.swift */; };
 		15EDB6EAC352AD3DBCDCC97F /* WalkStopInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */; };
 		1BE17B48E35F54A163105B1A /* WalkVerificationCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */; };
 		27C6A04969B1BDFBE3F713F4 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E61B8C7B4C1D50FC383D50D /* NotFoundView.swift */; };
+		439592344A577566D10D8730 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115E3B7FAC7B1169815D5093 /* NotFoundViewModel.swift */; };
+		47BFED944A969AB0143EA225 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C42B424E6E18E075EE55127 /* NotFoundViewModel.swift */; };
 		4D32B44B296FF890E3D94AFA /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F7682737484F42D31BA903 /* ARKit.framework */; };
 		552C5CAF2F4D500B00F48FA7 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CAE2F4D500B00F48FA7 /* MapboxMaps */; };
 		552C5CB22F4D50CD00F48FA7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CB12F4D50CD00F48FA7 /* Supabase */; };
@@ -41,6 +46,8 @@
 		559B6B492F5A1145004117CF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 559B6B482F5A1145004117CF /* SwiftUI.framework */; };
 		559B6B562F5A1146004117CF /* JinkWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 559B6B452F5A1145004117CF /* JinkWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7026D44E55D24C24A5B13764 /* MetalOrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87067BA19B54B16B37B128B /* MetalOrbView.swift */; };
+		7210B4D7B752319CEBD78FED /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43ADFCEE1994A473D54F8523 /* GPSGridCacheService.swift */; };
+		982149DBD05544B348433220 /* SimilarBuildingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F5CF53DDAE765A86EEEAC7 /* SimilarBuildingsView.swift */; };
 		9B08ED470BC23C905905F81F /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE398129521FE1E061166289 /* GPSGridCacheService.swift */; };
 		A9A3C0A2CEDC4D0F9116C683 /* XPGlassOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0E8ED6BF2648EC88F0D3E8 /* XPGlassOrb.swift */; };
 		AA001001AA001001AA001001 /* PassportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001001BB001001BB001001 /* PassportContent.swift */; };
@@ -68,6 +75,7 @@
 		AA002021AA002021AA002021 /* QuizViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002021BB002021BB002021 /* QuizViewModel.swift */; };
 		AA002022AA002022AA002022 /* OnboardingQuizView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002022BB002022BB002022 /* OnboardingQuizView.swift */; };
 		AA002023AA002023AA002023 /* QuizResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002023BB002023BB002023 /* QuizResultsView.swift */; };
+		B479ED916F7C55EF3B72E120 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 042201BA54144F7E46745044 /* NotFoundViewModel.swift */; };
 		B723D28B7401508795CBE505 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748DB82A9A40F295A21A398D /* NotFoundView.swift */; };
 		B977CA7564A256341C0CF120 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B838D01B31448D9CB935C90 /* NotFoundViewModel.swift */; };
 		BB003001AA003001AA003001 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB003001BB003001BB003001 /* ExploreViewModel.swift */; };
@@ -77,9 +85,13 @@
 		C88320A12DEBD6C65C92974D /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4853545A2AB780E9B4C8233A /* NotFoundView.swift */; };
 		CB64081956E007696CCA1C56 /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F3E5BEDDE02F4C825F9B4D5 /* GPSGridCacheService.swift */; };
 		CC001001AA001001AA001001 /* ExploreSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001001CC001001CC001001 /* ExploreSearchBar.swift */; };
+		D08293839EA1D45F4B979F21 /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 743038690219F68C0E55A571 /* GPSGridCacheService.swift */; };
 		D3DA9DAE3A8967ACEE630423 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40762DBDB189721F082E1EB3 /* NotFoundViewModel.swift */; };
 		D6045A7FE5BCAE69A2E63F8C /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B11A5F1549A516E0871F62 /* NotFoundViewModel.swift */; };
+		D68218720481C93D49BA0CDF /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D3787C4306D8B1F4FEC7F /* NotFoundView.swift */; };
 		DD001001AA001001AA001001 /* OnboardingCarouselView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD001001BB001001BB001001 /* OnboardingCarouselView.swift */; };
+		E6719FBD16BD43C0A9F4E616 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22D7A6AD7692159F18C1D2E2 /* NotFoundView.swift */; };
+		EB001001EB001001EB001001 /* ProgressService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB001002EB001002EB001002 /* ProgressService.swift */; };
 		EEF721B3904369BB043DB06D /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7B732A2957D92CF9083340 /* GPSGridCacheService.swift */; };
 		F314018BC69FF87356C7076A /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */; };
 		F8D079DCF29E4B1181E89E4C /* ArchetypeOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */; };
@@ -111,17 +123,23 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		042201BA54144F7E46745044 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		04387B2B5B9E084DFDCA729C /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
+		115E3B7FAC7B1169815D5093 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
+		19C74FDFCD4B0DCC1EB56075 /* WalkARProximityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkARProximityView.swift; sourceTree = "<group>"; };
 		21975B511EB152E6FE0DCD6D /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
+		22D7A6AD7692159F18C1D2E2 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		34B11A5F1549A516E0871F62 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		3E61B8C7B4C1D50FC383D50D /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		405450330126B74B3FEE3A62 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		40762DBDB189721F082E1EB3 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		4308AC75DA3D30A1CC132000 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
+		43ADFCEE1994A473D54F8523 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		463800585C6FD48EC40399C8 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		481827E6343741BF9106F345 /* XPLevels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevels.swift; sourceTree = "<group>"; };
 		4853545A2AB780E9B4C8233A /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = System/Library/Frameworks/SceneKit.framework; sourceTree = SDKROOT; };
+		4DCAE2C9D97C15230BE71B73 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		52B052A4EE0CD4001E2275F5 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		5592A7F72F4D493D006AD44E /* jink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = jink.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5592A8072F4D4ADF006AD44E /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -154,10 +172,13 @@
 		559B6B482F5A1145004117CF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		5651E2D9B3A5D65FBF7A0690 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		5F3E5BEDDE02F4C825F9B4D5 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		631ADC1BADA50A9E458A7174 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		671D22F6EDD07978EDAFC71B /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		6C42B424E6E18E075EE55127 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		6E790E3D71BB86758907B6AB /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		6F3C43EE85937532560149E4 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		7231B3BB6999508AB36BB79F /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
+		743038690219F68C0E55A571 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		748DB82A9A40F295A21A398D /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		75A43B5D56BA174B6C3BBE64 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		8B838D01B31448D9CB935C90 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
@@ -165,6 +186,7 @@
 		8EF1ABA857D47ED939BC5DB4 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		9212F77AA0C4E6FEEB891FA7 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		9268A79DC54497609BBC6147 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		93F5CF53DDAE765A86EEEAC7 /* SimilarBuildingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SimilarBuildingsView.swift; sourceTree = "<group>"; };
 		960096019696DC4F40FA27C2 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		9ADCCE9DC05363D3BF703541 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		9F7B732A2957D92CF9083340 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
@@ -210,10 +232,13 @@
 		C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiService.swift; sourceTree = "<group>"; };
 		CC001001CC001001CC001001 /* ExploreSearchBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreSearchBar.swift; sourceTree = "<group>"; };
 		CD0529397345179F40059684 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
+		CD1D3787C4306D8B1F4FEC7F /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		CD69726C0C3C2CB8A57BA62B /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		D34EAD78AC32645D02C42D0B /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchetypeOrb.swift; sourceTree = "<group>"; };
 		DD001001BB001001BB001001 /* OnboardingCarouselView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCarouselView.swift; sourceTree = "<group>"; };
+		EA001002EA001002EA001002 /* WalkARProximityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkARProximityView.swift; sourceTree = "<group>"; };
+		EB001002EB001002EB001002 /* ProgressService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressService.swift; sourceTree = "<group>"; };
 		F380FA785615408FEB3E6F5F /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -353,6 +378,12 @@
 				40762DBDB189721F082E1EB3 /* NotFoundViewModel.swift */,
 				3E61B8C7B4C1D50FC383D50D /* NotFoundView.swift */,
 				8B838D01B31448D9CB935C90 /* NotFoundViewModel.swift */,
+				22D7A6AD7692159F18C1D2E2 /* NotFoundView.swift */,
+				115E3B7FAC7B1169815D5093 /* NotFoundViewModel.swift */,
+				631ADC1BADA50A9E458A7174 /* NotFoundView.swift */,
+				042201BA54144F7E46745044 /* NotFoundViewModel.swift */,
+				CD1D3787C4306D8B1F4FEC7F /* NotFoundView.swift */,
+				6C42B424E6E18E075EE55127 /* NotFoundViewModel.swift */,
 			);
 			path = Scan;
 			sourceTree = "<group>";
@@ -367,6 +398,8 @@
 				AA002002BB002002BB002002 /* WalkActivityAttributes.swift */,
 				A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */,
 				A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */,
+				EA001002EA001002EA001002 /* WalkARProximityView.swift */,
+				19C74FDFCD4B0DCC1EB56075 /* WalkARProximityView.swift */,
 			);
 			path = Walk;
 			sourceTree = "<group>";
@@ -415,6 +448,7 @@
 			children = (
 				5592A8232F4D4ADF006AD44E /* AestheticService.swift */,
 				5592A8242F4D4ADF006AD44E /* LocationService.swift */,
+				EB001002EB001002EB001002 /* ProgressService.swift */,
 				5592A8252F4D4ADF006AD44E /* ScanAPIService.swift */,
 				C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */,
 				5592A8262F4D4ADF006AD44E /* SupabaseService.swift */,
@@ -434,6 +468,9 @@
 				75A43B5D56BA174B6C3BBE64 /* GPSGridCacheService.swift */,
 				5F3E5BEDDE02F4C825F9B4D5 /* GPSGridCacheService.swift */,
 				9F7B732A2957D92CF9083340 /* GPSGridCacheService.swift */,
+				43ADFCEE1994A473D54F8523 /* GPSGridCacheService.swift */,
+				4DCAE2C9D97C15230BE71B73 /* GPSGridCacheService.swift */,
+				743038690219F68C0E55A571 /* GPSGridCacheService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -545,6 +582,7 @@
 				BB003001BB003001BB003001 /* ExploreViewModel.swift */,
 				CC001001CC001001CC001001 /* ExploreSearchBar.swift */,
 				BB003002BB003002BB003002 /* ExploreView.swift */,
+				93F5CF53DDAE765A86EEEAC7 /* SimilarBuildingsView.swift */,
 			);
 			path = Explore;
 			sourceTree = "<group>";
@@ -680,6 +718,7 @@
 				5592A83B2F4D4ADF006AD44E /* XPService.swift in Sources */,
 				5592A83C2F4D4ADF006AD44E /* LocationService.swift in Sources */,
 				5592A83D2F4D4ADF006AD44E /* AestheticService.swift in Sources */,
+				EB001001EB001001EB001001 /* ProgressService.swift in Sources */,
 				5592A83E2F4D4ADF006AD44E /* ScanAPIService.swift in Sources */,
 				C1A2B3C4D5E6F7081920A1B3 /* GeminiService.swift in Sources */,
 				5592A83F2F4D4ADF006AD44E /* ScanView.swift in Sources */,
@@ -729,6 +768,17 @@
 				EEF721B3904369BB043DB06D /* GPSGridCacheService.swift in Sources */,
 				27C6A04969B1BDFBE3F713F4 /* NotFoundView.swift in Sources */,
 				B977CA7564A256341C0CF120 /* NotFoundViewModel.swift in Sources */,
+				7210B4D7B752319CEBD78FED /* GPSGridCacheService.swift in Sources */,
+				E6719FBD16BD43C0A9F4E616 /* NotFoundView.swift in Sources */,
+				439592344A577566D10D8730 /* NotFoundViewModel.swift in Sources */,
+				144B1EBF8A8D4AE5F9E2B099 /* WalkARProximityView.swift in Sources */,
+				068D1A3D51310FED2F8B7B7B /* GPSGridCacheService.swift in Sources */,
+				0779174BA2041F87317CE542 /* NotFoundView.swift in Sources */,
+				B479ED916F7C55EF3B72E120 /* NotFoundViewModel.swift in Sources */,
+				982149DBD05544B348433220 /* SimilarBuildingsView.swift in Sources */,
+				D08293839EA1D45F4B979F21 /* GPSGridCacheService.swift in Sources */,
+				D68218720481C93D49BA0CDF /* NotFoundView.swift in Sources */,
+				47BFED944A969AB0143EA225 /* NotFoundViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

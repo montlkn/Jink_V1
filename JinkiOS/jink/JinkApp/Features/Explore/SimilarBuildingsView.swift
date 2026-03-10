@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 @Observable
 final class SimilarBuildingsViewModel {
