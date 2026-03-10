@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		15EDB6EAC352AD3DBCDCC97F /* WalkStopInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */; };
 		1BE17B48E35F54A163105B1A /* WalkVerificationCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */; };
+		27C6A04969B1BDFBE3F713F4 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E61B8C7B4C1D50FC383D50D /* NotFoundView.swift */; };
 		4D32B44B296FF890E3D94AFA /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F7682737484F42D31BA903 /* ARKit.framework */; };
 		552C5CAF2F4D500B00F48FA7 /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CAE2F4D500B00F48FA7 /* MapboxMaps */; };
 		552C5CB22F4D50CD00F48FA7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 552C5CB12F4D50CD00F48FA7 /* Supabase */; };
@@ -41,7 +42,6 @@
 		559B6B562F5A1146004117CF /* JinkWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 559B6B452F5A1145004117CF /* JinkWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7026D44E55D24C24A5B13764 /* MetalOrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87067BA19B54B16B37B128B /* MetalOrbView.swift */; };
 		9B08ED470BC23C905905F81F /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE398129521FE1E061166289 /* GPSGridCacheService.swift */; };
-		A475A84522B5DB9D8B57D2E6 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 463800585C6FD48EC40399C8 /* NotFoundView.swift */; };
 		A9A3C0A2CEDC4D0F9116C683 /* XPGlassOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0E8ED6BF2648EC88F0D3E8 /* XPGlassOrb.swift */; };
 		AA001001AA001001AA001001 /* PassportContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001001BB001001BB001001 /* PassportContent.swift */; };
 		AA001002AA001002AA001002 /* BrooklynBridgeTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001002BB001002BB001002 /* BrooklynBridgeTour.swift */; };
@@ -69,15 +69,18 @@
 		AA002022AA002022AA002022 /* OnboardingQuizView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002022BB002022BB002022 /* OnboardingQuizView.swift */; };
 		AA002023AA002023AA002023 /* QuizResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA002023BB002023BB002023 /* QuizResultsView.swift */; };
 		B723D28B7401508795CBE505 /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748DB82A9A40F295A21A398D /* NotFoundView.swift */; };
+		B977CA7564A256341C0CF120 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B838D01B31448D9CB935C90 /* NotFoundViewModel.swift */; };
 		BB003001AA003001AA003001 /* ExploreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB003001BB003001BB003001 /* ExploreViewModel.swift */; };
 		BB003002AA003002AA003002 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB003002BB003002BB003002 /* ExploreView.swift */; };
 		BD66930E4F9240649EF480C5 /* ProfileDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B76CBEC29C4317A3B10BCB /* ProfileDetailView.swift */; };
 		C1A2B3C4D5E6F7081920A1B3 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */; };
+		C88320A12DEBD6C65C92974D /* NotFoundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4853545A2AB780E9B4C8233A /* NotFoundView.swift */; };
+		CB64081956E007696CCA1C56 /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F3E5BEDDE02F4C825F9B4D5 /* GPSGridCacheService.swift */; };
 		CC001001AA001001AA001001 /* ExploreSearchBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001001CC001001CC001001 /* ExploreSearchBar.swift */; };
+		D3DA9DAE3A8967ACEE630423 /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40762DBDB189721F082E1EB3 /* NotFoundViewModel.swift */; };
 		D6045A7FE5BCAE69A2E63F8C /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34B11A5F1549A516E0871F62 /* NotFoundViewModel.swift */; };
 		DD001001AA001001AA001001 /* OnboardingCarouselView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD001001BB001001BB001001 /* OnboardingCarouselView.swift */; };
-		F01A338BD4A2C10729242034 /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75A43B5D56BA174B6C3BBE64 /* GPSGridCacheService.swift */; };
-		F2310D9D6CBA9EB5C36A5A7D /* NotFoundViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04387B2B5B9E084DFDCA729C /* NotFoundViewModel.swift */; };
+		EEF721B3904369BB043DB06D /* GPSGridCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7B732A2957D92CF9083340 /* GPSGridCacheService.swift */; };
 		F314018BC69FF87356C7076A /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */; };
 		F8D079DCF29E4B1181E89E4C /* ArchetypeOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */; };
 		FF6622CD26EC4D6BB13806C1 /* XPLevels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481827E6343741BF9106F345 /* XPLevels.swift */; };
@@ -111,10 +114,13 @@
 		04387B2B5B9E084DFDCA729C /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		21975B511EB152E6FE0DCD6D /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		34B11A5F1549A516E0871F62 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
+		3E61B8C7B4C1D50FC383D50D /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		405450330126B74B3FEE3A62 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		40762DBDB189721F082E1EB3 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		4308AC75DA3D30A1CC132000 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		463800585C6FD48EC40399C8 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		481827E6343741BF9106F345 /* XPLevels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevels.swift; sourceTree = "<group>"; };
+		4853545A2AB780E9B4C8233A /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SceneKit.framework; path = System/Library/Frameworks/SceneKit.framework; sourceTree = SDKROOT; };
 		52B052A4EE0CD4001E2275F5 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		5592A7F72F4D493D006AD44E /* jink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = jink.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -147,18 +153,21 @@
 		559B6B462F5A1145004117CF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		559B6B482F5A1145004117CF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		5651E2D9B3A5D65FBF7A0690 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
+		5F3E5BEDDE02F4C825F9B4D5 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		671D22F6EDD07978EDAFC71B /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		6E790E3D71BB86758907B6AB /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		6F3C43EE85937532560149E4 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		7231B3BB6999508AB36BB79F /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		748DB82A9A40F295A21A398D /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		75A43B5D56BA174B6C3BBE64 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
+		8B838D01B31448D9CB935C90 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		8C50D9B7C08FBA386911F9E1 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		8EF1ABA857D47ED939BC5DB4 /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		9212F77AA0C4E6FEEB891FA7 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		9268A79DC54497609BBC6147 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		960096019696DC4F40FA27C2 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		9ADCCE9DC05363D3BF703541 /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
+		9F7B732A2957D92CF9083340 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		A35934448F2E05F36EC3C27A /* NotFoundViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundViewModel.swift; sourceTree = "<group>"; };
 		A5358ED563EA76540A772C67 /* WalkVerificationCameraView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WalkVerificationCameraView.swift; sourceTree = "<group>"; };
 		A56D290BD1252160D9C96864 /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
@@ -340,6 +349,10 @@
 				9212F77AA0C4E6FEEB891FA7 /* NotFoundViewModel.swift */,
 				463800585C6FD48EC40399C8 /* NotFoundView.swift */,
 				04387B2B5B9E084DFDCA729C /* NotFoundViewModel.swift */,
+				4853545A2AB780E9B4C8233A /* NotFoundView.swift */,
+				40762DBDB189721F082E1EB3 /* NotFoundViewModel.swift */,
+				3E61B8C7B4C1D50FC383D50D /* NotFoundView.swift */,
+				8B838D01B31448D9CB935C90 /* NotFoundViewModel.swift */,
 			);
 			path = Scan;
 			sourceTree = "<group>";
@@ -419,6 +432,8 @@
 				405450330126B74B3FEE3A62 /* GPSGridCacheService.swift */,
 				960096019696DC4F40FA27C2 /* GPSGridCacheService.swift */,
 				75A43B5D56BA174B6C3BBE64 /* GPSGridCacheService.swift */,
+				5F3E5BEDDE02F4C825F9B4D5 /* GPSGridCacheService.swift */,
+				9F7B732A2957D92CF9083340 /* GPSGridCacheService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -708,6 +723,12 @@
 				BB003001AA003001AA003001 /* ExploreViewModel.swift in Sources */,
 				CC001001AA001001AA001001 /* ExploreSearchBar.swift in Sources */,
 				BB003002AA003002AA003002 /* ExploreView.swift in Sources */,
+				CB64081956E007696CCA1C56 /* GPSGridCacheService.swift in Sources */,
+				C88320A12DEBD6C65C92974D /* NotFoundView.swift in Sources */,
+				D3DA9DAE3A8967ACEE630423 /* NotFoundViewModel.swift in Sources */,
+				EEF721B3904369BB043DB06D /* GPSGridCacheService.swift in Sources */,
+				27C6A04969B1BDFBE3F713F4 /* NotFoundView.swift in Sources */,
+				B977CA7564A256341C0CF120 /* NotFoundViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
