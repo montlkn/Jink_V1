@@ -102,7 +102,7 @@ struct QuizResultsView: View {
         defer { isLoading = false }
         do {
             struct Row: Decodable {
-                let normalizedScores: AestheticProfile
+                let normalizedScores: AestheticProfile?
                 enum CodingKeys: String, CodingKey {
                     case normalizedScores = "normalized_scores"
                 }

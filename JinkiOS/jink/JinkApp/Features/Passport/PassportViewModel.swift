@@ -58,7 +58,7 @@ final class PassportViewModel {
     private func fetchAestheticProfile(userId: String) async {
         do {
             struct AestheticRow: Decodable {
-                let normalizedScores: AestheticProfile
+                let normalizedScores: AestheticProfile?
                 enum CodingKeys: String, CodingKey {
                     case normalizedScores = "normalized_scores"
                 }
