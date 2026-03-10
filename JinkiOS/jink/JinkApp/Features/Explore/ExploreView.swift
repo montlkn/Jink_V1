@@ -107,16 +107,12 @@ struct ExploreView: View {
         center: CLLocationCoordinate2D(latitude: 40.7549, longitude: -73.9840),
         span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
     )
-    // Track where we last loaded so we know when the map has drifted far enough
     @State private var lastLoadCenter: CLLocationCoordinate2D? = nil
     @State private var showSearchHere = false
     @State private var searchText = ""
-
-    private var mapItems: [MapItem] {
-        let buildings = vm.buildings
-            .filter { $0.latitude != nil && $0.longitude != nil }
-        return computeMapItems(buildings: buildings, span: region.span)
-    }
+    // Cached clustering output — only recomputed when buildings or span changes
+    @State private var mapItems: [MapItem] = []
+    @State private var lastClusteredSpan: MKCoordinateSpan = MKCoordinateSpan(latitudeDelta: 0, longitudeDelta: 0)
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -144,9 +140,15 @@ struct ExploreView: View {
                     }
                 }
             }
-            .ignoresSafeArea(edges: .top)
+            .ignoresSafeArea(.all, edges: .top)
             .onChange(of: region.center.latitude) { _, _ in updateSearchHereVisibility() }
             .onChange(of: region.center.longitude) { _, _ in updateSearchHereVisibility() }
+            // Recluster when zoom level changes meaningfully (ignore tiny pan-induced span drift)
+            .onChange(of: region.span.latitudeDelta) { _, newSpan in
+                let diff = abs(newSpan - lastClusteredSpan.latitudeDelta)
+                if diff > lastClusteredSpan.latitudeDelta * 0.15 { recomputeMapItems() }
+            }
+            .onChange(of: vm.buildings.count) { _, _ in recomputeMapItems() }
 
             // Top Content (Search Bar & Actions)
             VStack(spacing: 12) {
@@ -251,7 +253,14 @@ struct ExploreView: View {
             lastLoadCenter = coord
             let userId = appState.currentUser?.id.uuidString
             await vm.load(near: coord, userId: userId)
+            recomputeMapItems()
         }
+    }
+
+    private func recomputeMapItems() {
+        let buildings = vm.buildings.filter { $0.latitude != nil && $0.longitude != nil }
+        mapItems = computeMapItems(buildings: buildings, span: region.span)
+        lastClusteredSpan = region.span
     }
 
     private func updateSearchHereVisibility() {

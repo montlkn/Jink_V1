@@ -8,12 +8,8 @@ struct TourNavView: View {
     @Environment(\.dismiss) private var dismiss
 
     // Map State
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 40.7549, longitude: -73.9840),
-        span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
-    )
-    @State private var trackingMode: MapUserTrackingMode = .follow
-    
+    @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
+
     // View Mode
     @State private var useARMode = true
 
@@ -34,27 +30,29 @@ struct TourNavView: View {
                 TourARView(checkpoint: vm.currentCheckpoint, isNear: vm.isNearCurrentCheckpoint)
                     .ignoresSafeArea()
             } else {
-                Map(coordinateRegion: $region,
-                    interactionModes: .all,
-                    showsUserLocation: true,
-                    userTrackingMode: $trackingMode,
-                    annotationItems: vm.currentCheckpoint != nil ? [vm.currentCheckpoint!] : []) { checkpoint in
-                    MapAnnotation(coordinate: CLLocationCoordinate2D(latitude: checkpoint.latitude, longitude: checkpoint.longitude)) {
-                        VStack(spacing: 0) {
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.title)
-                                .foregroundStyle(AppColors.accent)
-                                .background(Circle().fill(.white))
-                            
-                            Text(checkpoint.name)
-                                .font(.caption.bold())
-                                .padding(4)
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
-                                .offset(y: 4)
+                Map(position: $position) {
+                    if let checkpoint = vm.currentCheckpoint {
+                        Annotation(checkpoint.name, coordinate: CLLocationCoordinate2D(latitude: checkpoint.latitude, longitude: checkpoint.longitude)) {
+                            VStack(spacing: 0) {
+                                Image(systemName: "mappin.circle.fill")
+                                    .font(.title)
+                                    .foregroundStyle(AppColors.accent)
+                                    .background(Circle().fill(.white))
+                                
+                                Text(checkpoint.name)
+                                    .font(.caption.bold())
+                                    .padding(4)
+                                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
+                                    .offset(y: 4)
+                            }
                         }
                     }
                 }
-                .ignoresSafeArea(edges: .top)
+                .mapControls {
+                    MapUserLocationButton()
+                    MapCompass()
+                }
+                .ignoresSafeArea(.all, edges: .top)
             }
 
             if vm.isNearCurrentCheckpoint {
@@ -190,13 +188,14 @@ struct TourNavView: View {
         let lngDelta = abs(location.coordinate.longitude - checkpoint.longitude) * 1.5
         
         withAnimation {
-            region = MKCoordinateRegion(
+            let rect = MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: midLat, longitude: midLng),
                 span: MKCoordinateSpan(
                     latitudeDelta: max(0.005, latDelta),
                     longitudeDelta: max(0.005, lngDelta)
                 )
             )
+            position = .region(rect)
         }
     }
 

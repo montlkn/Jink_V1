@@ -32,7 +32,7 @@ final class ExploreViewModel {
         // in parallel. Each band has <500 rows in even the densest Manhattan blocks,
         // safely under PostgREST's 1000-row page cap.
         // ±0.015° window = 30 × 0.001° bands. We generate all bands in range.
-        let latBands = latBandSet(for: coordinate.latitude, delta: 0.015)
+        let latBands = latBandSet(for: coordinate.latitude, delta: 0.015, step: 0.005)
 
         let fields = "bin, bbl, building_name, address, architect, year_built, style, storytelling, landmark, mat_prim, building_type, geocoded_lat, geocoded_lng, primary_aesthetic, secondary_aesthetic"
 
@@ -83,17 +83,18 @@ final class ExploreViewModel {
         await profileFetch
     }
 
-    /// Returns all 3-decimal lat prefixes covering [value-delta, value+delta].
-    /// Each band is ~110m tall; at 500 rows/band this covers even dense Manhattan.
-    private func latBandSet(for value: Double, delta: Double) -> [String] {
-        let step = 0.001
-        let low  = (value - delta).rounded(toPlaces: 3)
-        let high = (value + delta).rounded(toPlaces: 3)
+    /// Returns lat LIKE prefixes covering [value-delta, value+delta].
+    /// step=0.005 → 6 queries max, each band ~550m tall, well under 1000-row cap.
+    private func latBandSet(for value: Double, delta: Double, step: Double = 0.005) -> [String] {
+        let places = step < 0.01 ? 3 : 2
+        let low  = (value - delta).rounded(toPlaces: places)
+        let high = (value + delta).rounded(toPlaces: places)
         var bands: [String] = []
         var v = low
+        let fmt = places == 3 ? "%.3f" : "%.2f"
         while v <= high + 1e-9 {
-            bands.append(String(format: "%.3f", v))
-            v = (v + step).rounded(toPlaces: 3)
+            bands.append(String(format: fmt, v))
+            v = (v + step).rounded(toPlaces: places)
         }
         return bands
     }
@@ -150,21 +151,17 @@ final class ExploreViewModel {
         guard !query.isEmpty else { return }
         isLoading = true
         defer { isLoading = false }
-        
         do {
-            // Very simple search using ilike on name or address
-            let data = try await SupabaseService.shared.client
+            let fields = "bin, bbl, building_name, address, architect, year_built, style, storytelling, landmark, mat_prim, building_type, geocoded_lat, geocoded_lng, primary_aesthetic, secondary_aesthetic"
+            let results: [Building] = try await SupabaseService.shared.buildingsClient
                 .from("buildings_full_merge_scanning")
-                .select()
-                .or("name.ilike.%\(query)%,address.ilike.%\(query)%")
-                .limit(20)
+                .select(fields)
+                .or("building_name.ilike.%\(query)%,address.ilike.%\(query)%")
+                .limit(50)
                 .execute()
-            
-            let decoder = JSONDecoder()
-            let decoded = try decoder.decode([Building].self, from: data.data)
-            
-            if !decoded.isEmpty {
-                buildings = decoded
+                .value
+            if !results.isEmpty {
+                buildings = results
             }
         } catch {
             print("[ExploreViewModel] ❌ Search error: \(error)")

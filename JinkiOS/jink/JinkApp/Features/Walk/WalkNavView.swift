@@ -119,7 +119,7 @@ struct WalkNavView: View {
     private func refreshAppState() {
         Task {
             if appState.currentUser != nil {
-                try? await SupabaseService.shared.client.auth.refreshSession()
+                _ = try? await SupabaseService.shared.client.auth.refreshSession()
             }
         }
     }
@@ -589,7 +589,6 @@ private struct TickRing: View {
             let minLen: CGFloat   = 5
             let labelInset: CGFloat = majorLen + 14
             let cardinals = [0: "N", 90: "E", 180: "S", 270: "W"]
-            let cardinalDegs: Set<Int> = [0, 90, 180, 270]
 
             for i in 0..<120 {
                 let deg = Double(i) * 3.0

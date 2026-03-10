@@ -1,5 +1,6 @@
 import SwiftUI
 import Supabase
+import Auth
 
 struct RootView: View {
     @Environment(AppState.self) private var appState
