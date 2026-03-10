@@ -1,7 +1,8 @@
 import SwiftUI
 import ARKit
 import SceneKit
-import CoreMotion
+import CoreLocation
+import Auth
 import CoreLocation
 
 // MARK: - WalkARProximityView
