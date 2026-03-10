@@ -83,7 +83,6 @@ final class ProgressService {
 
             // `events[0]` is the scan they JUST did. `events[1]` is their previous scan.
             let lastScanDate = events[1].created_at
-            let today = Date()
 
             if calendar.isDateInYesterday(lastScanDate) {
                 // Continuation!

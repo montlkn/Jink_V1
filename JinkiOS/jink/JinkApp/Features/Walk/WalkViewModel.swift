@@ -55,6 +55,7 @@ final class WalkViewModel {
     // Verification State
     var isVerifying = false
     var showInsights = false
+    var showARProximity = false
     var verifiedBuildingDetail: BuildingResult? = nil
     var verificationLoadingMessage = ""
 
@@ -359,62 +360,58 @@ final class WalkViewModel {
         isCompleting = true
         defer { isCompleting = false }
 
-        do {
-            let params: [String: AnyJSON] = [
-                "p_user_id": .string(userId),
-                "p_walk_id": .string(walkId),
-                "p_completed_at": .string(ISO8601DateFormatter().string(from: Date()))
-            ]
-            struct CompleteWalkResult: Decodable {
-                let totalXp: Int?
-                enum CodingKeys: String, CodingKey { case totalXp = "total_xp" }
-            }
-            let rpcResult = try? await SupabaseService.shared.client
-                .rpc("complete_walk_session", params: params)
-                .execute()
-                .value as CompleteWalkResult
-
-            let totalXP = rpcResult?.totalXp ?? (walkXP + 100)
-            xpEarned = totalXP
-
-            // Calculate real duration and distance
-            let duration = walkStartTime.map { Int(Date().timeIntervalSince($0) / 60) }
-            let distance: Double? = routeCoordinates.count > 1
-                ? zip(routeCoordinates, routeCoordinates.dropFirst())
-                    .reduce(0.0) { $0 + $1.0.distance(to: $1.1) } / 1000.0
-                : nil
-
-            // Persist distance to the walk record
-            if let distanceKm = distance {
-                try? await SupabaseService.shared.client
-                    .from("walks")
-                    .update(["distance_km": AnyJSON.double(distanceKm)])
-                    .eq("id", value: walkId)
-                    .execute()
-            }
-            
-            // Trigger real-time progress updates (Streaks, Achievements, Algo)
-            await ProgressService.shared.processWalk(userId: userId)
-
-            completionStats = WalkCompletionStats(
-                walkId: walkId,
-                xpEarned: totalXP,
-                visitedCount: visitedBuildingIds.count,
-                totalCount: buildings.count,
-                visitedIds: visitedBuildingIds,
-                distanceKm: distance,
-                durationMinutes: duration,
-                buildings: buildings
-            )
-            isWalkActive = false
-            self.walkId = nil
-            stopTrackingLocation()
-            WalkLiveActivityService.shared.end()
-            showXPSummary = true
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-        } catch {
-            errorMessage = error.localizedDescription
+        let params: [String: AnyJSON] = [
+            "p_user_id": .string(userId),
+            "p_walk_id": .string(walkId),
+            "p_completed_at": .string(ISO8601DateFormatter().string(from: Date()))
+        ]
+        struct CompleteWalkResult: Decodable {
+            let totalXp: Int?
+            enum CodingKeys: String, CodingKey { case totalXp = "total_xp" }
         }
+        let rpcResult = try? await SupabaseService.shared.client
+            .rpc("complete_walk_session", params: params)
+            .execute()
+            .value as CompleteWalkResult
+
+        let totalXP = rpcResult?.totalXp ?? (walkXP + 100)
+        xpEarned = totalXP
+
+        // Calculate real duration and distance
+        let duration = walkStartTime.map { Int(Date().timeIntervalSince($0) / 60) }
+        let distance: Double? = routeCoordinates.count > 1
+            ? zip(routeCoordinates, routeCoordinates.dropFirst())
+                .reduce(0.0) { $0 + $1.0.distance(to: $1.1) } / 1000.0
+            : nil
+
+        // Persist distance to the walk record
+        if let distanceKm = distance {
+            _ = try? await SupabaseService.shared.client
+                .from("walks")
+                .update(["distance_km": AnyJSON.double(distanceKm)])
+                .eq("id", value: walkId)
+                .execute()
+        }
+        
+        // Trigger real-time progress updates (Streaks, Achievements, Algo)
+        await ProgressService.shared.processWalk(userId: userId)
+
+        completionStats = WalkCompletionStats(
+            walkId: walkId,
+            xpEarned: totalXP,
+            visitedCount: visitedBuildingIds.count,
+            totalCount: buildings.count,
+            visitedIds: visitedBuildingIds,
+            distanceKm: distance,
+            durationMinutes: duration,
+            buildings: buildings
+        )
+        isWalkActive = false
+        self.walkId = nil
+        stopTrackingLocation()
+        WalkLiveActivityService.shared.end()
+        showXPSummary = true
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
 
     // MARK: - Location tracking
