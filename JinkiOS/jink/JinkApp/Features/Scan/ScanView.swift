@@ -36,6 +36,18 @@ struct ScanView: View {
                             .foregroundStyle(.white)
                             .padding(8)
                             .background(.ultraThinMaterial, in: Capsule())
+                    } else {
+                        // DEBUG OVERLAY
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(String(format: "Lat: %.4f, Lng: %.4f", locationService.location!.coordinate.latitude, locationService.location!.coordinate.longitude))
+                            Text(String(format: "Bearing: %.1f° | Acc: %.1fm", locationService.compassBearing, locationService.location!.horizontalAccuracy))
+                        }
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.green)
+                        .padding(6)
+                        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 16)
                     }
 
                     // Scan button
