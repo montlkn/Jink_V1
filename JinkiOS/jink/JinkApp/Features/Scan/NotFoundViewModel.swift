@@ -85,7 +85,8 @@ final class NotFoundViewModel {
 
         for (index, photoData) in capturedPhotos.enumerated() {
             let (image, angle) = photoData
-            guard let imageData = image.jpegData(compressionQuality: 0.8) else { continue }
+            guard let resizedImage = image.resized(toMaxDimension: 1200),
+                  let imageData = resizedImage.jpegData(compressionQuality: 0.8) else { continue }
 
             appendField(name: "photo_angles", value: angle)
 

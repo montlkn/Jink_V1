@@ -11,6 +11,8 @@ struct NotFoundView: View {
     @Environment(AppState.self) private var appState
     @State private var vm = NotFoundViewModel()
 
+    private let captureNotification = Notification.Name("capturePhotoNotFound")
+
     var body: some View {
         ZStack {
             switch vm.step {
@@ -64,7 +66,7 @@ struct NotFoundView: View {
 
     private func capturingScreen(index: Int) -> some View {
         ZStack {
-            CameraPreviewView { image in
+            CameraPreviewView(captureNotificationName: captureNotification) { image in
                 vm.captureAngle(image, angle: vm.currentAngle)
             }
             .ignoresSafeArea()
@@ -104,7 +106,7 @@ struct NotFoundView: View {
                 Spacer()
 
                 Button(action: {
-                    NotificationCenter.default.post(name: .capturePhoto, object: nil)
+                    NotificationCenter.default.post(name: captureNotification, object: nil)
                 }) {
                     ZStack {
                         Circle()

@@ -27,17 +27,6 @@ struct ScanView: View {
 
                 // UI overlay
                 VStack {
-                    HStack {
-                        Button(action: { dismiss() }) {
-                            Image(systemName: "xmark")
-                                .font(.title2)
-                                .foregroundStyle(.white)
-                                .padding()
-                                .background(.ultraThinMaterial, in: Circle())
-                        }
-                        .padding()
-                        Spacer()
-                    }
                     Spacer()
 
                     // GPS status
@@ -87,13 +76,13 @@ struct ScanView: View {
                 }
             }
             .navigationDestination(isPresented: $vm.showResult) {
-                if let building = vm.scanResult?.building {
+                if let match = vm.scanResult?.topMatch {
                     BuildingInfoView(
-                        bin: building.bin ?? "",
-                        name: building.name ?? "Unknown Building",
-                        address: building.address ?? "",
-                        latitude: building.latitude,
-                        longitude: building.longitude,
+                        bin: match.bin,
+                        name: match.name ?? "Unknown Building",
+                        address: match.address ?? "",
+                        latitude: match.latitude,
+                        longitude: match.longitude,
                         fromScan: true
                     )
                 }
@@ -102,7 +91,7 @@ struct ScanView: View {
                 NotFoundView(
                     photo: vm.scanPhoto,
                     location: locationService.location,
-                    buildingBin: vm.scanResult?.building?.bin ?? ""
+                    buildingBin: vm.scanResult?.topMatch?.bin ?? ""
                 )
             }
             .onAppear {
@@ -207,10 +196,11 @@ extension Notification.Name {
 
 // MARK: - Camera Preview (UIViewRepresentable)
 struct CameraPreviewView: UIViewRepresentable {
+    var captureNotificationName: Notification.Name = .capturePhoto
     var onCapture: (UIImage) -> Void
 
     func makeUIView(context: Context) -> CameraUIView {
-        let view = CameraUIView()
+        let view = CameraUIView(captureNotificationName: captureNotificationName)
         view.onCapture = onCapture
         return view
     }
@@ -225,12 +215,14 @@ final class CameraUIView: UIView {
     private var photoOutput = AVCapturePhotoOutput()
     private var previewLayer: AVCaptureVideoPreviewLayer!
     private var captureObserver: Any?
+    private let captureNotificationName: Notification.Name
 
-    override init(frame: CGRect) {
+    init(frame: CGRect = .zero, captureNotificationName: Notification.Name) {
+        self.captureNotificationName = captureNotificationName
         super.init(frame: frame)
         setupCamera()
         captureObserver = NotificationCenter.default.addObserver(
-            forName: .capturePhoto, object: nil, queue: .main
+            forName: captureNotificationName, object: nil, queue: .main
         ) { [weak self] _ in
             self?.capturePhoto()
         }

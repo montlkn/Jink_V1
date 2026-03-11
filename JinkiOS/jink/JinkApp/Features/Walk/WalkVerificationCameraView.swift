@@ -8,11 +8,12 @@ struct WalkVerificationCameraView: View {
     @Environment(AppState.self) private var appState
 
     @State private var capturedImage: UIImage? = nil
+    private let captureNotification = Notification.Name("capturePhotoWalkVerification")
 
     var body: some View {
         ZStack {
             // Camera preview
-            CameraPreviewView(onCapture: handleCapture)
+            CameraPreviewView(captureNotificationName: captureNotification, onCapture: handleCapture)
                 .ignoresSafeArea()
             
             cameraGuide
@@ -127,7 +128,7 @@ struct WalkVerificationCameraView: View {
     }
 
     private func triggerScan() {
-        NotificationCenter.default.post(name: .capturePhoto, object: nil)
+        NotificationCenter.default.post(name: captureNotification, object: nil)
     }
 
     private func handleCapture(_ image: UIImage) {
