@@ -36,25 +36,20 @@ final class ScanViewModel {
 
         let bearing = locationService.compassBearing
         let pitch = locationService.devicePitch
-        let altitude = location.altitude
         let lat = location.coordinate.latitude
         let lng = location.coordinate.longitude
 
         let gpsAccuracy = location.horizontalAccuracy
-        let speed = max(location.speed, 0)
-        let movementType: String
-        if speed < 0.5 { movementType = "stationary" }
-        else if speed < 2.0 { movementType = "walking" }
-        else { movementType = "moving" }
 
         // 2. Try GPSGridCacheService
         if let cached = GPSGridCacheService.shared.findByGPS(lat: lat, lng: lng, radiusM: 30) {
-             let result = ScanAPIResponse(building: BuildingResult(
+             let match = ScanMatch(
                  bin: cached.bin, bbl: cached.bbl, name: cached.name, address: cached.address,
-                 architect: cached.architect, yearBuilt: Int(cached.yearBuilt ?? "0"),
-                 style: cached.style, description: cached.description,
-                 aestheticProfile: cached.aestheticProfile, latitude: cached.latitude, longitude: cached.longitude
-             ), confidence: 1.0, message: "Cached")
+                 architect: cached.architect, yearBuilt: cached.yearBuilt,
+                 style: cached.style, materials: cached.materials, use: cached.use,
+                 confidence: 1.0, latitude: cached.latitude, longitude: cached.longitude
+             )
+             let result = ScanAPIResponse(matches: [match], verificationMethod: "cache_hit")
              await handleVerifiedScan(result: result, userId: userId, subtype: "cache_hit")
              self.scanResult = result
              self.showResult = true
@@ -88,9 +83,7 @@ final class ScanViewModel {
                 lng: lng,
                 bearing: bearing,
                 pitch: pitch,
-                altitude: altitude,
-                gpsAccuracy: gpsAccuracy,
-                movementType: movementType
+                gpsAccuracy: gpsAccuracy
             )
 
             messageTask.cancel()
@@ -100,33 +93,32 @@ final class ScanViewModel {
                 self.scanResult = result
                 self.showResult = true
             } else {
+                print("[ScanViewModel] Scan successful but no buildings found in cone.")
                 self.scanResult = result
                 self.notFound = true
             }
         } catch {
+            print("[ScanViewModel] Scan API Error: \(error)")
             messageTask.cancel()
             errorMessage = error.localizedDescription
-            self.notFound = true
+            // Do NOT set notFound = true here, so we stay on ScanView and show the error toast
         }
         
         isScanning = false
     }
 
     private func handleVerifiedScan(result: ScanAPIResponse, userId: String, subtype: String) async {
+        let topMatch = result.topMatch
         try? await AestheticService.shared.insertScanEvent(
             userId: userId,
-            buildingBbl: result.building?.bbl,
-            aestheticVector: result.building?.aestheticProfile.map { profile in
-                var dict: [String: Double] = [:]
-                for item in profile.all { dict[item.name.lowercased()] = item.score }
-                return dict
-            },
+            buildingBbl: topMatch?.bbl,
+            aestheticVector: nil,
             subtype: subtype
         )
         try? await XPService.shared.awardXP(userId: userId, amount: 50)
         
         // Trigger real-time progress updates (Streaks, Achievements, Stamps, Algo)
-        await ProgressService.shared.processScan(userId: userId, building: result.building)
+        await ProgressService.shared.processScan(userId: userId, match: topMatch)
         
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
@@ -147,14 +139,3 @@ final class ScanViewModel {
     }
 }
 
-// MARK: - Bearing helper
-extension CLLocationCoordinate2D {
-    func bearing(to other: CLLocationCoordinate2D) -> Double {
-        let lat1 = latitude * .pi / 180
-        let lat2 = other.latitude * .pi / 180
-        let dLng = (other.longitude - longitude) * .pi / 180
-        let y = sin(dLng) * cos(lat2)
-        let x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLng)
-        return atan2(y, x) * 180 / .pi
-    }
-}
