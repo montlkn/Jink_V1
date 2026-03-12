@@ -162,8 +162,15 @@ final class ScanAPIService {
     }
 
     private func performScan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, gpsAccuracy: Double) async throws -> ScanAPIResponse {
-        let baseString = apiURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        var baseString = apiURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        // If the base URL already ends in /api/scan, don't append it again
+        if baseString.hasSuffix("/api/scan") {
+            baseString = baseString.replacingOccurrences(of: "/api/scan", with: "")
+        }
+        
         guard let endpoint = URL(string: "\(baseString)/api/scan") else { throw URLError(.badURL) }
+        print("[ScanAPIService] Scanning at: \(endpoint.absoluteString)")
+        
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = 45

@@ -41,6 +41,11 @@ struct ScanView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(String(format: "Lat: %.4f, Lng: %.4f", locationService.location!.coordinate.latitude, locationService.location!.coordinate.longitude))
                             Text(String(format: "Bearing: %.1f° | Acc: %.1fm", locationService.compassBearing, locationService.location!.horizontalAccuracy))
+                            if let error = vm.errorMessage {
+                                Text("Err: \(error)")
+                                    .foregroundStyle(.red)
+                                    .bold()
+                            }
                         }
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.green)
