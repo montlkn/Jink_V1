@@ -131,13 +131,13 @@ final class ScanAPIService {
     private init() {}
 
     private var apiURL: URL {
-        guard
-            let urlString = Bundle.main.object(forInfoDictionaryKey: "SCAN_API_URL") as? String,
-            let url = URL(string: urlString)
-        else {
-            fatalError("Missing SCAN_API_URL in Info.plist")
+        if let urlString = Bundle.main.object(forInfoDictionaryKey: "SCAN_API_URL") as? String,
+           let url = URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)),
+           !urlString.contains("your-scan-api") {
+            return url
         }
-        return url
+        // Fallback to production URL if config is missing or invalid
+        return URL(string: "https://lucienmount--nyc-scan-api-fastapi-app.modal.run")!
     }
 
     func scan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, gpsAccuracy: Double) async throws -> ScanAPIResponse {
