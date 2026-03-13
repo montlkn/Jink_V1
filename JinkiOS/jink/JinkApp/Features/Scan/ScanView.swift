@@ -41,6 +41,8 @@ struct ScanView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(String(format: "Lat: %.4f, Lng: %.4f", locationService.location!.coordinate.latitude, locationService.location!.coordinate.longitude))
                             Text(String(format: "Bearing: %.1f° | Acc: %.1fm", locationService.compassBearing, locationService.location!.horizontalAccuracy))
+                            Text("URL: \(Bundle.main.object(forInfoDictionaryKey: "SCAN_API_URL") as? String ?? "N/A")")
+                                .font(.system(size: 8))
                             if let error = vm.errorMessage {
                                 Text("Err: \(error)")
                                     .foregroundStyle(.red)
