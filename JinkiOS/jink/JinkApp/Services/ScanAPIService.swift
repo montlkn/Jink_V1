@@ -131,12 +131,7 @@ final class ScanAPIService {
     private init() {}
 
     private var apiURL: URL {
-        if let urlString = Bundle.main.object(forInfoDictionaryKey: "SCAN_API_URL") as? String,
-           let url = URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)),
-           !urlString.contains("your-scan-api") {
-            return url
-        }
-        // Fallback to production URL if config is missing or invalid
+        // Force the correct production URL to fix the "hostname not found" error
         return URL(string: "https://lucienmount--nyc-scan-api-fastapi-app.modal.run")!
     }
 
