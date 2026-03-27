@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 
 /// A community post — user-pinned observation, memory, or find shown on the explore map for all users
 struct CommunityPost: Identifiable, Decodable {
