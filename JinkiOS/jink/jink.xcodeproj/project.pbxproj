@@ -15,6 +15,7 @@
 		1436001803F3F6B793A2E24C /* AppleMapsDirectionsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D451A0F1FEBA4649B56ABF08 /* AppleMapsDirectionsService.swift */; };
 		144B1EBF8A8D4AE5F9E2B099 /* WalkARProximityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C74FDFCD4B0DCC1EB56075 /* WalkARProximityView.swift */; };
 		15EDB6EAC352AD3DBCDCC97F /* WalkStopInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */; };
+		AA001002AA001002AA001002 /* CommunityPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001001AA001001AA001001 /* CommunityPost.swift */; };
 		2C00F5B39E029648765AEA27 /* ArchetypeInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C7BDE6E9D4F065FA60155C /* ArchetypeInfo.swift */; };
 		2DB996DEABCA63E3254A5822 /* ExploreSearchResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40F597144848943C730AF87 /* ExploreSearchResultsView.swift */; };
 		3A5001234C2EC19624891D71 /* ArcTimeSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 511F1AE07AB7885D56AC64BF /* ArcTimeSlider.swift */; };
@@ -31,7 +32,6 @@
 		5592A82F2F4D4ADF006AD44E /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8072F4D4ADF006AD44E /* AppState.swift */; };
 		FE001001FE001001FE001001 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001001DD001001DD001001 /* ShakeDetector.swift */; };
 		FE001002FE001002FE001002 /* FeedbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001002DD001002DD001002 /* FeedbackService.swift */; };
-		EE003001EE003001EE003001 /* CommunityPostService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE003002EE003002EE003002 /* CommunityPostService.swift */; };
 		FE001003FE001003FE001003 /* BetaFeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001003DD001003DD001003 /* BetaFeedbackView.swift */; };
 		5592A8302F4D4ADF006AD44E /* ArchetypeArcView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A80B2F4D4ADF006AD44E /* ArchetypeArcView.swift */; };
 		5592A8312F4D4ADF006AD44E /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A80E2F4D4ADF006AD44E /* AuthViewModel.swift */; };
@@ -162,7 +162,6 @@
 		5592A8072F4D4ADF006AD44E /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		CC001001DD001001DD001001 /* ShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeDetector.swift; sourceTree = "<group>"; };
 		CC001002DD001002DD001002 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
-		EE003002EE003002EE003002 /* CommunityPostService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityPostService.swift; sourceTree = "<group>"; };
 		CC001003DD001003DD001003 /* BetaFeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetaFeedbackView.swift; sourceTree = "<group>"; };
 		5592A8082F4D4ADF006AD44E /* JinkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JinkApp.swift; sourceTree = "<group>"; };
 		5592A80A2F4D4ADF006AD44E /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
@@ -269,6 +268,7 @@
 		D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchetypeOrb.swift; sourceTree = "<group>"; };
 		D451A0F1FEBA4649B56ABF08 /* AppleMapsDirectionsService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleMapsDirectionsService.swift; sourceTree = "<group>"; };
 		DD001001BB001001BB001001 /* OnboardingCarouselView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCarouselView.swift; sourceTree = "<group>"; };
+		AA001001AA001001AA001001 /* CommunityPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityPost.swift; sourceTree = "<group>"; };
 		E3C7BDE6E9D4F065FA60155C /* ArchetypeInfo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ArchetypeInfo.swift; sourceTree = "<group>"; };
 		E5AE9EC90FFE2D2958265219 /* BrooklynBridgeTour.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrooklynBridgeTour.swift; sourceTree = "<group>"; };
 		EB001002EB001002EB001002 /* ProgressService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressService.swift; sourceTree = "<group>"; };
@@ -477,6 +477,7 @@
 				5592A81F2F4D4ADF006AD44E /* Walk.swift */,
 				AA002011BB002011BB002011 /* Quiz.swift */,
 				E3C7BDE6E9D4F065FA60155C /* ArchetypeInfo.swift */,
+				AA001001AA001001AA001001 /* CommunityPost.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -528,7 +529,6 @@
 				53916BD6B5F5702263BD645C /* GPSGridCacheService.swift */,
 				D451A0F1FEBA4649B56ABF08 /* AppleMapsDirectionsService.swift */,
 				CC001002DD001002DD001002 /* FeedbackService.swift */,
-				EE003002EE003002EE003002 /* CommunityPostService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -773,7 +773,6 @@
 				5592A82F2F4D4ADF006AD44E /* AppState.swift in Sources */,
 				FE001001FE001001FE001001 /* ShakeDetector.swift in Sources */,
 				FE001002FE001002FE001002 /* FeedbackService.swift in Sources */,
-				EE003001EE003001EE003001 /* CommunityPostService.swift in Sources */,
 				FE001003FE001003FE001003 /* BetaFeedbackView.swift in Sources */,
 				5592A8302F4D4ADF006AD44E /* ArchetypeArcView.swift in Sources */,
 				5592A8312F4D4ADF006AD44E /* AuthViewModel.swift in Sources */,
@@ -845,7 +844,8 @@
 				4CEF2790D14087591A9FBC02 /* BuildingInfoViewModel.swift in Sources */,
 				B79B288B25EF1A731E68D87E /* BuildingAddToListSheet.swift in Sources */,
 				BFCA011A7810349AC8C0438F /* ArchetypeDetailSheet.swift in Sources */,
-				2C00F5B39E029648765AEA27 /* ArchetypeInfo.swift in Sources */,
+		2C00F5B39E029648765AEA27 /* ArchetypeInfo.swift in Sources */,
+				AA001002AA001002AA001002 /* CommunityPost.swift in Sources */,
 				D2992D19FCBDB07588CC3EDB /* FlowLayout.swift in Sources */,
 				0E920807927094FD8D096A3C /* ArchetypeCards.swift in Sources */,
 				3A5001234C2EC19624891D71 /* ArcTimeSlider.swift in Sources */,
