@@ -45,7 +45,7 @@ class CommunityPostService {
 
     /// Fetch posts within a bounding box for the explore map
     func fetchPosts(minLat: Double, maxLat: Double, minLng: Double, maxLng: Double) async throws -> [CommunityPost] {
-        let response = try await SupabaseService.shared.client
+        let posts: [CommunityPost] = try await SupabaseService.shared.client
             .from("community_posts")
             .select()
             .gte("latitude", value: minLat)
@@ -55,8 +55,9 @@ class CommunityPostService {
             .order("created_at", ascending: false)
             .limit(50)
             .execute()
+            .value
 
-        return try JSONDecoder.supabaseDecoder.decode([CommunityPost].self, from: response.data)
+        return posts
     }
 
     /// Submit a new community post
