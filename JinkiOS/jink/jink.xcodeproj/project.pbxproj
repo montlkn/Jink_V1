@@ -16,7 +16,7 @@
 		144B1EBF8A8D4AE5F9E2B099 /* WalkARProximityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C74FDFCD4B0DCC1EB56075 /* WalkARProximityView.swift */; };
 		15EDB6EAC352AD3DBCDCC97F /* WalkStopInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D63DCECBADFE5F0989092E /* WalkStopInsightsView.swift */; };
 		2C00F5B39E029648765AEA27 /* ArchetypeInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C7BDE6E9D4F065FA60155C /* ArchetypeInfo.swift */; };
-		AA001002AA001002AA001002 /* CommunityPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001001AA001001AA001001 /* CommunityPost.swift */; };
+		BB990012BB990012BB990012 /* CommunityPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB990011BB990011BB990011 /* CommunityPost.swift */; };
 		2DB996DEABCA63E3254A5822 /* ExploreSearchResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B40F597144848943C730AF87 /* ExploreSearchResultsView.swift */; };
 		3A5001234C2EC19624891D71 /* ArcTimeSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 511F1AE07AB7885D56AC64BF /* ArcTimeSlider.swift */; };
 		4769EBFFB47EC73B2950D75E /* WalkGlassCompass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3467F162102267EEF5E11B /* WalkGlassCompass.swift */; };
@@ -269,7 +269,7 @@
 		D451A0F1FEBA4649B56ABF08 /* AppleMapsDirectionsService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleMapsDirectionsService.swift; sourceTree = "<group>"; };
 		DD001001BB001001BB001001 /* OnboardingCarouselView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCarouselView.swift; sourceTree = "<group>"; };
 		E3C7BDE6E9D4F065FA60155C /* ArchetypeInfo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ArchetypeInfo.swift; sourceTree = "<group>"; };
-		AA001001AA001001AA001001 /* CommunityPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityPost.swift; sourceTree = "<group>"; };
+		BB990011BB990011BB990011 /* CommunityPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunityPost.swift; sourceTree = "<group>"; };
 		E5AE9EC90FFE2D2958265219 /* BrooklynBridgeTour.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrooklynBridgeTour.swift; sourceTree = "<group>"; };
 		EB001002EB001002EB001002 /* ProgressService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressService.swift; sourceTree = "<group>"; };
 		F380FA785615408FEB3E6F5F /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
@@ -477,7 +477,7 @@
 				5592A81F2F4D4ADF006AD44E /* Walk.swift */,
 				AA002011BB002011BB002011 /* Quiz.swift */,
 				E3C7BDE6E9D4F065FA60155C /* ArchetypeInfo.swift */,
-				AA001001AA001001AA001001 /* CommunityPost.swift */,
+				BB990011BB990011BB990011 /* CommunityPost.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -845,7 +845,7 @@
 				B79B288B25EF1A731E68D87E /* BuildingAddToListSheet.swift in Sources */,
 				BFCA011A7810349AC8C0438F /* ArchetypeDetailSheet.swift in Sources */,
 				2C00F5B39E029648765AEA27 /* ArchetypeInfo.swift in Sources */,
-				AA001002AA001002AA001002 /* CommunityPost.swift in Sources */,
+				BB990012BB990012BB990012 /* CommunityPost.swift in Sources */,
 				D2992D19FCBDB07588CC3EDB /* FlowLayout.swift in Sources */,
 				0E920807927094FD8D096A3C /* ArchetypeCards.swift in Sources */,
 				3A5001234C2EC19624891D71 /* ArcTimeSlider.swift in Sources */,
