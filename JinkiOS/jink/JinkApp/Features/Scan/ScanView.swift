@@ -364,7 +364,6 @@ struct CommunityPostSheet: View {
         Task {
             do {
                 try await CommunityPostService.shared.submitPost(
-                    userId: userId,
                     imageData: imageData,
                     caption: caption.trimmingCharacters(in: .whitespaces),
                     latitude: latitude,

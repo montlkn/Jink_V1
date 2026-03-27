@@ -59,7 +59,7 @@ class CommunityPostService {
     }
 
     /// Submit a new community post
-    func submitPost(userId: String, imageData: Data, caption: String, latitude: Double, longitude: Double) async throws {
+    func submitPost(imageData: Data, caption: String, latitude: Double, longitude: Double) async throws {
         // Upload image to Supabase storage
         let fileName = "\(UUID().uuidString).jpg"
         let storagePath = "community-posts/\(fileName)"
@@ -75,7 +75,6 @@ class CommunityPostService {
 
         // Insert post record
         let payload: [String: AnyJSON] = [
-            "user_id": .string(userId),
             "image_url": .string(publicUrl),
             "caption": .string(caption),
             "latitude": .double(latitude),
