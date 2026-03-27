@@ -8,7 +8,7 @@ enum GeminiService {
     /// Calls Gemini 2.0 Flash Lite and returns the first text response, or nil on failure.
     static func generate(prompt: String, maxTokens: Int = 200, temperature: Double = 0.8) async -> String? {
         guard !apiKey.isEmpty, apiKey != "REPLACE_WITH_YOUR_KEY" else {
-            print("[GeminiService] ⚠️ No API key configured")
+            print("[GeminiService]  No API key configured")
             return nil
         }
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=\(apiKey)") else { return nil }
@@ -35,7 +35,7 @@ enum GeminiService {
                 return text.trimmingCharacters(in: .whitespacesAndNewlines)
             }
         } catch {
-            print("[GeminiService] ❌ \(error)")
+            print("[GeminiService]  \(error)")
         }
         return nil
     }

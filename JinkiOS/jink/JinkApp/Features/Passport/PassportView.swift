@@ -5,6 +5,8 @@ struct PassportView: View {
     @Environment(AppState.self) private var appState
     @State private var vm = PassportViewModel()
     @State private var showProfileDetail = false
+    @State private var showScannedBuildings = false
+    @State private var showStamps = false
     var body: some View {
         NavigationStack {
             Group {
@@ -15,21 +17,19 @@ struct PassportView: View {
                     ScrollView {
                         VStack(spacing: 24) {
                             // Passport Header
-                            PassportHeaderView(vm: vm)
+                            PassportHeaderView(vm: vm, onScanTap: { showScannedBuildings = true })
 
-                            // Archetype Orb — show default if no profile yet
-                            let orbAesthetic = vm.aestheticProfile ?? AestheticProfile.default
-                            Button(action: { showProfileDetail = true }) {
-                                ArchetypeOrb(aesthetic: orbAesthetic, showLabels: false)
-                            }
-                            .sheet(isPresented: $showProfileDetail) {
-                                ProfileDetailView(profile: profile, aestheticProfile: orbAesthetic)
-                            }
+                            // Archetype Orb — use live profile from AppState, fall back to VM, then default
+                            let orbAesthetic = appState.aestheticProfile ?? vm.aestheticProfile ?? AestheticProfile.default
+                            ArchetypeOrb(aesthetic: orbAesthetic, tapAction: { showProfileDetail = true })
+                                .sheet(isPresented: $showProfileDetail) {
+                                    ProfileDetailView(profile: profile, aestheticProfile: orbAesthetic)
+                                }
 
                             // Stats Grid: Stamps & Achievements
                             VStack(spacing: 16) {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                                    NavigationLink(destination: StampsView()) {
+                                    Button { showStamps = true } label: {
                                         StatCard(value: "\(vm.stampCount)", label: "Stamps", color: AppColors.passport.stamp, icon: "mappin.circle.fill")
                                     }
                                     .buttonStyle(.plain)
@@ -98,14 +98,21 @@ struct PassportView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .navigationTitle("Passport")
+
+            .sheet(isPresented: $showScannedBuildings) {
+                    ScannedBuildingsSheet(buildings: vm.scannedBuildings)
+                }
+            .sheet(isPresented: $showStamps) {
+                    StampsView()
+                        .environment(appState)
+                }
             .refreshable {
                 if let userId = appState.currentUser?.id.uuidString {
                     await vm.load(userId: userId)
                 }
             }
         }
-        .task {
+        .task(id: "\(appState.passportRefreshTrigger)-\(appState.currentUser?.id.uuidString ?? "")") {
             if let userId = appState.currentUser?.id.uuidString {
                 await vm.load(userId: userId)
             }
@@ -116,67 +123,175 @@ struct PassportView: View {
 // MARK: - Passport Header
 struct PassportHeaderView: View {
     let vm: PassportViewModel
+    let onScanTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            // SYS READY indicator
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(AppColors.success)
-                    .frame(width: 8, height: 8)
-                Text("SYS READY")
-                    .font(.caption.bold())
-                    .foregroundStyle(AppColors.accent)
-                Spacer()
-            }
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Passport")
+                .font(.system(size: 34, weight: .bold))
 
-            // Passport ID
-            if !vm.passportNumber.isEmpty {
-                HStack {
-                    Text("ID REF")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(vm.passportNumber)
-                        .font(.caption.bold())
-                        .monospacedDigit()
-                    Spacer()
+            HStack(spacing: 16) {
+                Button(action: onScanTap) {
+                    HStack(spacing: 4) {
+                        Text("\(vm.scanCount)")
+                            .fontWeight(.semibold)
+                        Text("Scanned")
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                    }
+                    .font(.system(size: 16))
+                    .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+
+                if let profile = vm.profile, profile.totalXp > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.accent)
+                        Text("\(profile.totalXp) XP")
+                            .fontWeight(.semibold)
+                    }
+                    .font(.system(size: 16))
+                    .foregroundStyle(.secondary)
+                }
+
+                if let profile = vm.profile, profile.streakCount > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Text("\(profile.streakCount)")
+                            .fontWeight(.semibold)
+                    }
+                    .font(.system(size: 16))
+                    .foregroundStyle(.secondary)
                 }
             }
 
-            // Rank
-            if let profile = vm.profile, let title = profile.levelTitle, let tier = profile.levelTier {
-                HStack {
-                    Text("RANK")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text("\(title.uppercased()) • \(tier.uppercased())")
-                        .font(.caption.bold())
-                    Spacer()
-                }
-            }
+            // Level indicator — compute from total_xp to avoid stale DB level column
+            if let profile = vm.profile {
+                let computedLevel = getLevelFromXP(profile.totalXp)
+                let levelConfig = getLevelConfig(computedLevel)
+                if computedLevel > 1 || profile.levelTitle != nil {
+                    HStack(spacing: 6) {
+                        Text("LEVEL \(computedLevel)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(AppColors.accent, in: Capsule())
 
-            // Scanned count
-            HStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("SCANNED")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text("\(vm.stampCount)")
-                        .font(.caption.bold())
+                        let title = levelConfig?.title ?? profile.levelTitle ?? ""
+                        if !title.isEmpty {
+                            Text(title.uppercased())
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 2)
                 }
-                Spacer()
             }
         }
-        .padding()
-        .background(
-            LinearGradient(
-                colors: [AppColors.accent.opacity(0.1), Color.clear],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .cornerRadius(12)
-        .padding(.horizontal)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+    }
+}
+
+// MARK: - Scanned Buildings Sheet
+struct ScannedBuildingsSheet: View {
+    let buildings: [ScannedBuilding]
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if buildings.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "building.2")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("No scanned buildings yet")
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(buildings) { building in
+                                NavigationLink(destination: BuildingInfoView(bin: building.bin, name: building.displayName, address: building.address ?? "")) {
+                                    ScannedBuildingCard(building: building)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    }
+                }
+            }
+            .navigationTitle("Scanned Buildings")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+// MARK: - Scanned Building Card
+struct ScannedBuildingCard: View {
+    let building: ScannedBuilding
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // User's scan photo
+            AsyncImage(url: URL(string: building.photoUrl ?? "")) { phase in
+                if let image = phase.image {
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Rectangle().fill(Color(.systemGray5))
+                        .overlay(Image(systemName: "building.2").foregroundStyle(.secondary))
+                }
+            }
+            .frame(width: 64, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 3) {
+                // Line 1: Name or address
+                Text(building.displayName)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                // Line 2: Style · Year
+                let detail = [building.style, building.yearBuilt].compactMap { $0 }.joined(separator: " · ")
+                if !detail.isEmpty {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else if building.name != nil, let addr = building.address {
+                    // If we have a name, show address as secondary info
+                    Text(addr)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                // Line 3: Date scanned
+                if let date = building.scannedAt {
+                    Text("Scanned \(date.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -258,11 +373,8 @@ struct WalkRow: View {
     }
 
     var walkTitleStr: String {
-        if let label = walk.customLabel, !label.isEmpty {
-            return label.uppercased()
-        }
-        if let type = walk.routeTier {
-            return type.uppercased()
+        if let borough = walk.borough, !borough.isEmpty {
+            return borough.uppercased()
         }
         return "JINK"
     }

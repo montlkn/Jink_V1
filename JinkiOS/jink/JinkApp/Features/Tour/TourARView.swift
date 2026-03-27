@@ -38,33 +38,33 @@ struct TourARView: UIViewRepresentable {
             context.coordinator.currentCheckpointId = checkpoint.id
             
             // Remove existing geo anchors
-            if let session = uiView.session as? ARSession {
-                for anchor in session.currentFrame?.anchors ?? [] {
-                    if anchor is ARGeoAnchor {
-                        session.remove(anchor: anchor)
-                    }
+            let session = uiView.session
+            for anchor in session.currentFrame?.anchors ?? [] {
+                if anchor is ARGeoAnchor {
+                    session.remove(anchor: anchor)
                 }
-                
-                // Add new geo anchor if supported
-                if ARGeoTrackingConfiguration.isSupported {
-                    let coordinate = CLLocationCoordinate2D(latitude: checkpoint.latitude, longitude: checkpoint.longitude)
-                    let geoAnchor = ARGeoAnchor(coordinate: coordinate)
-                    session.add(anchor: geoAnchor)
-                } else {
-                    // Fallback visual: just place a node 5 meters ahead for testing
-                    uiView.scene.rootNode.enumerateChildNodes { node, _ in
-                        if node.name == "fallback_pin" { node.removeFromParentNode() }
-                    }
-                    let pinNode = createPinNode(isNear: isNear)
-                    pinNode.name = "fallback_pin"
-                    pinNode.position = SCNVector3(0, 0, -5)
-                    uiView.scene.rootNode.addChildNode(pinNode)
+            }
+            
+            // Add new geo anchor if supported
+            if ARGeoTrackingConfiguration.isSupported {
+                let coordinate = CLLocationCoordinate2D(latitude: checkpoint.latitude, longitude: checkpoint.longitude)
+                let geoAnchor = ARGeoAnchor(coordinate: coordinate)
+                session.add(anchor: geoAnchor)
+            } else {
+                // Fallback visual: just place a node 5 meters ahead for testing
+                uiView.scene.rootNode.enumerateChildNodes { node, _ in
+                    if node.name == "fallback_pin" { node.removeFromParentNode() }
                 }
+                let pinNode = createPinNode(isNear: isNear)
+                pinNode.name = "fallback_pin"
+                pinNode.position = SCNVector3(0, 0, -5)
+                uiView.scene.rootNode.addChildNode(pinNode)
             }
         }
         
         // Update the visual state of the node if proximity changed
-        if let session = uiView.session as? ARSession, ARGeoTrackingConfiguration.isSupported {
+        if ARGeoTrackingConfiguration.isSupported {
+            let session = uiView.session
             for anchor in session.currentFrame?.anchors ?? [] {
                 if let geoAnchor = anchor as? ARGeoAnchor,
                    let node = uiView.node(for: geoAnchor) {

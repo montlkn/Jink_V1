@@ -31,6 +31,16 @@ private final class CachedImageLoader {
             } catch {}
         }
     }
+    
+    static func prefetch(url: URL) async {
+        let req = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30)
+        if cache.cachedResponse(for: req) != nil { return }
+        do {
+            let (data, response) = try await URLSession.shared.data(for: req)
+            let cached = CachedURLResponse(response: response, data: data)
+            cache.storeCachedResponse(cached, for: req)
+        } catch {}
+    }
 }
 
 private struct CachedAsyncImage: View {
@@ -42,12 +52,17 @@ private struct CachedAsyncImage: View {
             if let img = loader.image {
                 Image(uiImage: img)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                    .clipped()
             } else {
                 Color(.systemGray6)
                     .overlay(ProgressView().scaleEffect(0.7))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .aspectRatio(1.0, contentMode: .fit)
+        .clipped()
         .task(id: url.absoluteString) { loader.load(url: url) }
     }
 }
@@ -56,6 +71,8 @@ private struct CachedAsyncImage: View {
 
 struct OnboardingQuizView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
     @State private var vm = QuizViewModel()
     @State private var showResults = false
 
@@ -101,13 +118,22 @@ struct OnboardingQuizView: View {
                 }
             }
             .navigationDestination(isPresented: $showResults) {
-                QuizResultsView()
+                QuizResultsView(isFirstTime: vm.isFirstQuizSubmission, onComplete: { isPresented = false })
             }
             .navigationBarHidden(true)
         }
         .task {
             if let userId = appState.currentUser?.id.uuidString {
                 await vm.fetchQuestions(userId: userId)
+                // Prefetch all option images in background so they hit cache when rendered
+                Task {
+                    let urls = vm.questions.flatMap { $0.options }.compactMap { $0.imageUrl }.compactMap { URL(string: $0) }
+                    await withTaskGroup(of: Void.self) { group in
+                        for url in urls {
+                            group.addTask { await CachedImageLoader.prefetch(url: url) }
+                        }
+                    }
+                }
             }
         }
     }
@@ -119,6 +145,11 @@ private struct QuizQuestionView: View {
     @Bindable var vm: QuizViewModel
     let question: QuizQuestion
     let onNext: () -> Void
+
+    // XP counter — 10 XP per answered question, animates up
+    private static let xpPerQuestion = 10
+    @State private var displayedXP: Int = 0
+    @State private var xpBumpScale: CGFloat = 1.0
 
     // Image questions: 2-col grid. Text-only: single column.
     private var hasImages: Bool { question.options.contains { $0.imageUrl != nil } }
@@ -143,11 +174,33 @@ private struct QuizQuestionView: View {
                         Spacer().frame(width: 28)
                     }
                     Spacer()
+                    // XP counter
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(AppColors.accent)
+                        Text("+\(displayedXP) XP")
+                            .font(.caption.bold())
+                            .foregroundStyle(AppColors.accent)
+                            .contentTransition(.numericText())
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(AppColors.accent.opacity(0.1), in: Capsule())
+                    .scaleEffect(xpBumpScale)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.5), value: xpBumpScale)
+                    .onChange(of: vm.currentIndex) { _, newIndex in
+                        let earned = newIndex * Self.xpPerQuestion
+                        withAnimation(.easeOut(duration: 0.4)) { displayedXP = earned }
+                        xpBumpScale = 1.25
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.05)) {
+                            xpBumpScale = 1.0
+                        }
+                    }
+                    Spacer()
                     Text("\(vm.currentIndex + 1) / \(vm.questions.count)")
                         .font(.caption.bold())
                         .foregroundStyle(.secondary)
-                    Spacer()
-                    Spacer().frame(width: 28)
                 }
 
                 GeometryReader { geo in
@@ -170,7 +223,7 @@ private struct QuizQuestionView: View {
                 VStack(spacing: 24) {
                     // Question text
                     Text(question.questionText)
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.system(size: 32, weight: .bold))
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 20)
@@ -252,15 +305,12 @@ private struct OptionCard: View {
             VStack(spacing: 0) {
                 if let imageUrl = option.imageUrl, let url = URL(string: imageUrl) {
                     CachedAsyncImage(url: url)
-                        .frame(maxWidth: .infinity)
-                        // aspect fit so image is never cropped — height determined by content
-                        .aspectRatio(contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: isSelected ? 11 : 11))
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
                 }
 
                 if let text = option.optionText, !text.isEmpty {
                     Text(text)
-                        .font(.system(size: hasImages ? 14 : 17, weight: .semibold))
+                        .font(.system(size: hasImages ? 16 : 20, weight: .semibold))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(isSelected ? AppColors.accent : .primary)
                         .fixedSize(horizontal: false, vertical: true)

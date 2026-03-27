@@ -1,4 +1,5 @@
 import Auth
+import Supabase
 import SwiftUI
 import AVFoundation
 import UIKit
@@ -10,8 +11,15 @@ struct ScanView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var vm: ScanViewModel
     @State private var capturedImage: UIImage? = nil
+    @State private var profileLoaded = false
+    @State private var useUltraWide = false
+    @State private var communityMode = false
+    @State private var showCommunityPost = false
 
-    init() {
+    var showDismissButton: Bool = false
+
+    init(showDismissButton: Bool = false) {
+        self.showDismissButton = showDismissButton
         // vm initialized in onAppear after environment is set
         _vm = State(initialValue: ScanViewModel(locationService: LocationService()))
     }
@@ -20,61 +28,97 @@ struct ScanView: View {
         NavigationStack {
             ZStack {
                 // Camera preview
-                CameraPreviewView(onCapture: handleCapture)
+                CameraPreviewView(onCapture: handleCapture, useUltraWide: useUltraWide)
                     .ignoresSafeArea()
                 
                 cameraGuide
 
                 // UI overlay
                 VStack {
+                    if showDismissButton {
+                        HStack {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "xmark")
+                                    .font(.title3.bold())
+                                    .foregroundStyle(.white)
+                                    .padding(14)
+                                    .background(.black.opacity(0.4), in: Circle())
+                                    .overlay(Circle().stroke(.white.opacity(0.3), lineWidth: 1))
+                            }
+                            .padding(.leading, 20)
+                            .padding(.top, 10)
+                            Spacer()
+                            communityToggleButton
+                                .padding(.trailing, 20)
+                                .padding(.top, 10)
+                        }
+                    } else {
+                        HStack {
+                            Spacer()
+                            communityToggleButton
+                                .padding(.trailing, 20)
+                                .padding(.top, 10)
+                        }
+                    }
+                    
                     Spacer()
 
-                    // GPS status
+                    // GPS acquiring indicator
                     if locationService.location == nil {
                         Label("Acquiring GPS…", systemImage: "location.slash")
                             .font(.caption)
                             .foregroundStyle(.white)
                             .padding(8)
                             .background(.ultraThinMaterial, in: Capsule())
-                    } else {
-                        // DEBUG OVERLAY
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(String(format: "Lat: %.4f, Lng: %.4f", locationService.location!.coordinate.latitude, locationService.location!.coordinate.longitude))
-                            Text(String(format: "Bearing: %.1f° | Acc: %.1fm", locationService.compassBearing, locationService.location!.horizontalAccuracy))
-                            Text("URL: FORCED PROD")
-                                .font(.system(size: 8))
-                            if let error = vm.errorMessage {
-                                Text("Err: \(error)")
-                                    .foregroundStyle(.red)
-                                    .bold()
-                            }
-                        }
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.green)
-                        .padding(6)
-                        .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.leading, 16)
                     }
 
-                    // Scan button
-                    Button(action: triggerScan) {
-                        ZStack {
-                            Circle()
-                                .fill(.white)
-                                .frame(width: 72, height: 72)
+                    // Lens toggle + scan button row
+                    VStack(spacing: 12) {
+                        // 0.5x / 1x lens toggle
+                        Button(action: { useUltraWide.toggle() }) {
+                            Text(useUltraWide ? "0.5×" : "1×")
+                                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.black.opacity(0.5), in: Circle())
+                        }
+
+                        // Scan button — ArchetypeOrb if profile loaded, else fallback camera circle
+                        Group {
                             if vm.isScanning {
-                                ProgressView()
-                                    .tint(AppColors.accent)
+                                ZStack {
+                                    Circle()
+                                        .fill(.white.opacity(0.15))
+                                        .frame(width: 80, height: 80)
+                                    ProgressView()
+                                        .tint(.white)
+                                        .scaleEffect(1.2)
+                                }
+                            } else if profileLoaded, let profile = appState.aestheticProfile {
+                                ArchetypeOrb(
+                                    aesthetic: profile,
+                                    size: 80,
+                                    tapAction: triggerScan
+                                )
+                                .opacity(profileLoaded ? 1 : 0)
+                                .animation(.easeIn(duration: 0.3), value: profileLoaded)
+                                .disabled(locationService.location == nil)
                             } else {
-                                Image(systemName: "camera.viewfinder")
-                                    .font(.system(size: 28, weight: .semibold))
-                                    .foregroundStyle(AppColors.accent)
+                                Button(action: triggerScan) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(.white)
+                                            .frame(width: 72, height: 72)
+                                        Image(systemName: "camera.viewfinder")
+                                            .font(.system(size: 28, weight: .semibold))
+                                            .foregroundStyle(AppColors.accent)
+                                    }
+                                }
+                                .disabled(locationService.location == nil)
                             }
                         }
                     }
-                    .disabled(vm.isScanning || locationService.location == nil)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 8)
                 }
 
                 if vm.isScanning {
@@ -102,7 +146,8 @@ struct ScanView: View {
                         address: match.address ?? "",
                         latitude: match.latitude,
                         longitude: match.longitude,
-                        fromScan: true
+                        fromScan: true,
+                        scanMatch: match
                     )
                 }
             }
@@ -113,6 +158,15 @@ struct ScanView: View {
                     buildingBin: vm.scanResult?.topMatch?.bin ?? ""
                 )
             }
+            .sheet(isPresented: $showCommunityPost) {
+                if let image = capturedImage {
+                    CommunityPostSheet(
+                        image: image,
+                        latitude: locationService.location?.coordinate.latitude ?? 0,
+                        longitude: locationService.location?.coordinate.longitude ?? 0
+                    )
+                }
+            }
             .onAppear {
                 vm = ScanViewModel(locationService: locationService)
                 Task {
@@ -120,53 +174,27 @@ struct ScanView: View {
                         await GPSGridCacheService.shared.initialize(lat: loc.coordinate.latitude, lng: loc.coordinate.longitude)
                     }
                 }
+                loadAestheticProfile()
             }
         }
     }
     
     private var cameraGuide: some View {
         ZStack {
-            // Brackets
-            VStack {
-                HStack {
-                    bracket(angle: 0)
-                    Spacer()
-                    bracket(angle: 90)
-                }
-                Spacer()
-                HStack {
-                    bracket(angle: 270)
-                    Spacer()
-                    bracket(angle: 180)
-                }
-            }
-            .padding(40)
-            
-            // Crosshair
+            // Crosshair dot
             Circle()
-                .fill(AppColors.accent.opacity(0.8))
+                .fill(.white.opacity(0.6))
                 .frame(width: 4, height: 4)
-            
+
             // Caption
             VStack {
                 Spacer()
                 Text("POINT AT BUILDING FACADE")
                     .font(.caption.monospaced())
-                    .foregroundStyle(.white)
-                    .padding(.bottom, 140)
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.bottom, 160)
             }
         }
-    }
-    
-    private func bracket(angle: Double) -> some View {
-        Path { path in
-            path.move(to: CGPoint(x: 0, y: 20))
-            path.addLine(to: CGPoint(x: 0, y: 0))
-            path.addLine(to: CGPoint(x: 20, y: 0))
-        }
-        .stroke(AppColors.accent, lineWidth: 2)
-        .frame(width: 20, height: 20)
-        .rotationEffect(.degrees(angle))
     }
 
     private var loadingOverlay: some View {
@@ -197,14 +225,157 @@ struct ScanView: View {
         }
     }
 
+    private func loadAestheticProfile() {
+        guard appState.currentUser != nil else {
+            appState.aestheticProfile = AestheticProfile.default
+            profileLoaded = true
+            return
+        }
+        Task {
+            await appState.refreshAestheticProfile()
+            if appState.aestheticProfile == nil {
+                appState.aestheticProfile = AestheticProfile.default
+            }
+            profileLoaded = true
+        }
+    }
+
     private func triggerScan() {
         NotificationCenter.default.post(name: .capturePhoto, object: nil)
     }
 
     private func handleCapture(_ image: UIImage) {
         capturedImage = image
+        if communityMode {
+            // Community mode: open post compose sheet instead of scanning
+            showCommunityPost = true
+            return
+        }
         guard let userId = appState.currentUser?.id.uuidString else { return }
-        Task { await vm.scan(image: image, userId: userId) }
+        Task { await vm.scan(image: image, userId: userId, appState: appState) }
+    }
+
+    private var communityToggleButton: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                communityMode.toggle()
+            }
+        }) {
+            Image(systemName: communityMode ? "lightbulb.fill" : "lightbulb")
+                .font(.title3.bold())
+                .foregroundStyle(communityMode ? AppColors.accent : .white)
+                .padding(14)
+                .background(communityMode ? AppColors.accent.opacity(0.2) : .black.opacity(0.4), in: Circle())
+                .overlay(Circle().stroke(communityMode ? AppColors.accent.opacity(0.6) : .white.opacity(0.3), lineWidth: 1))
+                .scaleEffect(communityMode ? 1.1 : 1.0)
+        }
+    }
+}
+
+// MARK: - Community Post Compose Sheet
+struct CommunityPostSheet: View {
+    let image: UIImage
+    let latitude: Double
+    let longitude: Double
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    @State private var caption: String = ""
+    @State private var isSubmitting = false
+    @State private var errorMessage: String? = nil
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                // Preview image
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 200)
+                    .clipped()
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+
+                // Caption field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("What did you find?")
+                        .font(.headline)
+                    TextField("An interesting detail, a memory, a hidden gem...", text: $caption, axis: .vertical)
+                        .lineLimit(3...6)
+                        .textFieldStyle(.roundedBorder)
+                }
+                .padding(.horizontal)
+
+                // Location indicator
+                HStack(spacing: 6) {
+                    Image(systemName: "location.fill")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.accent)
+                    Text(String(format: "%.4f, %.4f", latitude, longitude))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal)
+
+                if let err = errorMessage {
+                    Text(err)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
+                }
+
+                Spacer()
+
+                Button(action: submitPost) {
+                    HStack {
+                        if isSubmitting {
+                            ProgressView()
+                                .tint(.white)
+                        }
+                        Text(isSubmitting ? "Posting..." : "Post to Community")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(caption.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray : AppColors.accent)
+                    .foregroundStyle(.white)
+                    .cornerRadius(12)
+                }
+                .disabled(caption.trimmingCharacters(in: .whitespaces).isEmpty || isSubmitting)
+                .padding(.horizontal)
+                .padding(.bottom, 20)
+            }
+            .navigationTitle("Community Post")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func submitPost() {
+        guard let userId = appState.currentUser?.id.uuidString,
+              let imageData = image.jpegData(compressionQuality: 0.8) else {
+            errorMessage = "Not signed in"
+            return
+        }
+        isSubmitting = true
+        Task {
+            do {
+                try await CommunityPostService.shared.submitPost(
+                    userId: userId,
+                    imageData: imageData,
+                    caption: caption.trimmingCharacters(in: .whitespaces),
+                    latitude: latitude,
+                    longitude: longitude
+                )
+                dismiss()
+            } catch {
+                errorMessage = "Failed to post: \(error.localizedDescription)"
+                isSubmitting = false
+            }
+        }
     }
 }
 
@@ -217,6 +388,7 @@ extension Notification.Name {
 struct CameraPreviewView: UIViewRepresentable {
     var captureNotificationName: Notification.Name = .capturePhoto
     var onCapture: (UIImage) -> Void
+    var useUltraWide: Bool = false
 
     func makeUIView(context: Context) -> CameraUIView {
         let view = CameraUIView(captureNotificationName: captureNotificationName)
@@ -224,7 +396,9 @@ struct CameraPreviewView: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ uiView: CameraUIView, context: Context) {}
+    func updateUIView(_ uiView: CameraUIView, context: Context) {
+        uiView.switchCamera(ultraWide: useUltraWide)
+    }
 }
 
 final class CameraUIView: UIView {
@@ -235,11 +409,13 @@ final class CameraUIView: UIView {
     private var previewLayer: AVCaptureVideoPreviewLayer!
     private var captureObserver: Any?
     private let captureNotificationName: Notification.Name
+    private var currentInput: AVCaptureDeviceInput?
+    private var isUltraWide = false
 
     init(frame: CGRect = .zero, captureNotificationName: Notification.Name) {
         self.captureNotificationName = captureNotificationName
         super.init(frame: frame)
-        setupCamera()
+        setupCamera(ultraWide: false)
         captureObserver = NotificationCenter.default.addObserver(
             forName: captureNotificationName, object: nil, queue: .main
         ) { [weak self] _ in
@@ -254,15 +430,35 @@ final class CameraUIView: UIView {
         session.stopRunning()
     }
 
-    private func setupCamera() {
+    func switchCamera(ultraWide: Bool) {
+        guard ultraWide != isUltraWide else { return }
+        isUltraWide = ultraWide
+        let deviceType: AVCaptureDevice.DeviceType = ultraWide ? .builtInUltraWideCamera : .builtInWideAngleCamera
+        guard let device = AVCaptureDevice.default(deviceType, for: .video, position: .back),
+              let newInput = try? AVCaptureDeviceInput(device: device) else { return }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
+            self.session.beginConfiguration()
+            if let old = self.currentInput { self.session.removeInput(old) }
+            if self.session.canAddInput(newInput) {
+                self.session.addInput(newInput)
+                self.currentInput = newInput
+            }
+            self.session.commitConfiguration()
+        }
+    }
+
+    private func setupCamera(ultraWide: Bool) {
         session.sessionPreset = .photo
+        let deviceType: AVCaptureDevice.DeviceType = ultraWide ? .builtInUltraWideCamera : .builtInWideAngleCamera
         guard
-            let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+            let device = AVCaptureDevice.default(deviceType, for: .video, position: .back),
             let input = try? AVCaptureDeviceInput(device: device),
             session.canAddInput(input)
         else { return }
 
         session.addInput(input)
+        currentInput = input
         if session.canAddOutput(photoOutput) { session.addOutput(photoOutput) }
 
         previewLayer = AVCaptureVideoPreviewLayer(session: session)

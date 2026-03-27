@@ -2,137 +2,9 @@ import Auth
 import Supabase
 import SwiftUI
 import UIKit
+import Combine
 
-// MARK: - Circular Arc Time Slider
 
-/// 300° arc (starts upper-right at 30°, sweeps clockwise, ends lower-right at -30°)
-struct ArcTimeSlider: View {
-    @Binding var value: Double          // 5 … 95 minutes
-    let min: Double
-    let max: Double
-    let arcColor: Color
-    let onCommit: () -> Void
-
-    private let size: CGFloat = 280
-    private let strokeWidth: CGFloat = 20
-    private var radius: CGFloat { size / 2 - strokeWidth / 2 - 16 }
-
-    // Arc spans 300°, starts at 30° (upper-right) clockwise
-    private let startAngleDeg: Double = 30
-    private let arcSpanDeg: Double = 300
-
-    private var thumbAngleDeg: Double {
-        let progress = (value - min) / Swift.max(max - min, 1)
-        return startAngleDeg + progress * arcSpanDeg
-    }
-
-    private func angleToPoint(_ deg: Double) -> CGPoint {
-        let rad = (deg - 90) * .pi / 180
-        let cx = size / 2, cy = size / 2
-        return CGPoint(x: cx + radius * CGFloat(cos(rad)), y: cy + radius * CGFloat(sin(rad)))
-    }
-
-    private func arcPath(from startDeg: Double, to endDeg: Double) -> Path {
-        Path { p in
-            p.addArc(center: CGPoint(x: size / 2, y: size / 2),
-                     radius: radius,
-                     startAngle: .degrees(startDeg - 90),
-                     endAngle: .degrees(endDeg - 90),
-                     clockwise: false)
-        }
-    }
-
-    private func valueFromPoint(_ point: CGPoint) -> Double {
-        let cx = size / 2, cy = size / 2
-        let dx = Double(point.x - cx), dy = Double(point.y - cy)
-        var angleDeg = atan2(dy, dx) * 180 / .pi + 90
-        if angleDeg < 0 { angleDeg += 360 }
-        var fromStart = angleDeg - startAngleDeg
-        if fromStart < 0 { fromStart += 360 }
-        if fromStart > arcSpanDeg {
-            fromStart = fromStart < (arcSpanDeg + (360 - arcSpanDeg) / 2) ? arcSpanDeg : 0
-        }
-        let progress = fromStart / arcSpanDeg
-        return Swift.min(max, Swift.max(min, min + progress * (max - min)))
-    }
-
-    var body: some View {
-        let thumbPt = angleToPoint(thumbAngleDeg)
-
-        ZStack {
-            arcPath(from: startAngleDeg, to: startAngleDeg + arcSpanDeg)
-                .stroke(Color.primary.opacity(0.07), style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-
-            arcPath(from: startAngleDeg, to: thumbAngleDeg)
-                .stroke(arcColor, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
-                .animation(.easeOut(duration: 0.08), value: thumbAngleDeg)
-
-            Circle()
-                .fill(Color.white)
-                .frame(width: 26, height: 26)
-                .shadow(color: Color.black.opacity(0.18), radius: 4, x: 0, y: 2)
-                .position(thumbPt)
-        }
-        .frame(width: size, height: size)
-        .gesture(
-            DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                .onChanged { g in
-                    let newVal = valueFromPoint(g.location)
-                    let rounded = newVal.rounded()
-                    if rounded != value {
-                        UIImpactFeedbackGenerator(style: rounded.truncatingRemainder(dividingBy: 5) == 0 ? .medium : .light).impactOccurred()
-                        value = rounded
-                    }
-                }
-                .onEnded { _ in
-                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                    onCommit()
-                }
-        )
-    }
-}
-
-// MARK: - Shimmer Instruction Text
-
-/// Luxe shimmer sweep — dim base text with a bright highlight beam passing left↔right
-struct ShimmerInstructionText: View {
-    let text: String
-
-    var body: some View {
-        TimelineView(.animation) { tl in
-            let t = tl.date.timeIntervalSinceReferenceDate
-            // Slow cycle: 3.2s out, 3.2s back
-            let cycle = 6.4
-            let raw = t.truncatingRemainder(dividingBy: cycle) / cycle
-            // Ease in-out oscillation 0 → 1 → 0
-            let osc = raw < 0.5 ? raw * 2 : (1 - raw) * 2
-            let eased = osc * osc * (3 - 2 * osc)   // smoothstep
-            let sweep = CGFloat(eased)
-
-            // Beam half-width: 0.28 on each side of centre
-            let lo = sweep - 0.28
-            let hi = sweep + 0.28
-
-            Text(text)
-                .font(.system(size: 15, weight: .semibold))
-                .kerning(2.5)
-                .textCase(.uppercase)
-                .foregroundStyle(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.primary.opacity(0.18), location: Swift.max(0, lo - 0.12)),
-                            .init(color: Color.primary.opacity(0.18), location: Swift.max(0, lo)),
-                            .init(color: Color.primary.opacity(1.0),  location: sweep),
-                            .init(color: Color.primary.opacity(0.18), location: Swift.min(1, hi)),
-                            .init(color: Color.primary.opacity(0.18), location: Swift.min(1, hi + 0.12)),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-        }
-    }
-}
 
 // MARK: - Walk Start View
 
@@ -147,6 +19,10 @@ struct WalkStartView: View {
     @State private var showExplore = false
     @State private var xp: Int = 0
     @State private var level: Int = 1
+    @State private var streakCount: Int = 0
+    @State private var aestheticProfile: AestheticProfile? = nil
+    @State private var instructionToggle = false
+    private let instructionTimer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
 
     init() {
         _vm = State(initialValue: WalkViewModel(locationService: LocationService()))
@@ -154,11 +30,27 @@ struct WalkStartView: View {
 
     private var xpBonusColor: Color {
         switch time {
-        case ..<20: return Color(hex: "#9E9E9E")
-        case ..<40: return Color(hex: "#4FC3F7")
-        case ..<60: return Color(hex: "#66BB6A")
-        case ..<80: return Color(hex: "#FFA726")
-        default:    return Color(hex: "#EF5350")
+        case ..<10: return Color(hex: "#9E9E9E") // 1x Gray
+        case ..<15: return Color(hex: "#4FC3F7") // 1.25x Blue
+        case ..<30: return Color(hex: "#66BB6A") // 1.5x Green
+        case ..<40: return Color(hex: "#9E9E9E") // 1x Gray
+        case ..<60: return Color(hex: "#EF5350") // 2x Red
+        case ..<70: return Color(hex: "#4FC3F7") // 1.25x Blue
+        case ..<80: return Color(hex: "#9E9E9E") // 1x Gray
+        default:    return Color(hex: "#EF5350") // 2x Red (80+)
+        }
+    }
+
+    private var xpMultiplierString: String {
+        switch time {
+        case ..<10: return "1X XP"
+        case ..<15: return "1.25X XP"
+        case ..<30: return "1.5X XP"
+        case ..<40: return "1X XP"
+        case ..<60: return "2X XP"
+        case ..<70: return "1.25X XP"
+        case ..<80: return "1X XP"
+        default:    return "2X XP"
         }
     }
 
@@ -183,7 +75,7 @@ struct WalkStartView: View {
                                 // Progress ring
                                 Circle()
                                     .trim(from: 0, to: CGFloat(prog.progressPercent / 100))
-                                    .stroke(tierCol, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                                    .stroke(tierCol.opacity(0.3 + 0.7 * (prog.progressPercent / 100)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
                                     .frame(width: 54, height: 54)
                                     .rotationEffect(.degrees(-90))
                                 // Background ring track
@@ -192,7 +84,7 @@ struct WalkStartView: View {
                                     .frame(width: 54, height: 54)
                                 // Level number
                                 VStack(spacing: 0) {
-                                    Text("\(level)")
+                                    Text("\(prog.currentLevel)")
                                         .font(.system(size: 20, weight: .bold, design: .rounded))
                                         .foregroundStyle(Color(.label))
                                 }
@@ -200,6 +92,17 @@ struct WalkStartView: View {
                             .frame(width: 56, height: 56)
                         }
                         .buttonStyle(.plain)
+
+                        Spacer()
+
+                        Text(xpMultiplierString)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(xpBonusColor))
+                            .shadow(color: xpBonusColor.opacity(0.4), radius: 6, y: 3)
+                            .zIndex(1)
 
                         Spacer()
 
@@ -221,7 +124,7 @@ struct WalkStartView: View {
 
                     Spacer()
 
-                    // ── Time row: − number + ── sits ABOVE the arc ──
+                    // ── Time row: − number + ──
                     HStack(alignment: .center, spacing: 0) {
                         Button { adjustTime(-1) } label: {
                             Text("−")
@@ -259,30 +162,39 @@ struct WalkStartView: View {
 
                     // ── Arc slider with orb centred inside ──
                     ZStack {
-                        ArcTimeSlider(value: $time, min: 5, max: 95, arcColor: xpBonusColor) {
-                            Task { await startWalk() }
-                        }
+                        ArcTimeSlider(value: $time, min: 5, max: 95, arcColor: xpBonusColor) {}
 
-                        let aesthetic = AestheticProfile.default
-                        ArchetypeOrb(aesthetic: aesthetic, showLabels: false)
-                            .scaleEffect(0.72)
-                            .onTapGesture {
+                        let orbAesthetic = aestheticProfile ?? AestheticProfile.default
+                        ArchetypeOrb(
+                            aesthetic: orbAesthetic,
+                            tapAction: {
                                 Task { await startWalk() }
+                            },
+                            doubleTapAction: {
+                                Task { await startNewWalk() }
                             }
+                        )
+                        .scaleEffect(0.72)
                     }
                     .frame(width: 310, height: 310)
 
+                    // ── Shimmer text under the orb ──
+                    ShimmerInstructionText(
+                        text: vm.isWalkActive ? (instructionToggle ? "Tap twice to start new" : "Tap to resume") : "Press orb to start jink"
+                    )
+                    .contentTransition(.opacity)
+                    .padding(.top, 22)
+                    .onReceive(instructionTimer) { _ in
+                        if vm.isWalkActive {
+                            withAnimation(.easeInOut(duration: 0.6)) { instructionToggle.toggle() }
+                        }
+                    }
+
                     Spacer()
 
-                    // ── Footer: shimmer text + NEW/ALL toggle ──
-                    VStack(spacing: 22) {
-                        ShimmerInstructionText(
-                            text: vm.isWalkActive ? "Generating your jink..." : "Press orb to start jink"
-                        )
-
-                        NewAllToggle(includeVisited: $includeVisited)
-                    }
-                    .padding(.bottom, 32)
+                    // ── NEW/ALL toggle pinned near bottom tab ──
+                    NewAllToggle(includeVisited: $includeVisited)
+                        .padding(.bottom, 28)
                 }
             }
             .navigationBarHidden(true)
@@ -293,12 +205,15 @@ struct WalkStartView: View {
                 })
             }
             .onAppear {
-                vm = WalkViewModel(locationService: locationService)
+                if !vm.isWalkActive {
+                    vm = WalkViewModel(locationService: locationService)
+                }
                 loadXP()
+                loadProfile()
             }
             .sheet(isPresented: $showXPDetail) {
-                XPDetailSheet(xp: xp, level: level)
-                    .presentationDetents([.height(160)])
+                XPDetailSheet(xp: xp, level: level, streakCount: streakCount)
+                    .presentationDetents([.height(190)])
                     .presentationDragIndicator(.hidden)
             }
             .sheet(isPresented: $showExplore) {
@@ -312,6 +227,29 @@ struct WalkStartView: View {
                 Text(vm.errorMessage ?? "")
             }
         }
+        .toolbar(navigateToNav ? .hidden : .visible, for: .tabBar)
+        .animation(.default, value: navigateToNav)
+    }
+
+    private func loadProfile() {
+        guard let userId = appState.currentUser?.id.uuidString else { return }
+        Task {
+            do {
+                struct Row: Decodable {
+                    let normalizedScores: AestheticProfile?
+                    enum CodingKeys: String, CodingKey { case normalizedScores = "normalized_scores" }
+                }
+                let rows: [Row] = try await SupabaseService.shared.client
+                    .from("user_aesthetic_profiles")
+                    .select("normalized_scores")
+                    .eq("user_id", value: userId)
+                    .execute()
+                    .value
+                aestheticProfile = rows.first?.normalizedScores
+            } catch {
+                print("[WalkStartView] Failed to load profile: \(error)")
+            }
+        }
     }
 
     private func adjustTime(_ delta: Double) {
@@ -320,26 +258,42 @@ struct WalkStartView: View {
     }
 
     private func startWalk() async {
+        if vm.isWalkActive {
+            navigateToNav = true
+            return
+        }
         guard let userId = appState.currentUser?.id.uuidString else { return }
+        // Pass dominant archetype to vm so insights can reference the user's taste
+        if let dominant = aestheticProfile?.dominant?.name {
+            vm.userDominantArchetype = dominant
+        }
         let routeType: WalkRouteType = time >= 60 ? .wildcard : time >= 30 ? .aesthetic : .behavioral
-        await vm.startWalk(routeType: routeType, userId: userId, durationMinutes: Int(time))
+        await vm.startWalk(routeType: routeType, userId: userId, durationMinutes: Int(time), includeVisited: includeVisited)
         if vm.isWalkActive { navigateToNav = true }
+    }
+
+    private func startNewWalk() async {
+        if vm.isWalkActive {
+            vm.cancelWalk()
+        }
+        await startWalk()
     }
 
     private func loadXP() {
         guard let userId = appState.currentUser?.id.uuidString else { return }
         Task {
             do {
-                struct XPRow: Decodable { let xp: Int; let level: Int }
+                struct XPRow: Decodable { let total_xp: Int; let level: Int; let daily_streak_count: Int? }
                 let row: XPRow = try await SupabaseService.shared.client
                     .from("profiles")
-                    .select("xp, level")
+                    .select("total_xp, level, daily_streak_count")
                     .eq("id", value: userId)
                     .single()
                     .execute()
                     .value
-                xp = row.xp
-                level = row.level
+                xp = row.total_xp
+                level = getLevelFromXP(row.total_xp)
+                streakCount = row.daily_streak_count ?? 0
             } catch {}
         }
     }
@@ -350,6 +304,7 @@ struct WalkStartView: View {
 struct XPDetailSheet: View {
     let xp: Int
     let level: Int
+    let streakCount: Int
 
     private var progress: XPProgress { getProgressToNextLevel(xp) }
     private var tierColor: Color { getTierColor(progress.currentTier) }
@@ -374,7 +329,7 @@ struct XPDetailSheet: View {
                         .frame(width: 42, height: 42)
                         .rotationEffect(.degrees(-90))
                     Circle().stroke(tierColor.opacity(0.15), lineWidth: 3).frame(width: 42, height: 42)
-                    Text("\(level)")
+                    Text("\(progress.currentLevel)")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.primary)
                 }
@@ -418,9 +373,21 @@ struct XPDetailSheet: View {
             .padding(.horizontal, 20)
             .padding(.top, 14)
 
-            // Hint
+            // Hint & Streak
             HStack {
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .foregroundStyle(AppColors.daily)
+                    let multiplier = min(1.0 + (Double(streakCount) * 0.1), 2.5)
+                    Text("\(streakCount) DAY STREAK  |  \(String(format: "%.1f", multiplier))X XP")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(AppColors.daily)
+                        .kerning(0.5)
+                }
+                .opacity(streakCount > 0 ? 1 : 0.4)
+
                 Spacer()
+                
                 Text("\(progress.xpNeeded - progress.xpInLevel) XP TO NEXT RANK")
                     .font(.system(size: 9))
                     .foregroundStyle(.secondary)
@@ -480,4 +447,10 @@ struct NewAllToggle: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+#Preview {
+    WalkStartView()
+        .environment(AppState())
+        .environment(LocationService())
 }

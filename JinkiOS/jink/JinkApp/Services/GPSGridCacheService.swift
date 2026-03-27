@@ -22,7 +22,7 @@ final class GPSGridCacheService {
         let maxLng = lng + 0.002
 
         do {
-            let fields = "bin, building_name, address, architect, year_built, style, storytelling, landmark, mat_prim, building_type, geocoded_lat, geocoded_lng, primary_aesthetic, secondary_aesthetic, aesthetic_profile"
+            let fields = "bin, building_name, address, architect, year_built, style, storytelling, landmark, mat_prim, building_type, geocoded_lat, geocoded_lng, primary_aesthetic, secondary_aesthetic, normalized_profile"
             let results: [Building] = try await SupabaseService.shared.buildingsClient
                 .from("buildings_full_merge_scanning")
                 .select(fields)

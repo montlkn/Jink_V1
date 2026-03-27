@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WalkStopInsightsView: View {
-    let detail: BuildingResult
+    let detail: ScanMatch
     let onContinue: () -> Void
 
     var body: some View {
@@ -27,22 +27,6 @@ struct WalkStopInsightsView: View {
                     }
                     .padding(.top, 16)
                     
-                    // Why it was recommended / Storytelling
-                    if let desc = detail.description, !desc.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("WHY YOU'RE HERE")
-                                .font(.caption.bold())
-                                .foregroundStyle(AppColors.accent)
-                                .kerning(1)
-                            
-                            Text(desc)
-                                .font(.body)
-                                .lineSpacing(4)
-                        }
-                        .padding()
-                        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 16))
-                    }
-                    
                     // XP Awarded
                     HStack {
                         Image(systemName: "star.circle.fill")
@@ -55,25 +39,15 @@ struct WalkStopInsightsView: View {
                     .padding()
                     .background(AppColors.accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
                     
-                    // Aesthetic Match
-                    if let profile = detail.aestheticProfile, let dominant = profile.dominant {
+                    // Building details
+                    if let style = detail.style {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("AESTHETIC MATCH")
+                            Text("STYLE")
                                 .font(.caption.bold())
                                 .foregroundStyle(.secondary)
                                 .kerning(1)
-                            
-                            HStack {
-                                ArchetypeOrb(aesthetic: profile, showLabels: false)
-                                    .frame(width: 48, height: 48)
-                                VStack(alignment: .leading) {
-                                    Text("\(Int(dominant.score * 100))% \(dominant.name.capitalized)")
-                                        .font(.headline)
-                                    Text("Fits your architectural style")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                            Text(style)
+                                .font(.headline)
                         }
                     }
                     

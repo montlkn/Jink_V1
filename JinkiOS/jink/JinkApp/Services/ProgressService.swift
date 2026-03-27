@@ -6,227 +6,216 @@ final class ProgressService {
     private init() {}
 
     /// Triggered after a successful building scan
-    func processScan(userId: String, building: BuildingResult?) async {
-        // 1. Recalculate Aesthetic Profile
-        await recalculateAestheticProfile(userId: userId)
+    func processScan(userId: String, match: ScanMatch?) async {
+        let bin = match?.bin ?? ""
 
-        // 2. Process Streak
-        await processStreak(userId: userId)
-
-        // 3. Evaluate Achievements
-        await evaluateAchievements(userId: userId)
-
-        // 4. Evaluate Stamps
-        if let building = building {
-            await evaluateStamps(userId: userId, building: building)
+        // 1. Check if this building was already scanned (scans are on buildingsClient)
+        var isNewScan = true
+        if !bin.isEmpty {
+            isNewScan = await checkIsNewScan(userId: userId, bin: bin)
         }
+
+        // 2. Award XP only for new buildings
+        if isNewScan {
+            await callRPC("award_xp", params: [
+                "p_user_id": AnyJSON.string(userId),
+                "p_amount": AnyJSON.integer(50),
+                "p_reason": AnyJSON.string("scan")
+            ])
+            print("[ProgressService] Awarded 50 XP for new scan (bin=\(bin))")
+        } else {
+            print("[ProgressService] Skipped XP — already scanned bin=\(bin)")
+        }
+
+        // 3. Update daily streak
+        await callRPC("update_daily_streak", params: [
+            "p_user_id": AnyJSON.string(userId)
+        ])
+
+        // 4. Check achievements client-side
+        await checkAndAwardAchievements(userId: userId)
+
+        // 5. Recalculate aesthetic profile
+        await callRPC("process_aesthetic_events_for_user", params: [
+            "p_user_id": AnyJSON.string(userId),
+            "p_batch_size": AnyJSON.integer(50)
+        ])
     }
 
     /// Triggered after a completed walk
     func processWalk(userId: String) async {
-        await recalculateAestheticProfile(userId: userId)
-        await evaluateAchievements(userId: userId)
+        await callRPC("process_aesthetic_events_for_user", params: [
+            "p_user_id": AnyJSON.string(userId),
+            "p_batch_size": AnyJSON.integer(50)
+        ])
     }
 
-    // MARK: - Aesthetic Update
+    // MARK: - Private
 
-    private func recalculateAestheticProfile(userId: String) async {
+    /// Check if user already scanned this BIN (queries buildings Supabase)
+    private func checkIsNewScan(userId: String, bin: String) async -> Bool {
         do {
-            try await SupabaseService.shared.client
-                .rpc("calculate_aesthetic_profile", params: ["p_user_id": AnyJSON.string(userId)])
-                .execute()
-        } catch {
-            print("[ProgressService] ❌ Failed to recalculate aesthetic profile: \(error)")
-        }
-    }
-
-    // MARK: - Streaks
-
-    private func processStreak(userId: String) async {
-        do {
-            // Get the user's current streak and last scan timestamp
-            struct ProfileData: Decodable {
-                let daily_streak_count: Int
-            }
-            let profile: ProfileData = try await SupabaseService.shared.client
-                .from("profiles")
-                .select("daily_streak_count")
-                .eq("id", value: userId)
-                .single()
-                .execute()
-                .value
-
-            struct EventData: Decodable {
-                let created_at: Date
-            }
-            // Find the *second to last* scan event to determine streak continuation.
-            // (Because the current scan was just inserted moments ago).
-            let events: [EventData] = try await SupabaseService.shared.client
-                .from("user_aesthetic_events")
-                .select("created_at")
+            let data = try await SupabaseService.shared.buildingsClient
+                .from("scans")
+                .select("id", head: true, count: .exact)
                 .eq("user_id", value: userId)
-                .order("created_at", ascending: false)
-                .limit(2)
+                .eq("confirmed_bbl", value: bin)
+                .execute()
+            let count = data.count ?? 0
+            // count <= 1 means this is the first (current) scan for this building
+            let isNew = count <= 1
+            print("[ProgressService] checkIsNewScan bin=\(bin) count=\(count) isNew=\(isNew)")
+            return isNew
+        } catch {
+            print("[ProgressService] checkIsNewScan failed: \(error)")
+            return true
+        }
+    }
+
+    /// Public entry point for retroactive achievement check
+    func checkAndAwardAchievementsPublic(userId: String) async {
+        await checkAndAwardAchievements(userId: userId)
+    }
+
+    /// Client-side achievement check since scans and achievements are on different DBs
+    private func checkAndAwardAchievements(userId: String) async {
+        do {
+            // Count scans from buildings Supabase
+            struct CountRow: Decodable { let confirmedBbl: String?
+                enum CodingKeys: String, CodingKey { case confirmedBbl = "confirmed_bbl" }
+            }
+            let scanRows: [CountRow] = try await SupabaseService.shared.buildingsClient
+                .from("scans")
+                .select("confirmed_bbl")
+                .eq("user_id", value: userId)
+                .not("confirmed_bbl", operator: .is, value: "null")
                 .execute()
                 .value
+            let uniqueBins = Set(scanRows.compactMap { $0.confirmedBbl })
+            let scanCount = uniqueBins.count
+            print("[ProgressService] Achievement check: scanCount=\(scanCount)")
 
-            let currentStreak = profile.daily_streak_count
-            let calendar = Calendar.current
-            
-            // If this is their very first scan ever
-            if events.count < 2 {
-                if currentStreak == 0 {
-                    await updateStreak(userId: userId, newStreak: 1)
-                }
-                return
-            }
-
-            // `events[0]` is the scan they JUST did. `events[1]` is their previous scan.
-            let lastScanDate = events[1].created_at
-
-            if calendar.isDateInYesterday(lastScanDate) {
-                // Continuation!
-                await updateStreak(userId: userId, newStreak: currentStreak + 1)
-            } else if calendar.isDateInToday(lastScanDate) {
-                // Already scanned today, do nothing.
-            } else {
-                // Streak broken. Last scan was > 48 hours ago. Reset to 1.
-                await updateStreak(userId: userId, newStreak: 1)
-            }
-
-        } catch {
-            print("[ProgressService] ❌ Failed to process streak: \(error)")
-        }
-    }
-
-    private func updateStreak(userId: String, newStreak: Int) async {
-        do {
-            try await SupabaseService.shared.client
-                .from("profiles")
-                .update(["daily_streak_count": AnyJSON.integer(newStreak)])
-                .eq("id", value: userId)
+            // Fetch achievement definitions from main Supabase
+            let response = try await SupabaseService.shared.client
+                .from("achievements_def")
+                .select("id, slug, condition_type, condition_value, xp_reward, stamp_slug")
                 .execute()
-            print("[ProgressService] 🔥 Streak updated to \(newStreak)")
-        } catch {
-            print("[ProgressService] ❌ Failed to update streak count: \(error)")
-        }
-    }
 
-    // MARK: - Achievements
+            // Parse manually since condition_value is JSONB
+            // Note: achievements_def.id may be UUID or bigint — decode flexibly
+            struct RawAch: Decodable {
+                let id: FlexId
+                let slug: String
+                let condition_type: String
+                let condition_value: ConditionValue
+                let xp_reward: Int
+                let stamp_slug: String?
+            }
 
-    private func evaluateAchievements(userId: String) async {
-        do {
-            struct Earned: Decodable { let achievement_id: String }
-            let earnedRows: [Earned] = try await SupabaseService.shared.client
+            struct ConditionValue: Decodable {
+                let min: Int?
+            }
+
+            let defs = try JSONDecoder().decode([RawAch].self, from: response.data)
+            print("[ProgressService] Found \(defs.count) achievement definitions")
+
+            // Get already-awarded achievements — achievement_id may be bigint or UUID
+            let awardedResponse = try await SupabaseService.shared.client
                 .from("user_achievements")
                 .select("achievement_id")
                 .eq("user_id", value: userId)
                 .execute()
-                .value
-            let earnedIds = Set(earnedRows.map { $0.achievement_id })
+            struct AwardedRaw: Decodable { let achievement_id: FlexId }
+            let awarded = try JSONDecoder().decode([AwardedRaw].self, from: awardedResponse.data)
+            let awardedIds = Set(awarded.map { $0.achievement_id })
+            print("[ProgressService] Already awarded: \(awardedIds.count) achievements")
 
-            // Evaluate First Scan
-            if !earnedIds.contains("first_scan") {
-                let scans = try await SupabaseService.shared.client
-                    .from("user_aesthetic_events")
-                    .select("id", head: true, count: .exact)
-                    .eq("user_id", value: userId)
-                    .execute()
-                
-                if (scans.count ?? 0) >= 1 {
-                    await awardAchievement(userId: userId, achievementId: "first_scan")
+            // Check each achievement
+            for def in defs {
+                guard !awardedIds.contains(def.id) else { continue }
+
+                var met = false
+                if def.condition_type == "scan_count", let minVal = def.condition_value.min {
+                    met = scanCount >= minVal
+                    if met {
+                        print("[ProgressService] Achievement '\(def.slug)' condition met: \(scanCount) >= \(minVal)")
+                    }
+                }
+
+                if met {
+                    // Award achievement
+                    do {
+                        try await SupabaseService.shared.client
+                            .from("user_achievements")
+                            .insert([
+                                "user_id": AnyJSON.string(userId),
+                                "achievement_id": def.id.jsonValue
+                            ])
+                            .execute()
+                        print("[ProgressService] ✅ Awarded achievement: \(def.slug)")
+                    } catch {
+                        print("[ProgressService] ❌ Failed to insert achievement '\(def.slug)': \(error)")
+                        continue
+                    }
+
+                    // Award stamp if linked
+                    if let slug = def.stamp_slug, !slug.isEmpty {
+                        await awardStampBySlug(userId: userId, slug: slug, sourceId: def.id)
+                    }
+
+                    // Award XP for achievement
+                    if def.xp_reward > 0 {
+                        await callRPC("award_xp", params: [
+                            "p_user_id": AnyJSON.string(userId),
+                            "p_amount": AnyJSON.integer(def.xp_reward),
+                            "p_reason": AnyJSON.string("achievement_unlock")
+                        ])
+                    }
                 }
             }
-            
-            // Evaluate Century Scanner (100 Scans)
-            if !earnedIds.contains("100_scans") {
-                let scans = try await SupabaseService.shared.client
-                    .from("user_aesthetic_events")
-                    .select("id", head: true, count: .exact)
-                    .eq("user_id", value: userId)
-                    .execute()
-                
-                if (scans.count ?? 0) >= 100 {
-                    await awardAchievement(userId: userId, achievementId: "100_scans")
-                }
-            }
-
-            // Evaluate Dedicated Traveler (5 Walks)
-            if !earnedIds.contains("dedicated_traveler") {
-                let walks = try await SupabaseService.shared.client
-                    .from("walks")
-                    .select("id", head: true, count: .exact)
-                    .eq("user_id", value: userId)
-                    .not("ended_at", operator: .is, value: "null")
-                    .execute()
-                
-                if (walks.count ?? 0) >= 5 {
-                    await awardAchievement(userId: userId, achievementId: "dedicated_traveler")
-                }
-            }
-
         } catch {
-            print("[ProgressService] ❌ Error evaluating achievements: \(error)")
+            print("[ProgressService] ❌ checkAndAwardAchievements failed: \(error)")
         }
     }
 
-    // MARK: - Stamps
-
-    private func evaluateStamps(userId: String, building: BuildingResult) async {
+    private func awardStampBySlug(userId: String, slug: String, sourceId: FlexId) async {
         do {
-            struct Earned: Decodable { let stamp_slug: String }
-            let earnedRows: [Earned] = try await SupabaseService.shared.client
-                .from("user_stamps")
-                .select("stamp_slug")
-                .eq("user_id", value: userId)
+            // stamps_def.id may be bigint or UUID
+            let response = try await SupabaseService.shared.client
+                .from("stamps_def")
+                .select("id")
+                .eq("slug", value: slug)
                 .execute()
-                .value
-            let earnedIds = Set(earnedRows.map { $0.stamp_slug })
-
-            // Flatiron First Scan Stamp
-            if !earnedIds.contains("flatiron_first_scan") {
-                let isFlatiron = building.name?.lowercased().contains("flatiron") == true || building.bin == "1001830"
-                if isFlatiron {
-                    await awardStamp(userId: userId, stampSlug: "flatiron_first_scan")
-                }
+            struct StampDef: Decodable { let id: FlexId }
+            let stamps = try JSONDecoder().decode([StampDef].self, from: response.data)
+            guard let stampId = stamps.first?.id else {
+                print("[ProgressService] No stamp_def found for slug=\(slug)")
+                return
             }
 
-        } catch {
-            print("[ProgressService] ❌ Error evaluating stamps: \(error)")
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func awardAchievement(userId: String, achievementId: String) async {
-        do {
-            let payload: [String: AnyJSON] = [
-                "user_id": .string(userId),
-                "achievement_id": .string(achievementId)
-            ]
-            try await SupabaseService.shared.client
-                .from("user_achievements")
-                .insert(payload)
-                .execute()
-            print("[ProgressService] 🏆 Awarded Achievement: \(achievementId)")
-        } catch {
-            print("[ProgressService] ❌ Error awarding achievement: \(error)")
-        }
-    }
-
-    private func awardStamp(userId: String, stampSlug: String) async {
-        do {
-            let payload: [String: AnyJSON] = [
-                "user_id": .string(userId),
-                "stamp_slug": .string(stampSlug)
-            ]
             try await SupabaseService.shared.client
                 .from("user_stamps")
-                .insert(payload)
+                .insert([
+                    "user_id": AnyJSON.string(userId),
+                    "stamp_id": stampId.jsonValue,
+                    "source_type": AnyJSON.string("achievement_unlock"),
+                    "source_id": sourceId.jsonValue
+                ])
                 .execute()
-            print("[ProgressService] 🪪 Awarded Stamp: \(stampSlug)")
+            print("[ProgressService] ✅ Awarded stamp: \(slug)")
         } catch {
-            print("[ProgressService] ❌ Error awarding stamp: \(error)")
+            print("[ProgressService] ❌ awardStampBySlug failed for '\(slug)': \(error)")
+        }
+    }
+
+    private func callRPC(_ name: String, params: [String: AnyJSON]) async {
+        do {
+            try await SupabaseService.shared.client
+                .rpc(name, params: params)
+                .execute()
+            print("[ProgressService] \(name) succeeded")
+        } catch {
+            print("[ProgressService] \(name) failed: \(error)")
         }
     }
 }

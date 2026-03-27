@@ -21,7 +21,7 @@ final class ScanViewModel {
         self.locationService = locationService
     }
 
-    func scan(image: UIImage, userId: String) async {
+    func scan(image: UIImage, userId: String, appState: AppState? = nil) async {
         guard let location = locationService.location else {
             errorMessage = "Waiting for GPS…"
             return
@@ -50,7 +50,7 @@ final class ScanViewModel {
                  confidence: 1.0, latitude: cached.latitude, longitude: cached.longitude
              )
              let result = ScanAPIResponse(matches: [match], verificationMethod: "cache_hit")
-             await handleVerifiedScan(result: result, userId: userId, subtype: "cache_hit")
+             await handleVerifiedScan(result: result, userId: userId, subtype: "cache_hit", appState: appState)
              self.scanResult = result
              self.showResult = true
              isScanning = false
@@ -83,13 +83,14 @@ final class ScanViewModel {
                 lng: lng,
                 bearing: bearing,
                 pitch: pitch,
-                gpsAccuracy: gpsAccuracy
+                gpsAccuracy: gpsAccuracy,
+                userId: userId
             )
 
             messageTask.cancel()
 
             if result.verified {
-                await handleVerifiedScan(result: result, userId: userId, subtype: "api_scan")
+                await handleVerifiedScan(result: result, userId: userId, subtype: "api_scan", appState: appState)
                 self.scanResult = result
                 self.showResult = true
             } else {
@@ -107,19 +108,25 @@ final class ScanViewModel {
         isScanning = false
     }
 
-    private func handleVerifiedScan(result: ScanAPIResponse, userId: String, subtype: String) async {
+    private func handleVerifiedScan(result: ScanAPIResponse, userId: String, subtype: String, appState: AppState? = nil) async {
         let topMatch = result.topMatch
-        try? await AestheticService.shared.insertScanEvent(
-            userId: userId,
-            buildingBbl: topMatch?.bbl,
-            aestheticVector: nil,
-            subtype: subtype
-        )
-        try? await XPService.shared.awardXP(userId: userId, amount: 50)
-        
-        // Trigger real-time progress updates (Streaks, Achievements, Stamps, Algo)
+        // Note: pure scans do NOT insert aesthetic events — only verified triggers
+        // (likes, dislikes, dwell, walk scans) should affect the archetype profile.
+
+        // Auto-confirm the top match so confirmed_bin is recorded in scans table
+        if let scanId = result.scanId, let bin = topMatch?.bin, !bin.isEmpty {
+            await ScanAPIService.shared.confirmScan(scanId: scanId, confirmedBin: bin, userId: userId)
+        }
+
+        // Trigger real-time progress updates (Achievements, Stamps, Streaks)
         await ProgressService.shared.processScan(userId: userId, match: topMatch)
-        
+
+        // Trigger passport refresh
+        if let appState {
+            await MainActor.run { appState.passportRefreshTrigger += 1 }
+            await appState.refreshAestheticProfile()
+        }
+
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 

@@ -21,6 +21,8 @@ struct MetalOrbView: UIViewRepresentable {
         view.enableSetNeedsDisplay = false
         view.layer.isOpaque = false
         view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        // Let SwiftUI handle touches (fixes squish tap animation)
+        view.isUserInteractionEnabled = false
 
         if let device = view.device {
             context.coordinator.setup(device: device, view: view, colors: colors)
@@ -44,7 +46,8 @@ final class OrbRenderer: NSObject, MTKViewDelegate {
     private var device: MTLDevice!
     private var commandQueue: MTLCommandQueue!
     private var pipelineState: MTLRenderPipelineState?
-    private var startTime: Date = Date()
+    // Shared across ALL orb instances so smoke state is identical on every screen
+    private static let sharedStartTime: Date = Date()
     private var orbColors: [SIMD4<Float>] = []
     private let motionManager = CMMotionManager()
     private var tilt = SIMD2<Float>(0, 0)
@@ -61,13 +64,7 @@ final class OrbRenderer: NSObject, MTKViewDelegate {
     private func startMotion() {
         guard motionManager.isDeviceMotionAvailable else { return }
         motionManager.deviceMotionUpdateInterval = 1.0 / 60.0
-        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
-            guard let m = motion else { return }
-            self?.tilt = SIMD2<Float>(
-                Float(m.gravity.x) * 0.6,
-                Float(m.gravity.y) * 0.6
-            )
-        }
+        motionManager.startDeviceMotionUpdates()
     }
 
     func setup(device: MTLDevice, view: MTKView, colors: [Color]) {
@@ -126,92 +123,130 @@ final class OrbRenderer: NSObject, MTKViewDelegate {
             // Gyro-shifted light
             float3 L = normalize(float3(0.45 + u.tilt.x*0.5, 0.6 + u.tilt.y*0.5, 1.0));
 
-            // === LAYER 1: SMOKE WISPS (inner, behind glass) ===
-            // Slow rotation of the smoke field
-            float ang = u.time * 0.12;
+            // === LAYER 1: WISPY SMOKE TENDRILS (inside the glass) ===
+            float ang = u.time * 0.04;
             float2x2 rot = float2x2(cos(ang),-sin(ang),sin(ang),cos(ang));
-            float2 sp = rot * (norm.xy * 0.6 + float2(norm.z * 0.25));
 
-            // Gyro-reactive smoke sloshing — tilt offsets smoke sampling position
-            sp += u.tilt * 0.2;
+            // Increased fisheye / refraction for "thicker glass" look
+            // Pushed harder to increase warping and edge thickness
+            float2 refractedUV = uv * (1.0 - 0.45 * (1.0 - z));
+            float3 refN = normalize(float3(refractedUV, sqrt(max(0.001, 1.0 - dot(refractedUV, refractedUV)))));
 
-            // IOR distortion — simulate thick glass lens bending the smoke view
-            float ior_distort = 0.06;
-            sp += norm.xy * ior_distort;
+            float2 sp = rot * (refN.xy * 0.75 + float2(refN.z * 0.20));
+            sp += u.tilt * 0.15;
 
-            // Warped FBM smoke — same cascade that looked good
-            float2 q  = float2(fbm(sp*2.2 + float2(0.0,  u.time*0.10), 4),
-                               fbm(sp*2.2 + float2(5.2,  u.time*0.08), 4));
-            float2 rv = float2(fbm(sp*1.9 + 4.0*q + float2(1.7, u.time*0.13), 5),
-                               fbm(sp*1.9 + 4.0*q + float2(9.2, u.time*0.09), 5));
-            float rawSmoke = fbm(sp*1.4 + 3.0*rv + u.time*0.04, 6);
+            // Multi-octave warped FBM for colored wisps
+            float2 warp0 = float2(fbm(sp*1.8 + float2(0.0,  u.time*0.04), 3),
+                                  fbm(sp*1.8 + float2(3.3,  u.time*0.03), 3));
+            float2 q  = float2(fbm(sp*2.0 + 2.5*warp0 + float2(0.0,  u.time*0.05), 4),
+                               fbm(sp*2.0 + 2.5*warp0 + float2(5.2,  u.time*0.04), 4));
+            float2 rv = float2(fbm(sp*1.6 + 4.0*q + float2(1.7, u.time*0.06), 5),
+                               fbm(sp*1.6 + 4.0*q + float2(9.2, u.time*0.04), 5));
+            float rawSmoke = fbm(sp*1.2 + 3.0*rv + u.time*0.015, 6);
 
-            // Density with edge fade — smoke extends to ~95% of radius
-            float edgeFade = 1.0 - smoothstep(0.7, 0.97, r);
-            float density  = clamp((rawSmoke - 0.1) / 0.75, 0.0, 1.0);
-            density = pow(density, 0.5);
-            float smokeAlpha = density * edgeFade * 1.3;
-            smokeAlpha = clamp(smokeAlpha, 0.0, 1.0);
+            // Colored wisps: keep threshold high enough to see actual variation
+            float edgeFade = 1.0 - smoothstep(0.65, 0.95, r);
+            float density = clamp((rawSmoke - 0.28) / 0.45, 0.0, 1.0);
+            density = pow(density, 0.9);
+            float smokeAlpha = density * edgeFade * 1.4;
+            smokeAlpha = clamp(smokeAlpha, 0.0, 0.85);
 
-            // Three-color blend by density (matches RN shader)
+            // Composite smoke color (60/30/10)
             float3 c0=col[0].rgb, c1=col[1].rgb, c2=col[2].rgb;
-            float3 smokeCol;
-            if(density < 0.33) {
-                smokeCol = mix(c0, c1, density / 0.33);
-            } else if(density < 0.66) {
-                smokeCol = mix(c1, c2, (density - 0.33) / 0.33);
-            } else {
-                smokeCol = mix(c2, c0, (density - 0.66) / 0.34);
-            }
-            // Heavily desaturate toward gray-toned smoke — organic not neon
+            float3 smokeCol = c0 * 0.60 + c1 * 0.30 + c2 * 0.10;
             float luma = dot(smokeCol, float3(0.299, 0.587, 0.114));
-            smokeCol = mix(float3(luma), smokeCol, 0.45); // 55% desaturated
-            smokeCol = smokeCol * 0.75 + 0.08;             // darken + lift blacks slightly
+            smokeCol = mix(float3(luma), smokeCol, 1.35);
+            smokeCol = saturate(smokeCol);
 
-            // Soft diffuse light — no harsh directional bounce, just ambient
-            float diff = 0.75 + 0.25 * max(0.0, dot(norm, L));
-            smokeCol *= diff;
+            // === LAYER 1B: WHITE SMOKE OVERLAY (visible through entire orb) ===
+            // Separate, higher-freq noise so tendrils are distinct from the color
+            float2 wsp = rot * (refN.xy * 1.1 + float2(refN.z * 0.2));
+            wsp += u.tilt * 0.08 + float2(7.7, 3.1);  // offset so pattern differs
+            float2 wq = float2(fbm(wsp*2.5 + float2(0.0, u.time*0.03), 3),
+                               fbm(wsp*2.5 + float2(4.1, u.time*0.025), 3));
+            float whiteRaw = fbm(wsp*1.8 + 3.5*wq + u.time*0.02, 5);
+            // Wispy threshold — shows tendrils everywhere including center
+            float whiteDensity = clamp((whiteRaw - 0.32) / 0.35, 0.0, 1.0);
+            whiteDensity = pow(whiteDensity, 1.2);
+            float whiteAlpha = whiteDensity * edgeFade * 0.45;
+            float3 whiteCol = float3(0.95, 0.96, 0.98);
 
-            // Very subtle depth pulse — keeps it alive without neon glow
-            float pulse = 0.5 + 0.5*sin(u.time*1.1 + rawSmoke*3.0);
-            smokeCol += float3(luma) * density * 0.05 * pulse;
+            // Blend white tendrils into smoke
+            smokeCol = smokeCol * (1.0 - whiteAlpha) + whiteCol * whiteAlpha;
+            smokeAlpha = clamp(smokeAlpha + whiteAlpha * 0.6, 0.0, 0.90);
 
-            // === LAYER 2: GLASS SHELL (on top, transparent with Fresnel) ===
-            // Steeper Fresnel for thicker glass rim feel
-            float fresnel = pow(1.0 - z, 1.8) * 0.95;
-            float rimWeight = smoothstep(0.6, 1.0, r); // stronger toward edge
+            // Volumetric self-shadowing
+            float diff = 0.5 + 0.5 * max(0.0, dot(norm, L));
+            float coreShadow = smoothstep(0.0, 0.7, density) * 0.30;
+            smokeCol = smokeCol * diff * (1.0 - coreShadow);
 
-            // Glass rim: cool clear white, thicker toward edge
-            float3 glassCol = float3(0.93, 0.95, 1.0);
-            float glassSurface = noise(norm.xy * 8.0 + u.time * 0.3) * 0.03;
-            glassCol += glassSurface;
-            float glassAlpha = (fresnel * 0.6 + rimWeight * 0.25);
-            glassAlpha = clamp(glassAlpha, 0.0, 0.8);
+            // === LAYER 2: CLEAR GLASS SHELL with CHROMATIC ABERRATION ===
+            float ebb = 0.5 + 0.5 * sin(u.time * 1.0);
 
-            // Specular: much softer, small highlight only — no harsh blob
-            float3 H    = normalize(L + float3(0,0,1));
-            float  spec = pow(max(0.0, dot(norm, H)), 140.0); // very tight
-            float3 specCol = float3(1.0) * spec * 0.35;       // dim
-            float  specA   = spec * 0.3;
+            float fresnelR = pow(1.0 - z, 3.0);
+            float fresnelG = pow(1.0 - z, 3.5);
+            float fresnelB = pow(1.0 - z, 4.2);
+            float3 chromFresnel = float3(fresnelR, fresnelG, fresnelB);
 
-            // === COMPOSITE: smoke behind, glass on top ===
-            float3 outCol = smokeCol * smokeAlpha;
-            float  outA   = smokeAlpha;
+            float3 glassCol = float3(0.97, 0.98, 1.0) * (1.0 + chromFresnel * 0.4);
+            float microNoise = noise(uv * 60.0 + u.time * 0.15) * 0.025;
+            glassCol += microNoise * max(fresnelR, fresnelB);
 
-            // Layer glass rim over
+            float avgFresnel = (fresnelR + fresnelG + fresnelB) / 3.0;
+            float glassAlpha = avgFresnel * (0.5 + 0.12 * ebb);
+            glassAlpha = clamp(glassAlpha, 0.0, 0.70);
+
+            // === LAYER 3: GYRO-REACTIVE ENVIRONMENT REFLECTION ===
+            float2 reflectUV = norm.xy * 0.5 + u.tilt * 0.35;
+            float envHighlight = exp(-dot(reflectUV - float2(0.15, 0.25), reflectUV - float2(0.15, 0.25)) * 6.0);
+            float2 reflUV2 = norm.xy * 0.5 + u.tilt * 0.2 + float2(0.3, -0.2);
+            float envHighlight2 = exp(-dot(reflUV2, reflUV2) * 10.0) * 0.4;
+            float3 envCol = float3(1.0, 0.99, 0.96) * (envHighlight + envHighlight2) * 0.25;
+
+            // === LAYER 4: WHITE RIM BACKLIGHT (directly follows gyro) ===
+            float2 rimLightPos = normalize(float2(u.tilt.x, u.tilt.y) + float2(0.001, 0.001));
+            float2 pixelRimDir = normalize(uv + float2(0.001, 0.001));
+            float rimAlign = dot(pixelRimDir, rimLightPos);
+            float rimBright = pow(max(0.0, rimAlign), 8.0);
+            float rimEdge = smoothstep(0.65, 0.95, r);
+            float rimLight = rimBright * rimEdge * 0.22;
+            float3 rimCol = float3(1.0, 0.99, 0.97) * rimLight;
+
+            // === LAYER 5: SPECULAR CAUSTIC (moves with tilt) ===
+            float2 specPos = float2(-0.25 + u.tilt.x * 0.3, 0.30 + u.tilt.y * 0.3);
+            float specDist = length(uv - specPos);
+            float specular = exp(-specDist * specDist * 28.0) * 0.10;
+            float3 specColor = float3(1.0, 0.98, 0.94) * specular;
+
+            // === GLASS BASE TINT ===
+            float3 baseTint = float3(0.93, 0.94, 0.96);
+            float baseAlpha = (0.06 + 0.03 * ebb) * (1.0 - avgFresnel * 0.5);
+
+            // === COMPOSITE ===
+            float3 outCol = baseTint * baseAlpha;
+            float  outA   = baseAlpha;
+
+            // Smoke wisps
+            outCol = outCol * (1.0 - smokeAlpha) + smokeCol * smokeAlpha;
+            outA   = clamp(outA + smokeAlpha * 0.95, 0.0, 1.0);
+
+            // Chromatic glass Fresnel rim
             outCol = outCol * (1.0 - glassAlpha) + glassCol * glassAlpha;
-            outA   = clamp(outA * (1.0 - glassAlpha) + glassAlpha, 0.0, 1.0);
+            outA   = clamp(outA + glassAlpha, 0.0, 1.0);
 
-            // Add soft specular highlight
-            outCol += specCol;
-            outA    = clamp(outA + specA, 0.0, 1.0);
+            // Environment reflections
+            outCol += envCol * smoothstep(0.95, 0.3, r);
 
-            // Soft outer edge
-            float edgeAlpha = smoothstep(1.0, 0.95, r);
-            outA   *= edgeAlpha;
-            outCol *= edgeAlpha;
+            // White rim backlight
+            outCol += rimCol;
+            outA = clamp(outA + rimLight * 0.5, 0.0, 1.0);
 
-            return float4(outCol, outA);
+            // Specular caustic
+            outCol += specColor * smoothstep(0.9, 0.4, r);
+
+            // Razor-sharp outer edge
+            float edgeAlpha = smoothstep(1.0, 0.99, r);
+            return float4(outCol * edgeAlpha, outA * edgeAlpha);
         }
         """
 
@@ -238,6 +273,16 @@ final class OrbRenderer: NSObject, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     func draw(in view: MTKView) {
+        if let m = motionManager.deviceMotion {
+            // Smooth gyro with exponential moving average to prevent snapping
+            let rawTilt = SIMD2<Float>(
+                Float(m.gravity.x) * 0.6,
+                Float(m.gravity.y) * 0.6
+            )
+            let lerp: Float = 0.08
+            tilt = tilt + (rawTilt - tilt) * lerp
+        }
+
         guard let pipeline = pipelineState,
               let descriptor = view.currentRenderPassDescriptor,
               let drawable = view.currentDrawable,
@@ -251,7 +296,7 @@ final class OrbRenderer: NSObject, MTKViewDelegate {
 
         struct Uniforms { var time: Float; var tilt: SIMD2<Float> }
         var uniforms = Uniforms(
-            time: Float(Date().timeIntervalSince(startTime)),
+            time: Float(Date().timeIntervalSince(OrbRenderer.sharedStartTime)),
             tilt: tilt
         )
 
@@ -272,7 +317,16 @@ private extension Color {
     func toSIMD() -> SIMD4<Float> {
         let ui = UIColor(self)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        ui.getRed(&r, green: &g, blue: &b, alpha: &a)
-        return SIMD4<Float>(Float(r), Float(g), Float(b), Float(a))
+        if ui.getRed(&r, green: &g, blue: &b, alpha: &a) {
+            return SIMD4<Float>(Float(r), Float(g), Float(b), Float(a))
+        } else if let components = ui.cgColor.components, ui.cgColor.numberOfComponents >= 3 {
+            return SIMD4<Float>(
+                Float(components[0]),
+                Float(components[1]),
+                Float(components[2]),
+                Float(components.count >= 4 ? components[3] : 1.0)
+            )
+        }
+        return SIMD4<Float>(0.2, 0.5, 0.9, 1.0) // Fallback
     }
 }

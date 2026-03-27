@@ -1,149 +1,7 @@
 import SwiftUI
 import Auth
-import Supabase
 
-// MARK: - ViewModel
 
-@Observable
-final class BuildingInfoViewModel {
-    var building: Building? = nil
-    var isLoading = false
-    var errorMessage: String? = nil
-    var isLiked = false
-    var isDisliked = false
-
-    func load(bin: String? = nil, name: String? = nil, latitude: Double? = nil, longitude: Double? = nil) async {
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
-
-        let tables = ["buildings_full_merge", "buildings_full_merge_scanning"]
-        let selectFieldsWithAesthetic = "bin, building_name, address, architect, year_built, style, storytelling, landmark, mat_prim, building_type, geocoded_lat, geocoded_lng, primary_aesthetic, secondary_aesthetic, aesthetic_profile"
-        let selectFieldsBasic = "bin, building_name, address, architect, year_built, style, storytelling, landmark, mat_prim, building_type, geocoded_lat, geocoded_lng, primary_aesthetic, secondary_aesthetic"
-
-        for table in tables {
-            do {
-                let fieldOptions = [selectFieldsWithAesthetic, selectFieldsBasic]
-                
-                for fields in fieldOptions {
-                    do {
-                        // Priority 1: BIN lookup
-                        if let bin, !bin.isEmpty, bin != "unknown" {
-                            let binStr = bin.replacingOccurrences(of: ".0", with: "")
-                            let results: [Building] = try await withTimeout(seconds: 5) {
-                                try await SupabaseService.shared.buildingsClient
-                                    .from(table)
-                                    .select(fields)
-                                    .or("bin.eq.\(binStr),bin.eq.\(binStr).0")
-                                    .limit(1)
-                                    .execute()
-                                    .value
-                            }
-                            if let first = results.first {
-                                self.building = first
-                                return
-                            }
-                        }
-
-                        // Priority 2: GPS lookup
-                        if let lat = latitude, let lng = longitude {
-                            let results: [Building] = try await withTimeout(seconds: 5) {
-                                try await SupabaseService.shared.buildingsClient
-                                    .from(table)
-                                    .select(fields)
-                                    .gte("geocoded_lat", value: lat - 0.0005)
-                                    .lte("geocoded_lat", value: lat + 0.0005)
-                                    .gte("geocoded_lng", value: lng - 0.0005)
-                                    .lte("geocoded_lng", value: lng + 0.0005)
-                                    .limit(1)
-                                    .execute()
-                                    .value
-                            }
-                            if let first = results.first {
-                                self.building = first
-                                return
-                            }
-                        }
-
-                        // Priority 3: Name lookup
-                        if let name, !name.isEmpty {
-                            let results: [Building] = try await withTimeout(seconds: 5) {
-                                try await SupabaseService.shared.buildingsClient
-                                    .from(table)
-                                    .select(fields)
-                                    .ilike("building_name", pattern: name)
-                                    .limit(1)
-                                    .execute()
-                                    .value
-                            }
-                            if let first = results.first {
-                                self.building = first
-                                return
-                            }
-                        }
-                    } catch {
-                        print("[BuildingInfoViewModel] Fields failed for table \(table): \(error.localizedDescription)")
-                        if fields == selectFieldsBasic { throw error }
-                    }
-                }
-            } catch {
-                print("[BuildingInfoViewModel] Table \(table) failed: \(error.localizedDescription)")
-            }
-        }
-
-        errorMessage = "Building data unavailable"
-    }
-
-    private func withTimeout<T>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
-        try await withThrowingTaskGroup(of: T.self) { group in
-            group.addTask {
-                try await operation()
-            }
-            group.addTask {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-                throw URLError(.timedOut)
-            }
-            let result = try await group.next()!
-            group.cancelAll()
-            return result
-        }
-    }
-    
-    func toggleLike(userId: String) {
-        guard !isLiked, let building = building else { return }
-        isLiked = true
-        isDisliked = false
-        sendAestheticEvent(userId: userId, building: building, subtype: "like")
-    }
-    
-    func toggleDislike(userId: String) {
-        guard !isDisliked, let building = building else { return }
-        isDisliked = true
-        isLiked = false
-        sendAestheticEvent(userId: userId, building: building, subtype: "dislike")
-    }
-    
-    func recordDwellTime(userId: String, timeSpentSeconds: TimeInterval) {
-        guard timeSpentSeconds > 10, let building = building else { return }
-        sendAestheticEvent(userId: userId, building: building, subtype: "dwell")
-    }
-    
-    private func sendAestheticEvent(userId: String, building: Building, subtype: String) {
-        Task {
-            do {
-                try await AestheticService.shared.insertScanEvent(
-                    userId: userId,
-                    buildingBbl: building.bin, // using BIN as fallback for BBL in aesthetic profile
-                    aestheticVector: building.aestheticProfile,
-                    subtype: subtype
-                )
-                await ProgressService.shared.processScan(userId: userId, building: nil)
-            } catch {
-                print("[BuildingInfoViewModel] Failed to send aesthetic event: \(error)")
-            }
-        }
-    }
-}
 
 // MARK: - View
 
@@ -154,6 +12,7 @@ struct BuildingInfoView: View {
     var latitude: Double? = nil
     var longitude: Double? = nil
     var fromScan: Bool = false
+    var scanMatch: ScanMatch? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
@@ -164,6 +23,9 @@ struct BuildingInfoView: View {
     @State private var scrollOffset: CGFloat = 0
 
     @State private var viewStartTime: Date? = nil
+    @State private var accumulatedDwellTime: TimeInterval = 0
+    @State private var lastForegroundTime: Date? = nil
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -198,7 +60,16 @@ struct BuildingInfoView: View {
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showAddToList) {
-            AddToListSheet(bin: vm.building?.bin ?? bin, buildingName: vm.building?.name ?? name, address: vm.building?.address ?? address)
+            AddToListSheet(
+                bin: vm.building?.bin ?? bin,
+                buildingName: vm.building?.displayName ?? name,
+                address: vm.building?.address ?? address,
+                aestheticVector: vm.building?.aestheticProfile.map { profile in
+                    var dict: [String: Double] = [:]
+                    for item in profile.all { dict[item.name.lowercased()] = item.score }
+                    return dict
+                }
+            )
         }
         .sheet(isPresented: $showSimilar) {
             if let aesthetic = vm.building?.primaryAesthetic {
@@ -206,76 +77,170 @@ struct BuildingInfoView: View {
             }
         }
         .navigationDestination(isPresented: $showListings) {
-            BuildingListingsView(buildingBin: vm.building?.bin ?? bin, buildingName: vm.building?.name ?? name)
+            BuildingListingsView(buildingBin: vm.building?.bin ?? bin, buildingName: vm.building?.displayName ?? name)
         }
         .task {
+            if let match = scanMatch {
+                vm.loadFromMatch(match)
+            }
             await vm.load(bin: bin.isEmpty ? nil : bin, name: name, latitude: latitude, longitude: longitude)
         }
         .onAppear {
             viewStartTime = Date()
+            lastForegroundTime = Date()
         }
         .onDisappear {
-            if let start = viewStartTime, let userId = appState.currentUser?.id.uuidString {
-                let duration = Date().timeIntervalSince(start)
-                vm.recordDwellTime(userId: userId, timeSpentSeconds: duration)
+            if let last = lastForegroundTime {
+                accumulatedDwellTime += Date().timeIntervalSince(last)
+            }
+            if let userId = appState.currentUser?.id.uuidString {
+                vm.recordDwellTime(userId: userId, timeSpentSeconds: accumulatedDwellTime, appState: appState)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .background, .inactive:
+                // Pause: accumulate time spent so far
+                if let last = lastForegroundTime {
+                    accumulatedDwellTime += Date().timeIntervalSince(last)
+                    lastForegroundTime = nil
+                }
+            case .active:
+                // Resume: start counting again
+                lastForegroundTime = Date()
+            @unknown default:
+                break
             }
         }
     }
 
-    private var headerOpacity: Double {
-        let threshold: CGFloat = -100
-        if scrollOffset >= 0 { return 1.0 }
-        let opacity = 1.0 - (abs(scrollOffset) / abs(threshold))
-        return max(0, opacity)
-    }
+    // Header is always fully visible — no fading
+    private var headerOpacity: Double { 1.0 }
 
     // MARK: - Subviews
 
     private var imageSection: some View {
-        ZStack {
-            let currentBin = vm.building?.bin ?? bin
-            let imageUrl = "https://pub-234fc67c039149b2b46b864a1357763d.r2.dev/\(currentBin)/0deg_40pitch.jpg"
-            
+        let currentBin = vm.building?.bin ?? bin
+        let imageUrl = "https://pub-234fc67c039149b2b46b864a1357763d.r2.dev/\(currentBin)/0deg_40pitch.jpg"
+        let displayBuilding = vm.building
+
+        let heroImageUrl = displayBuilding?.heroImageUrl
+        let placeholder = Color.gray.opacity(0.15)
+            .overlay {
+                VStack(spacing: 8) {
+                    Image(systemName: "building.columns.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    Text("No image available")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+        return ZStack(alignment: .bottom) {
             AsyncImage(url: URL(string: imageUrl)) { phase in
                 switch phase {
                 case .success(let image):
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                case .failure, .empty:
-                    Color.gray.opacity(0.1)
-                        .overlay {
-                            VStack(spacing: 8) {
-                                Image(systemName: "building.columns.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundStyle(.secondary)
-                                Text("No image available")
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
+                case .failure:
+                    if let heroUrl = heroImageUrl {
+                        AsyncImage(url: URL(string: heroUrl)) { heroPhase in
+                            if let img = heroPhase.image {
+                                img.resizable().aspectRatio(contentMode: .fill)
+                            } else if heroPhase.error != nil {
+                                placeholder
+                            } else {
+                                ProgressView()
                             }
                         }
+                    } else {
+                        placeholder
+                    }
+                case .empty:
+                    ProgressView()
                 @unknown default:
                     EmptyView()
                 }
             }
+
+            // Gradient overlay + name/year
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.3), .black.opacity(0.75)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+
+            // Building name + year overlaid at bottom of image
+            if let building = displayBuilding {
+                VStack(alignment: .leading, spacing: 4) {
+                    if fromScan {
+                        Text("+50 XP")
+                            .font(.caption.bold())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(AppColors.accent, in: Capsule())
+                    }
+                    Text(building.displayName)
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 4)
+                    if let year = building.yearBuilt, !year.isEmpty {
+                        let cleanYear = year.replacingOccurrences(of: ".0", with: "")
+                        Text("Est. \(cleanYear)")
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 40)
+            }
         }
-        .frame(height: 300)
+        .frame(height: 380)
         .clipped()
     }
 
     private var headerOverlay: some View {
-        HStack {
+        HStack(spacing: 10) {
+            // Back button
             Button(action: { dismiss() }) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 40, height: 40)
-                    .background(Color.black.opacity(0.3))
+                    .background(Color.black.opacity(0.35))
                     .clipShape(Circle())
             }
-            
+
             Spacer()
-            
+
+            // Thumbs — always visible, top-right
+            Button(action: {
+                if let userId = appState.currentUser?.id.uuidString { vm.toggleLike(userId: userId, appState: appState) }
+            }) {
+                Image(systemName: vm.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(vm.isLiked ? AppColors.success : .white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.black.opacity(0.35))
+                    .clipShape(Circle())
+            }
+
+            Button(action: {
+                if let userId = appState.currentUser?.id.uuidString { vm.toggleDislike(userId: userId, appState: appState) }
+            }) {
+                Image(systemName: vm.isDisliked ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(vm.isDisliked ? AppColors.error : .white)
+                    .frame(width: 40, height: 40)
+                    .background(Color.black.opacity(0.35))
+                    .clipShape(Circle())
+            }
+
+            // More menu
             Menu {
                 Button(action: { showSimilar = true }) {
                     Label("Find Similar Buildings", systemImage: "square.on.square")
@@ -285,46 +250,72 @@ struct BuildingInfoView: View {
                 }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 40, height: 40)
-                    .background(Color.black.opacity(0.3))
+                    .background(Color.black.opacity(0.35))
                     .clipShape(Circle())
             }
         }
-        .padding(.horizontal)
-        .padding(.top, 60)
+        .padding(.horizontal, 16)
+        .padding(.top, UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first?.safeAreaInsets.top ?? 56)
     }
 
     private func buildingContent(_ building: Building) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Thumbs Row
-            thumbsRow
-            
-            // Name Banner
+            // Name banner — add-to-list button
             nameBanner(building)
-            
-            // Info Facts Grid
+
+            // Facts chips
             factsGrid(building)
-            
-            // Lore/Info Section
+
+            // Lore section
             loreSection(building)
-            
-            // Archetype Arc
-            if let profile = building.aestheticProfile {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("aesthetic profile")
-                        .font(.caption.bold().monospaced())
-                        .foregroundStyle(AppColors.accent)
-                        .padding(.horizontal)
-                        .textCase(.uppercase)
-                    
-                    ArchetypeArcView(profile: profile)
-                        .frame(height: 180)
+
+            // Aesthetic Arc
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Aesthetic Profile")
+                    .font(.caption.bold())
+                    .foregroundStyle(AppColors.accent)
+                    .textCase(.uppercase)
+                    .padding(.horizontal)
+
+                if let primaryAesthetic = building.primaryAesthetic, !primaryAesthetic.isEmpty {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(AppColors.archetypeColor(for: primaryAesthetic))
+                            .frame(width: 10, height: 10)
+                        Text(primaryAesthetic.capitalized)
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.horizontal)
                 }
-                .padding(.vertical)
+
+                if let profile = building.aestheticProfile {
+                    ArchetypeArcView(profile: profile)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 180)
+                } else {
+                    Text("Aesthetic profile not available for this building.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity)
+                }
             }
-            
+            .padding(.vertical)
+
+            // Archival Photos
+            if let bbl = building.bbl, !bbl.isEmpty {
+                ArchivalPhotoSection(bbl: bbl)
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
+            }
+
             // Listings Teaser
             if !building.bin.isEmpty {
                 listingsTeaser(building)
@@ -332,155 +323,167 @@ struct BuildingInfoView: View {
         }
     }
 
-    private var thumbsRow: some View {
-        HStack(spacing: 20) {
-            Spacer()
-            Button(action: {
-                if let userId = appState.currentUser?.id.uuidString {
-                    vm.toggleLike(userId: userId)
-                }
-            }) {
-                Image(systemName: vm.isLiked ? "hand.thumbsup.fill" : "hand.thumbsup")
-                    .font(.title2)
-                    .foregroundStyle(vm.isLiked ? .white : AppColors.success)
-                    .frame(width: 56, height: 56)
-                    .background(vm.isLiked ? AppColors.success : Color(uiColor: .secondarySystemBackground))
-                    .overlay(Circle().stroke(AppColors.success, lineWidth: 2))
-                    .clipShape(Circle())
-            }
-            
-            Button(action: {
-                if let userId = appState.currentUser?.id.uuidString {
-                    vm.toggleDislike(userId: userId)
-                }
-            }) {
-                Image(systemName: vm.isDisliked ? "hand.thumbsdown.fill" : "hand.thumbsdown")
-                    .font(.title2)
-                    .foregroundStyle(vm.isDisliked ? .white : AppColors.error)
-                    .frame(width: 56, height: 56)
-                    .background(vm.isDisliked ? AppColors.error : Color(uiColor: .secondarySystemBackground))
-                    .overlay(Circle().stroke(AppColors.error, lineWidth: 2))
-                    .clipShape(Circle())
-            }
-            Spacer()
-        }
-        .padding(.vertical, 16)
-        .tacticalBorder(width: 1, edges: [.bottom], color: Color(uiColor: .separator))
-    }
-
     private func nameBanner(_ building: Building) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "location.fill")
-                .font(.caption)
-                .foregroundStyle(AppColors.accent)
-            
-            Text(building.name ?? "Unknown Building")
-                .font(.system(.body, design: .monospaced).bold())
-                .foregroundStyle(AppColors.accent)
-                .textCase(.uppercase)
+        HStack {
+            Text(building.address ?? "")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
-            
-            if fromScan {
-                Text("+50 XP")
-                    .font(.caption.bold())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(AppColors.accent, in: Capsule())
-            }
-            
             Spacer()
-            
-            HStack(spacing: 10) {
-                Button(action: { /* Contribute photo */ }) {
-                    Image(systemName: "camera")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.primary)
-                        .frame(width: 32, height: 32)
-                        .background(Color(uiColor: .secondarySystemBackground))
-                        .clipShape(Circle())
-                }
-                
-                Button(action: { showAddToList = true }) {
-                    Image(systemName: "list.bullet")
-                        .font(.system(size: 14))
-                        .foregroundStyle(.primary)
-                        .frame(width: 32, height: 32)
-                        .background(Color(uiColor: .secondarySystemBackground))
-                        .clipShape(Circle())
-                }
+            Button { showAddToList = true } label: {
+                Label("Save", systemImage: "list.bullet.below.rectangle")
+                    .font(.caption.bold())
+                    .foregroundStyle(AppColors.accent)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal)
-        .padding(.vertical, 14)
-        .tacticalBorder(width: 1, edges: [.bottom], color: Color(uiColor: .separator))
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
     }
 
     private func factsGrid(_ building: Building) -> some View {
-        VStack(spacing: 12) {
-            factRow(icon: "hammer.fill", label: "Architect", value: building.architect)
-            factRow(icon: "paintpalette.fill", label: "Style", value: building.style)
-            factRow(icon: "shippingbox.fill", label: "Materials", value: building.materials)
-            factRow(icon: "building.2.fill", label: "Use", value: building.use)
-            factRow(icon: "calendar", label: "Year Built", value: building.yearBuilt)
+        let facts: [(String, String, String)] = [
+            ("hammer.fill", "Architect", building.architect),
+            ("paintpalette.fill", "Style", building.style),
+            ("shippingbox.fill", "Materials", building.materials ?? vm.contributedMaterials),
+            ("building.2.fill", "Use", building.use),
+            ("calendar", "Year Built", building.yearBuilt?.replacingOccurrences(of: ".0", with: "")),
+        ].compactMap { icon, label, val in
+            guard let v = val, !v.isEmpty else { return nil }
+            let lower = v.lowercased().trimmingCharacters(in: .whitespaces)
+            if lower == "unknown" || lower == "nd" || lower == "not determined" || lower == "n/a" || lower == "0" { return nil }
+            return (icon, label, Self.titleCase(v))
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .padding(20)
-    }
 
-    private func factRow(icon: String, label: String, value: String?) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.subheadline)
-                .foregroundStyle(AppColors.accent)
-                .frame(width: 20)
-            
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: .bold).monospaced())
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-            
-            Text(value ?? "Unknown")
-                .font(.system(size: 12, weight: .semibold).monospaced())
-                .foregroundStyle(.primary)
-                .multilineTextAlignment(.trailing)
-        }
-    }
+        return VStack(spacing: 0) {
+            ForEach(Array(facts.enumerated()), id: \.offset) { i, fact in
+                HStack(spacing: 12) {
+                    Image(systemName: fact.0)
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.accent)
+                        .frame(width: 22)
 
-    private func loreSection(_ building: Building) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("lore/info")
-                .font(.caption.bold().monospaced())
-                .foregroundStyle(AppColors.accent)
-                .textCase(.uppercase)
-            
-            HStack(alignment: .top, spacing: 12) {
-                Rectangle()
-                    .fill(AppColors.accent)
-                    .frame(width: 2)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    let desc = building.description ?? building.landmark
-                    let isNumeric = desc?.range(of: "^[0-9\\s\\.\\-]+$", options: .regularExpression) != nil
-                    let isValid = desc != nil && !isNumeric && (desc?.count ?? 0) > 5
-                    
-                    Text(isValid ? desc! : "No historical records found for this building. This building may not be a designated NYC landmark.")
-                        .font(.system(.body, design: .monospaced))
-                        .lineSpacing(4)
-                    
-                    if isValid && building.landmark != nil {
-                        Text("Source: NYC Landmarks Preservation Commission")
-                            .font(.system(size: 10).monospaced())
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                    }
+                    Text(fact.1.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 72, alignment: .leading)
+
+                    Text(fact.2)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+
+                if i < facts.count - 1 {
+                    Divider().padding(.leading, 50)
                 }
             }
         }
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private func cleanStorytelling(_ raw: String) -> String {
+        var text = raw
+
+        // Remove Gemini preamble like "Okay, here are..." up to first real paragraph
+        if let range = text.range(of: "Option 1", options: .caseInsensitive) {
+            let afterOption1 = String(text[range.upperBound...])
+            if let opt2 = afterOption1.range(of: "Option 2", options: .caseInsensitive) {
+                text = String(afterOption1[..<opt2.lowerBound])
+            } else {
+                text = afterOption1
+            }
+        } else if let range = text.range(of: "Okay,", options: .caseInsensitive) {
+            if let newline = text[range.upperBound...].firstIndex(of: "\n") {
+                text = String(text[text.index(after: newline)...])
+            }
+        }
+
+        // Strip markdown formatting
+        text = text.replacingOccurrences(of: "**", with: "")
+        text = text.replacingOccurrences(of: #"\*([^*]+)\*"#, with: "$1", options: .regularExpression) // *italic*
+        text = text.replacingOccurrences(of: #"_([^_]+)_"#, with: "$1", options: .regularExpression)   // _underline_
+        text = text.replacingOccurrences(of: #"^#{1,3}\s+"#, with: "", options: .regularExpression)     // # headings
+        
+        // Strip option headers
+        text = text.replacingOccurrences(of: #"Option \d+[:\s]*"#, with: "", options: .regularExpression)
+        
+        // Strip informal conversational openers
+        let informalPrefixes = [
+            #"^Hold up,?\s*"#,
+            #"^Did you know\s+(that\s+)?"#,
+            #"^Fun fact:?\s*"#,
+            #"^Get this[—:,]?\s*"#,
+            #"^Here'?s the thing[—:,]?\s*"#,
+            #"^So,?\s+"#,
+        ]
+        for pattern in informalPrefixes {
+            text = text.replacingOccurrences(of: pattern, with: "", options: [.regularExpression, .caseInsensitive])
+        }
+        
+        // Strip surrounding quotes
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.hasPrefix("\"") && text.hasSuffix("\"") {
+            text = String(text.dropFirst().dropLast())
+        }
+        
+        // Ensure first character is capitalized after stripping
+        if let first = text.first, first.isLowercase {
+            text = first.uppercased() + text.dropFirst()
+        }
+        
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Title-case a string: capitalize first letter of each word, but preserve known acronyms
+    private static func titleCase(_ input: String) -> String {
+        let lowercaseWords: Set<String> = ["of", "the", "and", "in", "for", "at", "by", "de", "van", "von", "le", "la"]
+        let words = input.split(separator: " ").enumerated().map { index, word -> String in
+            let lower = word.lowercased()
+            // Don't lowercase Roman numerals or known acronyms
+            let upper = word.uppercased()
+            if upper == String(word) && word.count <= 4 && word.count > 1 { return String(word) } // Keep "II", "III", "SOM" etc.
+            if index > 0 && lowercaseWords.contains(lower) { return lower }
+            return lower.prefix(1).uppercased() + lower.dropFirst()
+        }
+        return words.joined(separator: " ")
+    }
+
+    private func loreSection(_ building: Building) -> some View {
+        let rawDesc = building.description
+        let desc = rawDesc.map { cleanStorytelling($0) }
+        let isCorrupted = desc.flatMap { Double($0) } != nil
+        let isValid = desc != nil && (desc?.count ?? 0) > 10 && !isCorrupted
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("The Story")
+                .font(.caption.bold())
+                .foregroundStyle(AppColors.accent)
+                .textCase(.uppercase)
+
+            Text(isValid ? desc! : "No historical records found for this building. This building may not be a designated NYC landmark.")
+                .font(.body)
+                .lineSpacing(5)
+                .foregroundStyle(isValid ? .primary : .secondary)
+
+            if isValid {
+                Text("Source: NYC Landmarks Preservation Commission")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .italic()
+            }
+
+        }
         .padding(20)
-        .tacticalBorder(width: 1, edges: [.bottom], color: Color(uiColor: .separator))
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     private func listingsTeaser(_ building: Building) -> some View {
@@ -536,80 +539,7 @@ struct BuildingInfoView: View {
     }
 }
 
-// MARK: - Add To List Sheet
 
-struct AddToListSheet: View {
-    let bin: String
-    let buildingName: String
-    let address: String
-    @Environment(\.dismiss) private var dismiss
-    @State private var vm = ListsViewModel()
-
-    var body: some View {
-        NavigationStack {
-            Group {
-                if vm.isLoading {
-                    ProgressView()
-                } else if vm.lists.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "list.bullet")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text("No lists yet")
-                            .foregroundStyle(.secondary)
-                        Text("Create a list from the Passport tab first.")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(vm.lists) { list in
-                        Button(action: { 
-                            if !list.isHardcoded {
-                                addToList(list)
-                            }
-                        }) {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(list.name).font(.subheadline.bold())
-                                    Text("\(list.buildings.count) buildings")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                
-                                if list.isHardcoded {
-                                    Image(systemName: "lock.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                } else {
-                                    Image(systemName: "plus.circle")
-                                        .foregroundStyle(AppColors.accent)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(list.isHardcoded)
-                    }
-                }
-            }
-            .navigationTitle("Add to List")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-            .onAppear { vm.load() }
-        }
-    }
-
-    private func addToList(_ list: DisplayList) {
-        let building = StoredBuilding(bin: bin, name: buildingName, address: address)
-        vm.addBuilding(building, to: list.id)
-        dismiss()
-    }
-}
 
 // MARK: - Preference Key
 

@@ -7,6 +7,8 @@ final class AppState {
     var isLoggedIn: Bool = false
     var currentUser: User? = nil
     var isReady: Bool = false
+    var aestheticProfile: AestheticProfile? = nil
+    var passportRefreshTrigger: Int = 0
 
     init() {
         // Safety fallback: mark ready after 3s even if auth stream stalls
@@ -40,6 +42,15 @@ final class AppState {
                 }
             }
         }
+    }
+
+    func refreshAestheticProfile() async {
+        guard let userId = currentUser?.id.uuidString else { return }
+        // Try processing unprocessed events first; fall back to fetch
+        let processed = await AestheticService.shared.processProfile(userId: userId)
+        let fetched = await AestheticService.shared.fetchProfile(userId: userId)
+        let updated = processed ?? fetched
+        await MainActor.run { self.aestheticProfile = updated }
     }
 
     func signOut() async throws {

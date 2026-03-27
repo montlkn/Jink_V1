@@ -31,6 +31,7 @@ final class QuizViewModel {
     var isSubmitting = false
     var isDone = false
     var errorMessage: String? = nil
+    var isFirstQuizSubmission = false
 
     private var questionStartTime: Date = Date()
 
@@ -103,6 +104,15 @@ final class QuizViewModel {
         defer { isSubmitting = false }
 
         do {
+            // Detect first-time submission before upserting
+            let existingCount = (try? await SupabaseService.shared.client
+                .from("quiz_responses")
+                .select("user_id", head: true, count: .exact)
+                .eq("user_id", value: userId)
+                .execute()
+                .count) ?? 0
+            isFirstQuizSubmission = (existingCount == 0)
+
             let now = ISO8601DateFormatter().string(from: Date())
             let rows = responses.map { r in
                 QuizResponseRow(

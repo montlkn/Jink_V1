@@ -22,15 +22,22 @@ struct Building: Identifiable, Decodable {
     let borough: String?
     let primaryAesthetic: String?
     let secondaryAesthetic: String?
+    let heroImageUrl: String?
 
     var id: String { bin }
+
+    /// Returns name if valid, otherwise falls back to address
+    var displayName: String {
+        let n = name ?? ""
+        return (n.isEmpty || n == "0") ? (address ?? "Unknown Address") : n
+    }
 
     enum CodingKeys: String, CodingKey {
         case bin, bbl, address, architect, style, landmark, borough
         case name = "building_name"
         case description = "storytelling"
         case yearBuilt = "year_built"
-        case aestheticProfile = "aesthetic_profile"
+        case aestheticProfile = "normalized_profile"
         case latitude = "geocoded_lat"
         case longitude = "geocoded_lng"
         case materials = "mat_prim"
@@ -38,6 +45,7 @@ struct Building: Identifiable, Decodable {
         case historicDistrict = "historic_district"
         case primaryAesthetic = "primary_aesthetic"
         case secondaryAesthetic = "secondary_aesthetic"
+        case heroImageUrl = "hero_image_url"
     }
 
     init(from decoder: Decoder) throws {
@@ -54,7 +62,17 @@ struct Building: Identifiable, Decodable {
             self.bin = ""
         }
         
-        self.bbl = try? container.decodeIfPresent(String.self, forKey: .bbl)
+        // Handle bbl potentially being Int, Double, or String
+        if let bblInt = try? container.decode(Int.self, forKey: .bbl) {
+            self.bbl = String(bblInt)
+        } else if let bblDouble = try? container.decode(Double.self, forKey: .bbl) {
+            self.bbl = String(Int(bblDouble))
+        } else if let bblStr = try? container.decode(String.self, forKey: .bbl) {
+            self.bbl = bblStr.replacingOccurrences(of: ".0", with: "")
+        } else {
+            self.bbl = nil
+        }
+        
         self.name = try? container.decodeIfPresent(String.self, forKey: .name)
         self.address = try? container.decodeIfPresent(String.self, forKey: .address)
         self.architect = try? container.decodeIfPresent(String.self, forKey: .architect)
@@ -109,20 +127,39 @@ struct Building: Identifiable, Decodable {
         self.borough = try? container.decodeIfPresent(String.self, forKey: .borough)
         self.primaryAesthetic = try? container.decodeIfPresent(String.self, forKey: .primaryAesthetic)
         self.secondaryAesthetic = try? container.decodeIfPresent(String.self, forKey: .secondaryAesthetic)
+        self.heroImageUrl = try? container.decodeIfPresent(String.self, forKey: .heroImageUrl)
     }
 
     /// Factory method for placeholder/fallback instances
-    static func placeholder(bin: String, name: String, address: String, latitude: Double? = nil, longitude: Double? = nil) -> Building {
+    static func placeholder(
+        bin: String,
+        bbl: String? = nil,
+        name: String,
+        address: String,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        primaryAesthetic: String? = nil,
+        secondaryAesthetic: String? = nil,
+        storytelling: String? = nil,
+        style: String? = nil,
+        yearBuilt: String? = nil,
+        architect: String? = nil,
+        materials: String? = nil,
+        aestheticProfile: AestheticProfile? = nil
+    ) -> Building {
+        let cleanBin = bin.replacingOccurrences(of: ".0", with: "")
+        let cleanBbl = bbl?.replacingOccurrences(of: ".0", with: "")
         return Building(
-            bin: bin, bbl: nil, name: name, address: address,
-            architect: nil, yearBuilt: nil, style: nil, description: nil,
-            aestheticProfile: nil, latitude: latitude, longitude: longitude,
-            materials: nil, use: nil, type: nil, landmark: nil,
-            historicDistrict: nil, borough: nil, primaryAesthetic: nil, secondaryAesthetic: nil
+            bin: cleanBin, bbl: cleanBbl, name: name, address: address,
+            architect: architect, yearBuilt: yearBuilt, style: style, description: storytelling,
+            aestheticProfile: aestheticProfile, latitude: latitude, longitude: longitude,
+            materials: materials, use: nil, type: nil, landmark: nil,
+            historicDistrict: nil, borough: nil, primaryAesthetic: primaryAesthetic, secondaryAesthetic: secondaryAesthetic,
+            heroImageUrl: nil
         )
     }
 
-    private init(bin: String, bbl: String?, name: String?, address: String?, architect: String?, yearBuilt: String?, style: String?, description: String?, aestheticProfile: AestheticProfile?, latitude: Double?, longitude: Double?, materials: String?, use: String?, type: String?, landmark: String?, historicDistrict: String?, borough: String?, primaryAesthetic: String?, secondaryAesthetic: String?) {
+    private init(bin: String, bbl: String?, name: String?, address: String?, architect: String?, yearBuilt: String?, style: String?, description: String?, aestheticProfile: AestheticProfile?, latitude: Double?, longitude: Double?, materials: String?, use: String?, type: String?, landmark: String?, historicDistrict: String?, borough: String?, primaryAesthetic: String?, secondaryAesthetic: String?, heroImageUrl: String?) {
         self.bin = bin
         self.bbl = bbl
         self.name = name
@@ -142,5 +179,6 @@ struct Building: Identifiable, Decodable {
         self.borough = borough
         self.primaryAesthetic = primaryAesthetic
         self.secondaryAesthetic = secondaryAesthetic
+        self.heroImageUrl = heroImageUrl
     }
 }

@@ -32,14 +32,6 @@ struct AchievementDefinition: Identifiable {
     let verificationText: String?
 }
 
-// MARK: - Visa Definitions
-
-struct VisaDefinition: Identifiable {
-    let id: String
-    let name: String
-    let neighborhood: String
-    let colorHex: String
-}
 
 // MARK: - Passport List Definitions
 
@@ -232,23 +224,8 @@ enum PassportContent {
             isMissable: true,
             verificationText: "Verified by stamp completion"
         ),
-        AchievementDefinition(
-            id: "first_visa",
-            title: "First Visa",
-            description: "Explore all buildings in a neighborhood",
-            xpReward: 100,
-            icon: "map.fill",
-            isMissable: false,
-            verificationText: "Verified by neighborhood coverage"
-        ),
     ]
 
-    // MARK: Visas
-    static let visaCarousel: [VisaDefinition] = [
-        VisaDefinition(id: "midtown", name: "Midtown", neighborhood: "Midtown Manhattan", colorHex: "#2D5B91"),
-        VisaDefinition(id: "bed_stuy", name: "Bed-Stuy", neighborhood: "Bedford-Stuyvesant", colorHex: "#8B4A2D"),
-        VisaDefinition(id: "lic", name: "LIC", neighborhood: "Long Island City", colorHex: "#1F8A70"),
-    ]
 
     // MARK: Passport Lists
     static let passportLists: [PassportListDefinition] = [

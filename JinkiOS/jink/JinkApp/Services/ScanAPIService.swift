@@ -135,14 +135,14 @@ final class ScanAPIService {
         return URL(string: "https://lucienmount--nyc-scan-api-fastapi-app.modal.run")!
     }
 
-    func scan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, gpsAccuracy: Double) async throws -> ScanAPIResponse {
+    func scan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, gpsAccuracy: Double, userId: String? = nil) async throws -> ScanAPIResponse {
         let delays = [1.0, 2.0, 4.0]
         var attempt = 0
         var lastError: Error?
 
         while attempt < delays.count + 1 {
             do {
-                return try await performScan(image: image, lat: lat, lng: lng, bearing: bearing, pitch: pitch, gpsAccuracy: gpsAccuracy)
+                return try await performScan(image: image, lat: lat, lng: lng, bearing: bearing, pitch: pitch, gpsAccuracy: gpsAccuracy, userId: userId)
             } catch {
                 lastError = error
                 if attempt < delays.count {
@@ -156,7 +156,33 @@ final class ScanAPIService {
         throw lastError ?? URLError(.unknown)
     }
 
-    private func performScan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, gpsAccuracy: Double) async throws -> ScanAPIResponse {
+    func confirmScan(scanId: String, confirmedBin: String, userId: String) async {
+        var baseString = apiURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let endpoint = URL(string: "\(baseString)/api/scans/\(scanId)/confirm") else { return }
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 15
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        var body = Data()
+        func appendField(_ name: String, _ value: String) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+        appendField("confirmed_bin", confirmedBin)
+        appendField("user_id", userId)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+        do {
+            let (_, _) = try await URLSession.shared.data(for: request)
+            print("[ScanAPIService]  Confirmed scan \(scanId)  BIN \(confirmedBin)")
+        } catch {
+            print("[ScanAPIService]  Confirm failed (non-critical): \(error)")
+        }
+    }
+
+    private func performScan(image: UIImage, lat: Double, lng: Double, bearing: Double, pitch: Double, gpsAccuracy: Double, userId: String? = nil) async throws -> ScanAPIResponse {
         var baseString = apiURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         // If the base URL already ends in /api/scan, don't append it again
         if baseString.hasSuffix("/api/scan") {
@@ -173,10 +199,15 @@ final class ScanAPIService {
         let boundary = UUID().uuidString
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
-        guard let resizedImage = image.resized(toMaxDimension: 1200),
-              let imageData = resizedImage.jpegData(compressionQuality: 0.85) else {
+        // Compress aggressively — CLIP uses 224x224, backend resizes to 1024 anyway
+        guard let resizedImage = image.resized(toMaxDimension: 512),
+              let imageData = resizedImage.jpegData(compressionQuality: 0.75) else {
             throw URLError(.unknown)
         }
+        if gpsAccuracy > 30 {
+            print("[ScanAPIService] ⚠️ GPS accuracy poor: \(String(format: "%.1f", gpsAccuracy))m — scan may be less reliable")
+        }
+        print("[ScanAPIService] Image: \(resizedImage.size), \(imageData.count / 1024)KB")
 
         var body = Data()
 
@@ -186,7 +217,7 @@ final class ScanAPIService {
             body.append("\(value)\r\n".data(using: .utf8)!)
         }
 
-        // Photo field — API expects "photo" not "image"
+        // Photo field  API expects "photo" not "image"
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"photo\"; filename=\"scan.jpg\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
@@ -199,6 +230,7 @@ final class ScanAPIService {
         appendField("phone_pitch", "\(pitch)")
         appendField("phone_roll", "0")
         appendField("gps_accuracy", String(format: "%.1f", gpsAccuracy))
+        if let userId { appendField("user_id", userId) }
 
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 

@@ -11,7 +11,7 @@ final class SimilarBuildingsViewModel {
         isLoading = true
         defer { isLoading = false }
         do {
-            let data = try await SupabaseService.shared.client
+            let data = try await SupabaseService.shared.buildingsClient
                 .from("buildings_full_merge_scanning")
                 .select("bin, building_name, address, primary_aesthetic, year_built, geocoded_lat, geocoded_lng")
                 .eq("primary_aesthetic", value: aesthetic)

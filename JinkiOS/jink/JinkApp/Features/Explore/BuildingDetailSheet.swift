@@ -1,5 +1,7 @@
 import SwiftUI
 
+// MARK: - Building Detail Sheet
+
 struct BuildingDetailSheet: View {
     let building: Building
     let vm: ExploreViewModel
@@ -9,19 +11,19 @@ struct BuildingDetailSheet: View {
     @State private var loadingOneLiner = false
 
     private var score: Double { vm.matchScore(for: building) }
-    private var accentColor: Color { archetypeColor(for: building.primaryAesthetic) }
+    private var accentColor: Color { archetypeColor(for: building.primaryAesthetic ?? building.style) }
 
     private var displayName: String {
-        if let name = building.name, !name.isEmpty, !name.hasPrefix("Court Name:"), name != "0" {
-            return name
+        guard let name = building.name, !name.isEmpty, name != "0" else {
+            return building.address ?? "Unknown Building"
         }
-        return building.address ?? "Unknown Building"
+        let cleaned = name.replacingOccurrences(of: "Court Name: ", with: "").replacingOccurrences(of: "Court Name:", with: "").trimmingCharacters(in: .whitespaces)
+        return cleaned.isEmpty ? (building.address ?? "Unknown Building") : cleaned
     }
 
     private var showAddressLine: Bool {
-        guard let name = building.name, !name.isEmpty, !name.hasPrefix("Court Name:"), name != "0"
-        else { return false }
-        return building.address != nil
+        let name = displayName
+        return building.address != nil && name != building.address
     }
 
     private var cleanYear: String? {
@@ -35,40 +37,57 @@ struct BuildingDetailSheet: View {
         return d
     }
 
+    private var headerTitle: String {
+        if let dominant = building.aestheticProfile?.dominant?.name { return dominant }
+        if let primary = building.primaryAesthetic, primary != "0" && !primary.isEmpty { return primary }
+        if let style = building.style, style != "0" && !style.isEmpty { return style }
+        return "Building"
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-
-                // ── Header ──────────────────────────────────────────
-                HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 16) {
+                // ── Header (Category) ────────────────────────
+                HStack {
                     HStack(spacing: 6) {
                         Circle().fill(accentColor).frame(width: 8, height: 8)
-                        Text((building.primaryAesthetic ?? "Building").uppercased())
+                        Text(headerTitle.uppercased())
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                             .foregroundStyle(accentColor)
                     }
                     Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 26, height: 26)
-                            .background(Color(.systemGray5), in: Circle())
-                    }
                 }
 
-                // ── Title ────────────────────────────────────────────
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(displayName)
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
+                // ── Title & Thumbnail Row ─────────────────────────────
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(displayName)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    if showAddressLine, let address = building.address {
-                        Text(address)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        if showAddressLine, let address = building.address {
+                            Text(address)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    Spacer()
+                    
+                    // Thumbnail with Fallback
+                    AsyncImage(url: URL(string: "https://pub-234fc67c039149b2b46b864a1357763d.r2.dev/\(building.bin)/0deg_40pitch.jpg")) { phase in
+                        if let img = phase.image {
+                            img.resizable().scaledToFill()
+                        } else if phase.error != nil {
+                            AsyncImage(url: URL(string: "https://pub-234fc67c039149b2b46b864a1357763d.r2.dev/\(building.bin)/0deg_0pitch.jpg")) { phase2 in
+                                if let img2 = phase2.image { img2.resizable().scaledToFill() }
+                                else { Rectangle().fill(Color(.systemGray6)).overlay(Image(systemName: "photo").foregroundStyle(.secondary)) }
+                            }
+                        } else { Rectangle().fill(Color(.systemGray6)).overlay(ProgressView().scaleEffect(0.5)) }
+                    }
+                    .frame(width: 65, height: 65)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
                 }
 
                 // ── Meta grid ────────────────────────────────────────
@@ -77,15 +96,15 @@ struct BuildingDetailSheet: View {
                         MetaRow(label: "BUILT", value: year)
                         Divider().opacity(0.2)
                     }
-                    if let arch = building.architect, !arch.isEmpty {
+                    if let arch = building.architect, !arch.isEmpty && arch != "0" {
                         MetaRow(label: "ARCHITECT", value: arch)
                         Divider().opacity(0.2)
                     }
-                    if let style = building.style ?? building.secondaryAesthetic, !style.isEmpty {
+                    if let style = building.style ?? building.secondaryAesthetic, !style.isEmpty && style != "0" {
                         MetaRow(label: "STYLE", value: style)
                         Divider().opacity(0.2)
                     }
-                    if let mat = building.materials, !mat.isEmpty {
+                    if let mat = building.materials, !mat.isEmpty && mat != "0" && mat.lowercased() != "unknown" {
                         MetaRow(label: "MATERIALS", value: mat)
                     }
                 }
@@ -138,6 +157,11 @@ struct BuildingDetailSheet: View {
                         }
                     }
                 }
+                
+                // ── Archival Photos ──────────────────────────────────
+                if let bbl = building.bbl, !bbl.isEmpty {
+                    ArchivalPhotoSection(bbl: bbl)
+                }
 
                 // ── Directions ───────────────────────────────────────
                 if let lat = building.latitude, let lng = building.longitude {
@@ -154,9 +178,10 @@ struct BuildingDetailSheet: View {
                             .foregroundStyle(.white)
                     }
                 }
+                
+                Spacer(minLength: 40)
             }
             .padding(22)
-            .padding(.bottom, 10)
         }
         .task(id: building.bin) {
             guard cleanDescription == nil else { return }
@@ -167,10 +192,7 @@ struct BuildingDetailSheet: View {
     }
 
     private var topArchetypeNames: String {
-        vm.userAestheticVector
-            .sorted { $0.value > $1.value }
-            .prefix(2).map { $0.key.capitalized }
-            .joined(separator: " & ")
+        vm.userAestheticVector.sorted { $0.value > $1.value }.prefix(2).map { $0.key.capitalized }.joined(separator: " & ")
     }
 }
 
@@ -179,21 +201,12 @@ struct BuildingDetailSheet: View {
 struct MetaRow: View {
     let label: String
     let value: String
-
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Text(label)
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 80, alignment: .leading)
-            Text(value)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(label).font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundStyle(.secondary).frame(width: 80, alignment: .leading)
+            Text(value).font(.system(size: 13, weight: .medium)).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        }.padding(.horizontal, 14).padding(.vertical, 10)
     }
 }
 
@@ -212,15 +225,20 @@ enum GeminiOneLiner {
             building.primaryAesthetic.map { "Aesthetic: \($0)" },
             building.materials.map { "Materials: \($0)" },
         ].compactMap { $0 }
-
         guard !parts.isEmpty else { return nil }
-
         let prompt = """
-        One punchy sentence (max 20 words) for an architecture enthusiast about this NYC building. \
-        Be specific — mention style, era, or a standout quality. Start with the most interesting fact. \
-        No "This building" opener. Data: \(parts.joined(separator: ", "))
+        Write exactly one punchy, captivating sentence (max 25 words) for an architecture enthusiast about this NYC building.
+        CRITICAL INSTRUCTIONS:
+        - NEVER start with "This building", "Located at", or "Built in".
+        - Maintain a highly knowledgeable, professional, and authoritative architectural tone.
+        - Do NOT use exclamation marks, conversational filler, or overly enthusiastic language.
+        - DO NOT output any markdown (no asterisks or bold text).
+        - Provide ONLY the sentence, no preamble.
+        - Use ONLY the provided Data. Do NOT invent or assume specific physical features (like gargoyles, statues, or window counts) unless they are explicitly listed in the Style or Materials fields.
+        Data: \(parts.joined(separator: ", "))
         """
-
         return await GeminiService.generate(prompt: prompt, maxTokens: 80)
     }
 }
+
+

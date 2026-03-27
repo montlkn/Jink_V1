@@ -16,7 +16,6 @@ enum AppColors {
     // MARK: - Passport
     enum passport {
         static let streak = Color(hex: "#F50057")
-        static let visa = Color(hex: "#7B1FA2")
         static let stamp = Color(hex: "#DC143C")
         static let list = Color(hex: "#FFC107")
         static let achievement = Color(hex: "#00C853")
@@ -24,19 +23,34 @@ enum AppColors {
         static let bearer = Color(hex: "#607D8B")
     }
 
-    // MARK: - Archetypes
+    // MARK: - Archetypes (Designer Republic / Graphic Palette)
     enum archetypes {
-        static let classicist    = Color(hex: "#C9C8A6")
-        static let romantic      = Color(hex: "#DC143C")
-        static let stylist       = Color(hex: "#FFD700")
-        static let modernist     = Color(hex: "#0066FF")
-        static let industrialist = Color(hex: "#FF8C00")
-        static let visionary     = Color(hex: "#00FFFF")
-        static let popCulturalist = Color(hex: "#FF1493")
-        static let vernacularist = Color(hex: "#32CD32")
-        static let austerist     = Color(hex: "#95A5A6")
+        static let classicist     = Color(hex: "#FAFF00") // Electric Lemon
+        static let romantic       = Color(hex: "#FF007F") // Vivid Raspberry
+        static let stylist        = Color(hex: "#00F5FF") // High-Speed Cyan
+        static let modernist      = Color(hex: "#FF4D00") // Safety Orange
+        static let industrialist  = Color(hex: "#080808") // Ink Black
+        static let visionary      = Color(hex: "#26FF00") // Laser Green
+        static let popCulturalist = Color(hex: "#E60000") // Post-Op Red
+        static let vernacularist  = Color(hex: "#0022FF") // Deep Electric Blue
+        static let austerist      = Color(hex: "#F5F5F5") // Paper White
     }
-}
+
+    static func archetypeColor(for name: String) -> Color {
+        switch name.lowercased() {
+        case "classicist":     return archetypes.classicist
+        case "romantic":       return archetypes.romantic
+        case "stylist":        return archetypes.stylist
+        case "modernist":      return archetypes.modernist
+        case "industrialist":  return archetypes.industrialist
+        case "visionary":      return archetypes.visionary
+        case "pop culturalist", "popculturelist": return archetypes.popCulturalist
+        case "vernacularist":  return archetypes.vernacularist
+        case "austerist":      return archetypes.austerist
+        default:               return accent
+        }
+    }
+} 
 
 // MARK: - Color Hex Init
 extension Color {

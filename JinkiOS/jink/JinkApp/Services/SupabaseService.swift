@@ -29,6 +29,6 @@ final class SupabaseService {
                 )
             )
         )
-        print("[SupabaseService] ✅ Configured")
+        print("[SupabaseService]  Configured")
     }
 }

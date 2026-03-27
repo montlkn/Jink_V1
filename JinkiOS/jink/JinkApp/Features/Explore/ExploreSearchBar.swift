@@ -3,20 +3,23 @@ import SwiftUI
 struct ExploreSearchBar: View {
     @Binding var searchText: String
     let onSearch: () -> Void
+    @State private var localText: String = ""
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
             
-            TextField("Search buildings, styles, architects...", text: $searchText)
+            TextField("Search buildings, styles, architects...", text: $localText)
                 .submitLabel(.search)
                 .onSubmit {
+                    searchText = localText
                     onSearch()
                 }
             
-            if !searchText.isEmpty {
+            if !localText.isEmpty {
                 Button(action: {
+                    localText = ""
                     searchText = ""
                     onSearch()
                 }) {
@@ -24,6 +27,9 @@ struct ExploreSearchBar: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+        .onAppear {
+            localText = searchText
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
