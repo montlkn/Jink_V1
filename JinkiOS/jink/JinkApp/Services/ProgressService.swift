@@ -59,7 +59,7 @@ final class ProgressService {
                 .from("scans")
                 .select("id", head: true, count: .exact)
                 .eq("user_id", value: userId)
-                .eq("confirmed_bbl", value: bin)
+                .eq("confirmed_bin", value: bin)
                 .execute()
             let count = data.count ?? 0
             // count <= 1 means this is the first (current) scan for this building
@@ -81,17 +81,17 @@ final class ProgressService {
     private func checkAndAwardAchievements(userId: String) async {
         do {
             // Count scans from buildings Supabase
-            struct CountRow: Decodable { let confirmedBbl: String?
-                enum CodingKeys: String, CodingKey { case confirmedBbl = "confirmed_bbl" }
+            struct CountRow: Decodable { let confirmedBin: String?
+                enum CodingKeys: String, CodingKey { case confirmedBin = "confirmed_bin" }
             }
             let scanRows: [CountRow] = try await SupabaseService.shared.buildingsClient
                 .from("scans")
-                .select("confirmed_bbl")
+                .select("confirmed_bin")
                 .eq("user_id", value: userId)
-                .not("confirmed_bbl", operator: .is, value: "null")
+                .not("confirmed_bin", operator: .is, value: "null")
                 .execute()
                 .value
-            let uniqueBins = Set(scanRows.compactMap { $0.confirmedBbl })
+            let uniqueBins = Set(scanRows.compactMap { $0.confirmedBin })
             let scanCount = uniqueBins.count
             print("[ProgressService] Achievement check: scanCount=\(scanCount)")
 
