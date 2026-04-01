@@ -18,7 +18,7 @@ final class AuthViewModel {
         do {
             try await client.auth.signIn(email: email, password: password)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
     }
 
@@ -29,7 +29,7 @@ final class AuthViewModel {
         do {
             try await client.auth.signUp(email: email, password: password)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
     }
 
@@ -41,7 +41,7 @@ final class AuthViewModel {
             try await client.auth.signInWithOTP(email: email)
             showMagicLinkSent = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
     }
 }

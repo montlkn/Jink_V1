@@ -34,6 +34,8 @@ final class QuizViewModel {
     var isFirstQuizSubmission = false
 
     private var questionStartTime: Date = Date()
+    private static let savedIndexKey = "quiz_saved_index"
+    private static let savedResponsesKey = "quiz_saved_responses"
 
     var currentQuestion: QuizQuestion? { questions[safe: currentIndex] }
     var progress: Double { questions.isEmpty ? 0 : Double(currentIndex) / Double(questions.count) }
@@ -52,9 +54,10 @@ final class QuizViewModel {
                 .execute()
                 .value
             questions = fetched
+            restoreSavedProgress()
             questionStartTime = Date()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
             print("[QuizViewModel] Fetch error: \(error)")
         }
     }
@@ -77,6 +80,7 @@ final class QuizViewModel {
             selectedOptionId = nil
             questionStartTime = Date()
         }
+        saveProgress()
     }
 
     func goBack() {
@@ -128,16 +132,69 @@ final class QuizViewModel {
                 .upsert(rows, onConflict: "user_id,question_id")
                 .execute()
 
-            // Call RPC to calculate aesthetic profile
-            try await SupabaseService.shared.client
-                .rpc("calculate_aesthetic_profile", params: ["p_user_id": AnyJSON.string(userId)])
-                .execute()
+            // Call RPC to calculate aesthetic profile — retry up to 2 times on failure
+            var rpcError: Error?
+            for attempt in 1...3 {
+                do {
+                    try await SupabaseService.shared.client
+                        .rpc("calculate_aesthetic_profile", params: ["p_user_id": AnyJSON.string(userId)])
+                        .execute()
+                    rpcError = nil
+                    break
+                } catch {
+                    rpcError = error
+                    print("[QuizViewModel] calculate_aesthetic_profile attempt \(attempt) failed: \(error)")
+                    if attempt < 3 {
+                        try await Task.sleep(nanoseconds: UInt64(attempt) * 1_000_000_000)
+                    }
+                }
+            }
+            if let rpcError {
+                // Responses saved — profile will recalculate on next scan/load. Don't block completion.
+                print("[QuizViewModel] Profile RPC failed after 3 attempts: \(rpcError). Proceeding.")
+            }
 
+            PostHogService.shared.capture("quiz_completed", properties: ["first_time": isFirstQuizSubmission])
+            clearSavedProgress()
             isDone = true
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
             print("[QuizViewModel] Submit error: \(error)")
         }
+    }
+
+    // MARK: - Progress Persistence
+
+    private func saveProgress() {
+        UserDefaults.standard.set(currentIndex, forKey: Self.savedIndexKey)
+        let encoded = responses.map { ["q": $0.questionId, "o": $0.optionId, "t": String($0.timeMs)] }
+        UserDefaults.standard.set(encoded, forKey: Self.savedResponsesKey)
+    }
+
+    private func restoreSavedProgress() {
+        let savedIndex = UserDefaults.standard.integer(forKey: Self.savedIndexKey)
+        guard savedIndex > 0, savedIndex < questions.count else { return }
+        guard let saved = UserDefaults.standard.array(forKey: Self.savedResponsesKey) as? [[String: String]] else { return }
+
+        // Verify saved responses match current question IDs
+        let questionIds = Set(questions.map(\.id))
+        var restored: [(questionId: String, optionId: String, timeMs: Int)] = []
+        for entry in saved {
+            guard let q = entry["q"], let o = entry["o"], let t = entry["t"],
+                  let timeMs = Int(t), questionIds.contains(q) else { continue }
+            restored.append((questionId: q, optionId: o, timeMs: timeMs))
+        }
+        guard !restored.isEmpty else { return }
+
+        responses = restored
+        currentIndex = savedIndex
+        selectedOptionId = responses.first(where: { $0.questionId == questions[safe: savedIndex]?.id })?.optionId
+        print("[QuizViewModel] Restored progress: question \(savedIndex + 1)/\(questions.count)")
+    }
+
+    private func clearSavedProgress() {
+        UserDefaults.standard.removeObject(forKey: Self.savedIndexKey)
+        UserDefaults.standard.removeObject(forKey: Self.savedResponsesKey)
     }
 }
 

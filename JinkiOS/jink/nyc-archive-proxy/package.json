@@ -1,0 +1,21 @@
+{
+  "name": "nyc-archive-proxy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@cloudflare/puppeteer": "^1.0.6",
+    "@cloudflare/workers-types": "^4.20260310.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.72.0"
+  },
+  "dependencies": {
+    "puppeteer": "^24.39.0"
+  }
+}

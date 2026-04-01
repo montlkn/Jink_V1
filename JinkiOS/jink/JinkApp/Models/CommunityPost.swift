@@ -60,6 +60,15 @@ class CommunityPostService {
         return posts
     }
 
+    /// Flag a community post as inappropriate
+    func flagPost(id: String) async throws {
+        try await SupabaseService.shared.client
+            .from("community_posts")
+            .update(["is_flagged": AnyJSON.bool(true)])
+            .eq("id", value: id)
+            .execute()
+    }
+
     /// Submit a new community post
     func submitPost(imageData: Data, caption: String, latitude: Double, longitude: Double) async throws {
         // Upload image to Supabase storage

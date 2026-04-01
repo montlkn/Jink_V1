@@ -51,6 +51,7 @@ final class ScanViewModel {
              )
              let result = ScanAPIResponse(matches: [match], verificationMethod: "cache_hit")
              await handleVerifiedScan(result: result, userId: userId, subtype: "cache_hit", appState: appState)
+             PostHogService.shared.capture("scan_completed", properties: ["method": "cache", "building_bin": cached.bin, "confidence": 1.0])
              self.scanResult = result
              self.showResult = true
              isScanning = false
@@ -89,19 +90,28 @@ final class ScanViewModel {
 
             messageTask.cancel()
 
+            if let perf = result.performance {
+                print("[ScanViewModel] ⏱ \(perf.summary)")
+            }
+
             if result.verified {
                 await handleVerifiedScan(result: result, userId: userId, subtype: "api_scan", appState: appState)
+                let bin = result.topMatch?.bin ?? ""
+                let confidence = result.topMatch?.confidence ?? 0
+                PostHogService.shared.capture("scan_completed", properties: ["method": "api", "building_bin": bin, "confidence": confidence])
                 self.scanResult = result
                 self.showResult = true
             } else {
                 print("[ScanViewModel] Scan successful but no buildings found in cone.")
+                PostHogService.shared.capture("scan_failed", properties: ["reason": "no_match_in_cone"])
                 self.scanResult = result
                 self.notFound = true
             }
         } catch {
             print("[ScanViewModel] Scan API Error: \(error)")
             messageTask.cancel()
-            errorMessage = error.localizedDescription
+            PostHogService.shared.capture("scan_failed", properties: ["reason": error.localizedDescription])
+            errorMessage = error.userMessage
             // Do NOT set notFound = true here, so we stay on ScanView and show the error toast
         }
         

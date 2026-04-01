@@ -139,6 +139,23 @@ final class StampsViewModel {
         return 0
     }
 
+    static func iconName(for slug: String) -> String {
+        if slug.contains("first_scan") { return "camera.viewfinder" }
+        if slug.contains("scan") { return "camera.circle.fill" }
+        if slug.contains("walk") || slug.contains("travel") { return "figure.walk" }
+        if slug.contains("streak") { return "flame.fill" }
+        if slug.contains("style") || slug.contains("explorer") { return "eye.fill" }
+        if slug.contains("collection") || slug.contains("master") { return "crown.fill" }
+        if slug.contains("quest") { return "flag.fill" }
+        if slug.contains("dawn") || slug.contains("sunrise") { return "sunrise.fill" }
+        if slug.contains("milestone") { return "star.fill" }
+        if slug.contains("building") { return "building.columns.fill" }
+        if slug.contains("deco") || slug.contains("art") { return "paintpalette.fill" }
+        if slug.contains("modern") { return "building.2.fill" }
+        if slug.contains("brutalist") { return "square.stack.3d.up.fill" }
+        return "mappin.circle.fill"
+    }
+
     static func rarityIndex(for rarity: StampRarity) -> Int {
         switch rarity {
         case .common: return 0

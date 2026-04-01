@@ -25,7 +25,6 @@ struct AuthView: View {
             Picker("", selection: $mode) {
                 Text("Sign In").tag(AuthMode.signIn)
                 Text("Sign Up").tag(AuthMode.signUp)
-                Text("Magic Link").tag(AuthMode.magicLink)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
@@ -55,7 +54,7 @@ struct AuthView: View {
 
             // Magic link confirmation
             if vm.showMagicLinkSent {
-                Label("Check your email for a magic link", systemImage: "envelope.badge")
+                Label("Check your email for a sign-in link", systemImage: "envelope.badge")
                     .foregroundStyle(AppColors.success)
                     .font(.callout)
             }
@@ -74,6 +73,19 @@ struct AuthView: View {
             .tint(AppColors.accent)
             .padding(.horizontal)
             .disabled(vm.isLoading || vm.email.isEmpty)
+
+            // Magic link as secondary option
+            if mode == .signIn {
+                Button(action: {
+                    mode = .magicLink
+                    Task { await vm.sendMagicLink() }
+                }) {
+                    Text("Trouble signing in? Send a magic link")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.accent)
+                }
+                .disabled(vm.email.isEmpty || vm.isLoading)
+            }
 
             Spacer()
         }

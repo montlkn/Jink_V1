@@ -26,6 +26,25 @@ struct PassportView: View {
                                     ProfileDetailView(profile: profile, aestheticProfile: orbAesthetic)
                                 }
 
+                            // Getting started CTA for new users
+                            if vm.scanCount == 0 && vm.walkSummaries.isEmpty {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "building.2.crop.circle")
+                                        .font(.system(size: 40))
+                                        .foregroundStyle(AppColors.accent)
+                                    Text("Welcome to Jink")
+                                        .font(.headline)
+                                    Text("Scan buildings and take walks to fill your passport. Use the Scan and Walk tabs to get started.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 16)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                                .padding(.horizontal)
+                            }
+
                             // Stats Grid: Stamps & Achievements
                             VStack(spacing: 16) {
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
@@ -33,10 +52,14 @@ struct PassportView: View {
                                         StatCard(value: "\(vm.stampCount)", label: "Stamps", color: AppColors.passport.stamp, icon: "mappin.circle.fill")
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel("\(vm.stampCount) stamps")
+                                    .accessibilityHint("View your stamp collection")
                                     NavigationLink(destination: AchievementsView()) {
                                         StatCard(value: "\(vm.achievementCount)", label: "Achievements", color: AppColors.passport.achievement, icon: "trophy.fill")
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel("\(vm.achievementCount) achievements")
+                                    .accessibilityHint("View your achievements")
                                 }
                                 .padding(.horizontal)
 
@@ -77,6 +100,29 @@ struct PassportView: View {
                             }
                         }
                         .padding(.vertical, 16)
+
+                        // Sign out + version footer
+                        VStack(spacing: 16) {
+                            Button(action: {
+                                Task { try? await appState.signOut() }
+                            }) {
+                                Text("Sign Out")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            .padding(.horizontal)
+
+                            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                               let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                                Text("v\(version) (\(build))")
+                                    .font(.system(size: 11, design: .monospaced))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .padding(.bottom, 8)
                     }
                 } else {
                     VStack(spacing: 12) {
@@ -182,7 +228,7 @@ struct PassportHeaderView: View {
                             .padding(.vertical, 3)
                             .background(AppColors.accent, in: Capsule())
 
-                        let title = levelConfig?.title ?? profile.levelTitle ?? ""
+                        let title = levelConfig.title.isEmpty ? (profile.levelTitle ?? "") : levelConfig.title
                         if !title.isEmpty {
                             Text(title.uppercased())
                                 .font(.system(size: 11, weight: .semibold, design: .monospaced))

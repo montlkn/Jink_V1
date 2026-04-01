@@ -9,7 +9,7 @@ struct RootView: View {
     @State private var showFeedback = false
 
     // DEBUG: set true to force onboarding overlay without signing out
-    private let debugForceOnboarding = true
+    private let debugForceOnboarding = false
 
     enum Tab { case scan, walk, passport }
 

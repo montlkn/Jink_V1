@@ -14,12 +14,6 @@ struct WalkNavView: View {
     @Environment(\.dismiss) private var dismiss
     var onWalkComplete: (() -> Void)? = nil
 
-    // Mini-map region
-    @State private var walkMapRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 40.7549, longitude: -73.9840),
-        span: MKCoordinateSpan(latitudeDelta: 0.004, longitudeDelta: 0.004)
-    )
-
     // Verify celebration state
     @State private var flashOpacity: Double = 0
     @State private var xpBumpScale: Double = 1
@@ -44,26 +38,10 @@ struct WalkNavView: View {
                     .transition(.move(edge: .leading).combined(with: .opacity))
                     .id(vm.currentBuildingIndex)
 
-                if let stop = vm.currentStop {
-                    let stopCoord = CLLocationCoordinate2D(latitude: stop.latitude, longitude: stop.longitude)
-                    Map(position: .constant(.region(walkMapRegion))) {
-                        UserAnnotation()
-                        Annotation("", coordinate: stopCoord) {
-                            Circle().fill(AppColors.accent).frame(width: 14, height: 14)
-                                .overlay(Circle().stroke(.white, lineWidth: 2))
-                        }
-                        .annotationTitles(.hidden)
-                    }
-                    .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
-                    .mapControls { }
-                    .frame(height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .onAppear { walkMapRegion.center = stopCoord }
-                    .onChange(of: vm.currentBuildingIndex) { _, _ in
-                        withAnimation { walkMapRegion.center = stopCoord }
-                    }
+                if vm.currentStop != nil {
+                    xpMapSection
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
                 } else {
                     Spacer(minLength: 0)
                 }
@@ -163,5 +141,76 @@ struct WalkNavView: View {
     private func completeWalk() async {
         guard let userId = appState.currentUser?.id.uuidString else { return }
         await vm.completeWalk(userId: userId, appState: appState)
+    }
+
+    // MARK: - XP Map Section
+
+    @ViewBuilder
+    private var xpMapSection: some View {
+        if let snapshot = vm.mapSnapshotImage, vm.mapRevealedForStopId == vm.currentStop?.id {
+            // Revealed: frozen Nolli-style map image
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: snapshot)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 160)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                // "MAP" label
+                Text("MAP")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white.opacity(0.7))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(.black.opacity(0.4), in: Capsule())
+                    .padding(10)
+            }
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        } else {
+            // Not revealed: XP spend button
+            VStack(spacing: 6) {
+                if vm.isMapRevealing {
+                    HStack(spacing: 8) {
+                        ProgressView().tint(AppColors.accent)
+                        Text("Loading map…")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(height: 44)
+                } else {
+                    Button {
+                        Task {
+                            guard let userId = appState.currentUser?.id.uuidString else { return }
+                            await vm.revealMap(userId: userId)
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "map.fill")
+                                .font(.system(size: 14))
+                            Text("Reveal Map")
+                                .font(.system(size: 13, weight: .semibold))
+                            Spacer()
+                            HStack(spacing: 3) {
+                                Image(systemName: "bolt.fill")
+                                    .font(.system(size: 11))
+                                Text("25 XP")
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                        }
+                        .foregroundStyle(AppColors.accent)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .background(AppColors.accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.accent.opacity(0.3), lineWidth: 1))
+                    }
+
+                    if let err = vm.mapRevealError {
+                        Text(err)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
     }
 }

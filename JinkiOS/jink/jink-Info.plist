@@ -11,9 +11,15 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Jink uses your camera to identify buildings.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Jink uses your location to find nearby buildings.</string>
+	<string>Jink uses your location to find nearby buildings and guide your walks.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Jink uses your device motion to improve building identification accuracy.</string>
 	<key>GEMINI_API_KEY</key>
 	<string>$(GEMINI_API_KEY)</string>
+	<key>SENTRY_DSN</key>
+	<string>$(SENTRY_DSN)</string>
+	<key>POSTHOG_API_KEY</key>
+	<string>$(POSTHOG_API_KEY)</string>
 	<key>SCAN_API_URL</key>
 	<string>$(SCAN_API_URL)</string>
 	<key>SUPABASE_ANON_KEY</key>

@@ -8,6 +8,38 @@ struct ScanAPIRequest: Encodable, Sendable {
     // image sent as multipart
 }
 
+struct ScanPerformance: Decodable {
+    let totalMs: Int?
+    let resizeMs: Int?
+    let uploadAndGeoMs: Int?
+    let referenceImagesMs: Int?
+    let clipMs: Int?
+    let numCandidates: Int?
+    let numRefs: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case totalMs = "total_ms"
+        case resizeMs = "resize_ms"
+        case uploadAndGeoMs = "upload_and_geo_ms"
+        case referenceImagesMs = "reference_images_ms"
+        case clipMs = "clip_ms"
+        case numCandidates = "num_candidates"
+        case numRefs = "num_refs"
+    }
+
+    var summary: String {
+        var parts: [String] = []
+        if let t = totalMs    { parts.append("total \(t)ms") }
+        if let r = resizeMs   { parts.append("resize \(r)ms") }
+        if let u = uploadAndGeoMs { parts.append("upload+geo \(u)ms") }
+        if let ref = referenceImagesMs { parts.append("refs \(ref)ms") }
+        if let c = clipMs     { parts.append("clip \(c)ms") }
+        if let n = numCandidates { parts.append("\(n) candidates") }
+        if let r = numRefs    { parts.append("\(r) refs") }
+        return parts.joined(separator: " | ")
+    }
+}
+
 struct ScanAPIResponse: Decodable {
     let scanId: String?
     let matches: [ScanMatch]
@@ -15,6 +47,7 @@ struct ScanAPIResponse: Decodable {
     let canContribute: Bool?
     let verificationMethod: String?
     let processingTimeMs: Int?
+    let performance: ScanPerformance?
 
     /// Best match = first match (highest confidence)
     var topMatch: ScanMatch? { matches.first }
@@ -27,13 +60,15 @@ struct ScanAPIResponse: Decodable {
 
     /// Memberwise init for cache-hit construction
     init(scanId: String? = nil, matches: [ScanMatch], showPicker: Bool? = false,
-         canContribute: Bool? = true, verificationMethod: String? = nil, processingTimeMs: Int? = nil) {
+         canContribute: Bool? = true, verificationMethod: String? = nil,
+         processingTimeMs: Int? = nil, performance: ScanPerformance? = nil) {
         self.scanId = scanId
         self.matches = matches
         self.showPicker = showPicker
         self.canContribute = canContribute
         self.verificationMethod = verificationMethod
         self.processingTimeMs = processingTimeMs
+        self.performance = performance
     }
 
     enum CodingKeys: String, CodingKey {
@@ -43,6 +78,7 @@ struct ScanAPIResponse: Decodable {
         case canContribute = "can_contribute"
         case verificationMethod = "verification_method"
         case processingTimeMs = "processing_time_ms"
+        case performance
     }
 }
 

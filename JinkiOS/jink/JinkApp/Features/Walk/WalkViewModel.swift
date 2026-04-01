@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import CoreLocation
+import MapKit
 import Supabase
 
 // MARK: - BuildingStop
@@ -49,6 +50,28 @@ struct WalkCompletionStats {
 
 @Observable
 final class WalkViewModel {
+    /// Auto-complete any walk that was active when the app was killed
+    static func cleanUpOrphanedWalk() {
+        guard let walkId = UserDefaults.standard.string(forKey: "active_walk_id"),
+              let userId = UserDefaults.standard.string(forKey: "active_walk_user_id") else { return }
+        print("[WalkViewModel] Found orphaned walk \(walkId) — auto-completing")
+        UserDefaults.standard.removeObject(forKey: "active_walk_id")
+        UserDefaults.standard.removeObject(forKey: "active_walk_user_id")
+        Task {
+            do {
+                try await SupabaseService.shared.client
+                    .from("walks")
+                    .update(["ended_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))])
+                    .eq("id", value: walkId)
+                    .execute()
+                await ProgressService.shared.processWalk(userId: userId)
+                print("[WalkViewModel] Orphaned walk \(walkId) auto-completed")
+            } catch {
+                print("[WalkViewModel] Failed to clean up orphaned walk: \(error)")
+            }
+        }
+    }
+
     var walkId: String? = nil
     var isWalkActive = false
     var isCompleting = false
@@ -70,6 +93,12 @@ final class WalkViewModel {
     var currentBuildingIndex: Int = 0
     var visitedBuildingIds: Set<String> = []
     var walkXP: Int = 0
+
+    // XP-gated map reveal state
+    var mapRevealedForStopId: String? = nil
+    var mapSnapshotImage: UIImage? = nil
+    var isMapRevealing: Bool = false
+    var mapRevealError: String? = nil
 
     // Apple Maps route state
     var currentRoute: WalkingRoute? = nil
@@ -261,7 +290,7 @@ final class WalkViewModel {
                 errorMessage = "Building not recognized. Try getting closer or a clearer angle."
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
 
         isVerifying = false
@@ -301,6 +330,10 @@ final class WalkViewModel {
         if currentBuildingIndex < buildings.count - 1 {
             currentBuildingIndex += 1
             currentStepIndex = 0
+            // Reset map reveal for new stop
+            mapRevealedForStopId = nil
+            mapSnapshotImage = nil
+            mapRevealError = nil
             // Check cache before clearing so there's no flash of empty state
             if let stop = currentStop, let cached = insightCache[stop.id] {
                 currentStopInsight = cached
@@ -351,6 +384,57 @@ final class WalkViewModel {
         } else {
             await MainActor.run { self.isFetchingInsight = false }
         }
+    }
+
+    // MARK: - XP Map Reveal
+
+    @MainActor
+    func revealMap(userId: String) async {
+        guard let stop = currentStop else { return }
+        guard mapRevealedForStopId != stop.id, !isMapRevealing else { return }
+
+        isMapRevealing = true
+        mapRevealError = nil
+        defer { isMapRevealing = false }
+
+        let success = await ProgressService.shared.deductXP(userId: userId, amount: 25, reason: "map_reveal")
+        guard success else {
+            mapRevealError = "Not enough XP (need 25)"
+            return
+        }
+
+        // Capture a static map snapshot
+        let options = MKMapSnapshotter.Options()
+        options.region = MKCoordinateRegion(
+            center: stop.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.004, longitudeDelta: 0.004)
+        )
+        options.size = CGSize(width: 380, height: 320)
+        options.mapType = .standard
+        options.pointOfInterestFilter = .excludingAll
+
+        let snapshotter = MKMapSnapshotter(options: options)
+        do {
+            let snapshot = try await snapshotter.start()
+            mapSnapshotImage = applyNolliFilter(to: snapshot.image)
+            mapRevealedForStopId = stop.id
+        } catch {
+            mapRevealError = "Couldn't load map"
+            print("[WalkViewModel] Map snapshot failed: \(error)")
+        }
+    }
+
+    private func applyNolliFilter(to image: UIImage) -> UIImage {
+        guard let ciImage = CIImage(image: image) else { return image }
+        let desaturated = ciImage.applyingFilter("CIColorControls", parameters: [
+            kCIInputSaturationKey: 0.0,
+            kCIInputContrastKey: 1.25,
+            kCIInputBrightnessKey: -0.05
+        ])
+        let sepia = desaturated.applyingFilter("CISepiaTone", parameters: [kCIInputIntensityKey: 0.25])
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(sepia, from: sepia.extent) else { return image }
+        return UIImage(cgImage: cgImage)
     }
 
     // MARK: - Apple Maps Route
@@ -434,6 +518,9 @@ final class WalkViewModel {
             routeCoordinates = []
             walkXP = 0
             visitedBuildingIds = []
+            UserDefaults.standard.set(row.id, forKey: "active_walk_id")
+            UserDefaults.standard.set(userId, forKey: "active_walk_user_id")
+            PostHogService.shared.capture("walk_started", properties: ["route_type": routeType.rawValue, "duration_minutes": durationMinutes])
             currentBuildingIndex = 0
             walkStartTime = Date()
 
@@ -501,7 +588,7 @@ final class WalkViewModel {
                 initialState: initialState
             )
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = error.userMessage
         }
     }
 
@@ -536,11 +623,16 @@ final class WalkViewModel {
 
         // Persist distance to the walk record
         if let distanceKm = distance {
-            _ = try? await SupabaseService.shared.client
-                .from("walks")
-                .update(["distance_km": AnyJSON.double(distanceKm)])
-                .eq("id", value: walkId)
-                .execute()
+            do {
+                _ = try await SupabaseService.shared.client
+                    .from("walks")
+                    .update(["distance_km": AnyJSON.double(distanceKm)])
+                    .eq("id", value: walkId)
+                    .execute()
+            } catch {
+                print("[WalkViewModel] Distance write failed for walk \(walkId): \(error)")
+                PostHogService.shared.capture("walk_distance_write_failed", properties: ["walk_id": walkId, "error": error.localizedDescription])
+            }
         }
         
         // Trigger real-time progress updates (Streaks, Achievements, Algo)
@@ -563,8 +655,15 @@ final class WalkViewModel {
         )
         isWalkActive = false
         self.walkId = nil
+        UserDefaults.standard.removeObject(forKey: "active_walk_id")
+        UserDefaults.standard.removeObject(forKey: "active_walk_user_id")
         stopTrackingLocation()
         WalkLiveActivityService.shared.end()
+        PostHogService.shared.capture("walk_completed", properties: [
+            "buildings_visited": visitedBuildingIds.count,
+            "distance_km": distance ?? 0,
+            "xp_earned": totalXP
+        ])
         showXPSummary = true
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }

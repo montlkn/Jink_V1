@@ -53,13 +53,13 @@ final class PassportViewModel {
             group.addTask { await self.fetchScannedBuildings(userId: userId) }
         }
 
-        // Retroactively check achievements in a detached task so it won't get cancelled
-        // when the view reappears
+        // Retroactively check and award achievements, only re-fetch counts if new ones were awarded
         Task.detached { [weak self] in
-            await ProgressService.shared.checkAndAwardAchievementsPublic(userId: userId)
-            // Re-fetch counts after potential new awards
-            await self?.fetchAchievementCount(userId: userId)
-            await self?.fetchStampCount(userId: userId)
+            let newCount = await ProgressService.shared.checkAndAwardAchievementsPublic(userId: userId)
+            if newCount > 0 {
+                await self?.fetchAchievementCount(userId: userId)
+                await self?.fetchStampCount(userId: userId)
+            }
         }
     }
 
@@ -135,9 +135,11 @@ final class PassportViewModel {
         do {
             let uniqueScans = try await fetchRawScans(userId: userId)
 
+            // Set scan count immediately from raw data — don't wait for enrichment
+            scanCount = uniqueScans.count
+
             // Phase 1: Build list immediately with cached data
             scannedBuildings = buildScannedList(from: uniqueScans, infoMap: buildingInfoCache)
-            scanCount = scannedBuildings.count
 
             // Phase 2: Enrich uncached BINs in background
             let uncachedBins = uniqueScans.map(\.bin).filter { buildingInfoCache[$0] == nil }
@@ -147,7 +149,6 @@ final class PassportViewModel {
                     buildingInfoCache[bin] = info
                 }
                 scannedBuildings = buildScannedList(from: uniqueScans, infoMap: buildingInfoCache)
-                scanCount = scannedBuildings.count
             }
         } catch {
             print("[PassportViewModel] Scanned buildings error: \(error)")

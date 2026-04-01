@@ -128,6 +128,7 @@ final class BuildingInfoViewModel {
         guard !isLiked, let building = building else { return }
         isLiked = true
         isDisliked = false
+        PostHogService.shared.capture("building_liked", properties: ["building_bin": building.bin ?? ""])
         sendAestheticEvent(userId: userId, building: building, subtype: "like", appState: appState)
     }
 
@@ -135,6 +136,7 @@ final class BuildingInfoViewModel {
         guard !isDisliked, let building = building else { return }
         isDisliked = true
         isLiked = false
+        PostHogService.shared.capture("building_disliked", properties: ["building_bin": building.bin ?? ""])
         sendAestheticEvent(userId: userId, building: building, subtype: "dislike", appState: appState)
     }
 

@@ -28,6 +28,8 @@
 		5592A82B2F4D4ADF006AD44E /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A80D2F4D4ADF006AD44E /* AuthView.swift */; };
 		5592A82C2F4D4ADF006AD44E /* AestheticProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A81C2F4D4ADF006AD44E /* AestheticProfile.swift */; };
 		5592A82D2F4D4ADF006AD44E /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8262F4D4ADF006AD44E /* SupabaseService.swift */; };
+		PH001001PH001001PH001001 /* PostHogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH001002PH001002PH001002 /* PostHogService.swift */; };
+		EH001001EH001001EH001001 /* ErrorHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = EH001002EH001002EH001002 /* ErrorHelpers.swift */; };
 		5592A82E2F4D4ADF006AD44E /* PassportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8102F4D4ADF006AD44E /* PassportView.swift */; };
 		5592A82F2F4D4ADF006AD44E /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5592A8072F4D4ADF006AD44E /* AppState.swift */; };
 		FE001001FE001001FE001001 /* ShakeDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001001DD001001DD001001 /* ShakeDetector.swift */; };
@@ -101,6 +103,8 @@
 		DDDC2955FB27F636CF6E701B /* TourARView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94D53BF0C5CBD6F1C519C022 /* TourARView.swift */; };
 		EB001001EB001001EB001001 /* ProgressService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB001002EB001002EB001002 /* ProgressService.swift */; };
 		F314018BC69FF87356C7076A /* SceneKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4AF10A3CCDC7AE6B24144B92 /* SceneKit.framework */; };
+		212DDF2E8F734F05AF0E026F /* PerforatedStampShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A85AC39E9824D7AA6FDF993 /* PerforatedStampShape.swift */; };
+		96FAC4A22B88415EA1D5154A /* VintageStampCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D520B2B31EE242C6A7F8D16B /* VintageStampCard.swift */; };
 		F8D079DCF29E4B1181E89E4C /* ArchetypeOrb.swift in Sources */ = {isa = PBXBuildFile; fileRef = D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */; };
 		FE8F26A58EEED185D4C5E86C /* WalkNavFooter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D14EF492588D16492CFC69 /* WalkNavFooter.swift */; };
 		FF6622CD26EC4D6BB13806C1 /* XPLevels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481827E6343741BF9106F345 /* XPLevels.swift */; };
@@ -160,6 +164,7 @@
 		53916BD6B5F5702263BD645C /* GPSGridCacheService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GPSGridCacheService.swift; sourceTree = "<group>"; };
 		5592A7F72F4D493D006AD44E /* jink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = jink.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5592A8072F4D4ADF006AD44E /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		EH001002EH001002EH001002 /* ErrorHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorHelpers.swift; sourceTree = "<group>"; };
 		CC001001DD001001DD001001 /* ShakeDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShakeDetector.swift; sourceTree = "<group>"; };
 		CC001002DD001002DD001002 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
 		CC001003DD001003DD001003 /* BetaFeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetaFeedbackView.swift; sourceTree = "<group>"; };
@@ -185,6 +190,7 @@
 		5592A8252F4D4ADF006AD44E /* ScanAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanAPIService.swift; sourceTree = "<group>"; };
 		5592A8262F4D4ADF006AD44E /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		5592A8272F4D4ADF006AD44E /* XPService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPService.swift; sourceTree = "<group>"; };
+		PH001002PH001002PH001002 /* PostHogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostHogService.swift; sourceTree = "<group>"; };
 		5592A8422F4D4BAB006AD44E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		5592A8442F4D4C8F006AD44E /* jink-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "jink-Info.plist"; sourceTree = "<group>"; };
 		559B6B452F5A1145004117CF /* JinkWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = JinkWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -265,6 +271,8 @@
 		CD69726C0C3C2CB8A57BA62B /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
 		D0867BDC725EBB08BD2F0C0A /* ArchetypeDetailSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ArchetypeDetailSheet.swift; sourceTree = "<group>"; };
 		D34EAD78AC32645D02C42D0B /* NotFoundView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotFoundView.swift; sourceTree = "<group>"; };
+		2A85AC39E9824D7AA6FDF993 /* PerforatedStampShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerforatedStampShape.swift; sourceTree = "<group>"; };
+		D520B2B31EE242C6A7F8D16B /* VintageStampCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VintageStampCard.swift; sourceTree = "<group>"; };
 		D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchetypeOrb.swift; sourceTree = "<group>"; };
 		D451A0F1FEBA4649B56ABF08 /* AppleMapsDirectionsService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleMapsDirectionsService.swift; sourceTree = "<group>"; };
 		DD001001BB001001BB001001 /* OnboardingCarouselView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCarouselView.swift; sourceTree = "<group>"; };
@@ -345,6 +353,7 @@
 			children = (
 				5592A8072F4D4ADF006AD44E /* AppState.swift */,
 				5592A8082F4D4ADF006AD44E /* JinkApp.swift */,
+				EH001002EH001002EH001002 /* ErrorHelpers.swift */,
 				CC001001DD001001DD001001 /* ShakeDetector.swift */,
 			);
 			path = App;
@@ -355,6 +364,8 @@
 			children = (
 				5592A80A2F4D4ADF006AD44E /* AppColors.swift */,
 				5592A80B2F4D4ADF006AD44E /* ArchetypeArcView.swift */,
+				2A85AC39E9824D7AA6FDF993 /* PerforatedStampShape.swift */,
+				D520B2B31EE242C6A7F8D16B /* VintageStampCard.swift */,
 				D35939A30DA94527A2A1234C /* ArchetypeOrb.swift */,
 				B87067BA19B54B16B37B128B /* MetalOrbView.swift */,
 				DD002002DD002002DD002002 /* MetalStampCard.swift */,
@@ -508,6 +519,7 @@
 				C1A2B3C4D5E6F7081920A1B2 /* GeminiService.swift */,
 				5592A8262F4D4ADF006AD44E /* SupabaseService.swift */,
 				5592A8272F4D4ADF006AD44E /* XPService.swift */,
+				PH001002PH001002PH001002 /* PostHogService.swift */,
 				AA001003BB001003BB001003 /* ListStorageService.swift */,
 				AA001004BB001004BB001004 /* ListingsService.swift */,
 				AE398129521FE1E061166289 /* GPSGridCacheService.swift */,
@@ -769,8 +781,10 @@
 				DD001001AA001001AA001001 /* OnboardingCarouselView.swift in Sources */,
 				5592A82C2F4D4ADF006AD44E /* AestheticProfile.swift in Sources */,
 				5592A82D2F4D4ADF006AD44E /* SupabaseService.swift in Sources */,
+				PH001001PH001001PH001001 /* PostHogService.swift in Sources */,
 				5592A82E2F4D4ADF006AD44E /* PassportView.swift in Sources */,
 				5592A82F2F4D4ADF006AD44E /* AppState.swift in Sources */,
+				EH001001EH001001EH001001 /* ErrorHelpers.swift in Sources */,
 				FE001001FE001001FE001001 /* ShakeDetector.swift in Sources */,
 				FE001002FE001002FE001002 /* FeedbackService.swift in Sources */,
 				FE001003FE001003FE001003 /* BetaFeedbackView.swift in Sources */,
@@ -793,6 +807,8 @@
 				5592A83F2F4D4ADF006AD44E /* ScanView.swift in Sources */,
 				5592A8402F4D4ADF006AD44E /* Building.swift in Sources */,
 				5592A8412F4D4ADF006AD44E /* WalkNavView.swift in Sources */,
+				212DDF2E8F734F05AF0E026F /* PerforatedStampShape.swift in Sources */,
+				96FAC4A22B88415EA1D5154A /* VintageStampCard.swift in Sources */,
 				F8D079DCF29E4B1181E89E4C /* ArchetypeOrb.swift in Sources */,
 				7026D44E55D24C24A5B13764 /* MetalOrbView.swift in Sources */,
 				DD002001DD002001DD002001 /* MetalStampCard.swift in Sources */,

@@ -15,6 +15,7 @@ struct ScanView: View {
     @State private var useUltraWide = false
     @State private var communityMode = false
     @State private var showCommunityPost = false
+    @State private var cameraPermission: AVAuthorizationStatus = .notDetermined
 
     var showDismissButton: Bool = false
 
@@ -27,10 +28,34 @@ struct ScanView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                if cameraPermission == .denied || cameraPermission == .restricted {
+                    // Camera permission denied overlay
+                    VStack(spacing: 16) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(.secondary)
+                        Text("Camera Access Required")
+                            .font(.headline)
+                        Text("Jink needs camera access to scan buildings. Tap below to open Settings.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                        Button("Open Settings") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.accent)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.black)
+                } else {
                 // Camera preview
                 CameraPreviewView(onCapture: handleCapture, useUltraWide: useUltraWide)
                     .ignoresSafeArea()
-                
+
                 cameraGuide
 
                 // UI overlay
@@ -82,6 +107,7 @@ struct ScanView: View {
                                 .frame(width: 44, height: 44)
                                 .background(.black.opacity(0.5), in: Circle())
                         }
+                        .accessibilityLabel(useUltraWide ? "Switch to standard lens" : "Switch to ultra-wide lens")
 
                         // Scan button — ArchetypeOrb if profile loaded, else fallback camera circle
                         Group {
@@ -103,6 +129,8 @@ struct ScanView: View {
                                 .opacity(profileLoaded ? 1 : 0)
                                 .animation(.easeIn(duration: 0.3), value: profileLoaded)
                                 .disabled(locationService.location == nil)
+                                .accessibilityLabel("Scan building")
+                                .accessibilityHint("Point camera at a building facade, then tap to scan")
                             } else {
                                 Button(action: triggerScan) {
                                     ZStack {
@@ -115,10 +143,12 @@ struct ScanView: View {
                                     }
                                 }
                                 .disabled(locationService.location == nil)
+                                .accessibilityLabel("Scan building")
+                                .accessibilityHint("Point camera at a building facade, then tap to scan")
                             }
                         }
                     }
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 24)
                 }
 
                 if vm.isScanning {
@@ -137,6 +167,7 @@ struct ScanView: View {
                         Spacer()
                     }
                 }
+                } // end else (camera permitted)
             }
             .navigationDestination(isPresented: $vm.showResult) {
                 if let match = vm.scanResult?.topMatch {
@@ -168,7 +199,18 @@ struct ScanView: View {
                 }
             }
             .onAppear {
-                vm = ScanViewModel(locationService: locationService)
+                // Only configure VM once with the environment's LocationService
+                if vm.locationService !== locationService {
+                    vm = ScanViewModel(locationService: locationService)
+                }
+                cameraPermission = AVCaptureDevice.authorizationStatus(for: .video)
+                if cameraPermission == .notDetermined {
+                    AVCaptureDevice.requestAccess(for: .video) { granted in
+                        DispatchQueue.main.async {
+                            cameraPermission = granted ? .authorized : .denied
+                        }
+                    }
+                }
                 Task {
                     if let loc = locationService.location {
                         await GPSGridCacheService.shared.initialize(lat: loc.coordinate.latitude, lng: loc.coordinate.longitude)
@@ -269,6 +311,8 @@ struct ScanView: View {
                 .overlay(Circle().stroke(communityMode ? AppColors.accent.opacity(0.6) : .white.opacity(0.3), lineWidth: 1))
                 .scaleEffect(communityMode ? 1.1 : 1.0)
         }
+        .accessibilityLabel(communityMode ? "Exit community mode" : "Community mode")
+        .accessibilityHint("Toggle between scanning buildings and posting community finds")
     }
 }
 
@@ -369,6 +413,7 @@ struct CommunityPostSheet: View {
                     latitude: latitude,
                     longitude: longitude
                 )
+                PostHogService.shared.capture("community_post_submitted")
                 dismiss()
             } catch {
                 errorMessage = "Failed to post: \(error.localizedDescription)"

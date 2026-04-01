@@ -10,9 +10,26 @@ final class SupabaseService {
     private init() {}
 
     func configure() {
+        let info = Bundle.main.infoDictionary ?? [:]
+        func resolved(_ key: String) -> String? {
+            guard let v = info[key] as? String, !v.isEmpty, !v.hasPrefix("$(") else { return nil }
+            return v
+        }
+
+        guard
+            let supabaseURLString = resolved("SUPABASE_URL"),
+            let supabaseKey = resolved("SUPABASE_ANON_KEY"),
+            let supabaseURL = URL(string: supabaseURLString),
+            let buildingsURLString = resolved("BUILDINGS_SUPABASE_URL"),
+            let buildingsKey = resolved("BUILDINGS_SUPABASE_ANON_KEY"),
+            let buildingsURL = URL(string: buildingsURLString)
+        else {
+            fatalError("[SupabaseService] Missing Supabase config in Info.plist. Ensure Secrets.xcconfig has URLs escaped with /$()/  instead of //")
+        }
+
         client = SupabaseClient(
-            supabaseURL: URL(string: "https://gzzvhmmywaaxljpmoacm.supabase.co")!,
-            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6enZobW15d2FheGxqcG1vYWNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODA4NTYsImV4cCI6MjA2NjQ1Njg1Nn0.Euv81JmeXShGmyyXcD7Am3Gi0SjsLqMLSevC1PZVBaA",
+            supabaseURL: supabaseURL,
+            supabaseKey: supabaseKey,
             options: SupabaseClientOptions(
                 auth: SupabaseClientOptions.AuthOptions(
                     redirectToURL: URL(string: "jink://auth/callback"),
@@ -21,14 +38,14 @@ final class SupabaseService {
             )
         )
         buildingsClient = SupabaseClient(
-            supabaseURL: URL(string: "https://cglsuoymdcchrxyzofjb.supabase.co")!,
-            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnbHN1b3ltZGNjaHJ4eXpvZmpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk2NzYyNTIsImV4cCI6MjA3NTI1MjI1Mn0.4GqCKT3fe8HTDTx_O5BTYe7m4TXOWgKYkAdmZfl4jG0",
+            supabaseURL: buildingsURL,
+            supabaseKey: buildingsKey,
             options: SupabaseClientOptions(
                 auth: SupabaseClientOptions.AuthOptions(
                     emitLocalSessionAsInitialSession: true
                 )
             )
         )
-        print("[SupabaseService]  Configured")
+        print("[SupabaseService] Configured")
     }
 }

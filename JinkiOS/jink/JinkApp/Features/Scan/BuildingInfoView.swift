@@ -214,6 +214,7 @@ struct BuildingInfoView: View {
                     .background(Color.black.opacity(0.35))
                     .clipShape(Circle())
             }
+            .accessibilityLabel("Back")
 
             Spacer()
 
@@ -228,6 +229,7 @@ struct BuildingInfoView: View {
                     .background(Color.black.opacity(0.35))
                     .clipShape(Circle())
             }
+            .accessibilityLabel(vm.isLiked ? "Remove like" : "Like this building")
 
             Button(action: {
                 if let userId = appState.currentUser?.id.uuidString { vm.toggleDislike(userId: userId, appState: appState) }
@@ -239,6 +241,7 @@ struct BuildingInfoView: View {
                     .background(Color.black.opacity(0.35))
                     .clipShape(Circle())
             }
+            .accessibilityLabel(vm.isDisliked ? "Remove dislike" : "Dislike this building")
 
             // More menu
             Menu {
@@ -469,7 +472,7 @@ struct BuildingInfoView: View {
                 .foregroundStyle(AppColors.accent)
                 .textCase(.uppercase)
 
-            Text(isValid ? desc! : "No historical records found for this building. This building may not be a designated NYC landmark.")
+            Text(isValid ? (desc ?? "No historical records available for this building.") : "No historical records found for this building. This building may not be a designated NYC landmark.")
                 .font(.body)
                 .lineSpacing(5)
                 .foregroundStyle(isValid ? .primary : .secondary)

@@ -11,6 +11,7 @@ final class AppState {
     var passportRefreshTrigger: Int = 0
 
     init() {
+        PostHogService.shared.capture("app_opened")
         // Safety fallback: mark ready after 3s even if auth stream stalls
         Task {
             try? await Task.sleep(for: .seconds(3))
@@ -31,12 +32,16 @@ final class AppState {
                     self.currentUser = session?.user
                     self.isLoggedIn = session != nil
                     self.isReady = true
-                case .signedIn:
+                case .signedIn, .tokenRefreshed, .userUpdated:
                     self.currentUser = session?.user
                     self.isLoggedIn = true
+                    if let userId = session?.user.id.uuidString {
+                        PostHogService.shared.identify(userId: userId)
+                    }
                 case .signedOut:
                     self.currentUser = nil
                     self.isLoggedIn = false
+                    PostHogService.shared.reset()
                 default:
                     break
                 }

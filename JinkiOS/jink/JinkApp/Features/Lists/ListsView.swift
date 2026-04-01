@@ -124,6 +124,16 @@ struct ListsView: View {
     private func confirmDelete(_ list: DisplayList) {
         if list.isHardcoded {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
+            let alert = UIAlertController(
+                title: "Can't Delete",
+                message: "This is a default list and can't be deleted.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let root = scene.windows.first?.rootViewController {
+                root.present(alert, animated: true)
+            }
             return
         }
         

@@ -50,8 +50,8 @@ struct ExploreView: View {
 
                 // Community post pins
                 if showCommunityPosts {
-                    ForEach(communityPosts.filter { $0.latitude != nil && $0.longitude != nil }) { post in
-                        let coord = CLLocationCoordinate2D(latitude: post.latitude!, longitude: post.longitude!)
+                    ForEach(communityPosts) { post in
+                        let coord = CLLocationCoordinate2D(latitude: post.latitude, longitude: post.longitude)
                         Annotation("", coordinate: coord) {
                             CommunityPostPin(post: post)
                                 .onTapGesture { selectedPost = post }
@@ -117,10 +117,21 @@ struct ExploreView: View {
                                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         }
                         DismissButton()
+                            .accessibilityLabel("Close map")
                     }.frame(width: 80, alignment: .trailing)
                 }
                 .padding(.horizontal, 16).padding(.top, 60)
-                
+
+                // GPS / location banner
+                if locationService.location == nil {
+                    Label("Acquiring GPS…", systemImage: "location.slash")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(.black.opacity(0.7), in: Capsule())
+                        .padding(.top, 8)
+                }
+
                 Spacer()
                 
                 // BOTTOM AREA
@@ -309,6 +320,8 @@ struct CommunityPostPin: View {
 
 struct CommunityPostDetailSheet: View {
     let post: CommunityPost
+    @State private var showReportConfirm = false
+    @State private var reported = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -349,6 +362,24 @@ struct CommunityPostDetailSheet: View {
                 }
             }
             .padding(.horizontal)
+
+            // Report button
+            Button(action: { showReportConfirm = true }) {
+                Label(reported ? "Reported" : "Report", systemImage: reported ? "flag.fill" : "flag")
+                    .font(.caption)
+                    .foregroundStyle(reported ? Color.secondary : Color.red)
+            }
+            .disabled(reported)
+            .padding(.horizontal)
+            .confirmationDialog("Report this post?", isPresented: $showReportConfirm, titleVisibility: .visible) {
+                Button("Report as inappropriate", role: .destructive) {
+                    Task {
+                        try? await CommunityPostService.shared.flagPost(id: post.id)
+                        reported = true
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            }
 
             Spacer()
         }

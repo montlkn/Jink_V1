@@ -50,6 +50,38 @@ final class ProgressService {
         ])
     }
 
+    // MARK: - XP Deduction
+
+    /// Deduct XP from user. Returns true on success, false if insufficient balance.
+    func deductXP(userId: String, amount: Int, reason: String) async -> Bool {
+        do {
+            struct ProfileRow: Decodable {
+                let totalXp: Int
+                enum CodingKeys: String, CodingKey { case totalXp = "total_xp" }
+            }
+            let rows: [ProfileRow] = try await SupabaseService.shared.client
+                .from("profiles")
+                .select("total_xp")
+                .eq("id", value: userId)
+                .execute()
+                .value
+            guard let currentXP = rows.first?.totalXp, currentXP >= amount else {
+                print("[ProgressService] deductXP: insufficient balance for reason=\(reason)")
+                return false
+            }
+            await callRPC("award_xp", params: [
+                "p_user_id": AnyJSON.string(userId),
+                "p_amount": AnyJSON.integer(-amount),
+                "p_reason": AnyJSON.string(reason)
+            ])
+            print("[ProgressService] deductXP: deducted \(amount) XP for reason=\(reason)")
+            return true
+        } catch {
+            print("[ProgressService] deductXP error: \(error)")
+            return false
+        }
+    }
+
     // MARK: - Private
 
     /// Check if user already scanned this BIN (queries buildings Supabase)
@@ -67,18 +99,20 @@ final class ProgressService {
             print("[ProgressService] checkIsNewScan bin=\(bin) count=\(count) isNew=\(isNew)")
             return isNew
         } catch {
-            print("[ProgressService] checkIsNewScan failed: \(error)")
-            return true
+            print("[ProgressService] checkIsNewScan failed — skipping XP award: \(error)")
+            return false
         }
     }
 
-    /// Public entry point for retroactive achievement check
-    func checkAndAwardAchievementsPublic(userId: String) async {
-        await checkAndAwardAchievements(userId: userId)
+    /// Public entry point for retroactive achievement check. Returns number of newly awarded achievements.
+    @discardableResult
+    func checkAndAwardAchievementsPublic(userId: String) async -> Int {
+        return await checkAndAwardAchievements(userId: userId)
     }
 
-    /// Client-side achievement check since scans and achievements are on different DBs
-    private func checkAndAwardAchievements(userId: String) async {
+    /// Client-side achievement check since scans and achievements are on different DBs. Returns count of newly awarded.
+    private func checkAndAwardAchievements(userId: String) async -> Int {
+        var newlyAwarded = 0
         do {
             // Count scans from buildings Supabase
             struct CountRow: Decodable { let confirmedBin: String?
@@ -153,6 +187,7 @@ final class ProgressService {
                             ])
                             .execute()
                         print("[ProgressService] ✅ Awarded achievement: \(def.slug)")
+                        newlyAwarded += 1
                     } catch {
                         print("[ProgressService] ❌ Failed to insert achievement '\(def.slug)': \(error)")
                         continue
@@ -176,6 +211,7 @@ final class ProgressService {
         } catch {
             print("[ProgressService] ❌ checkAndAwardAchievements failed: \(error)")
         }
+        return newlyAwarded
     }
 
     private func awardStampBySlug(userId: String, slug: String, sourceId: FlexId) async {

@@ -47,65 +47,29 @@ struct StampsView: View {
                     await vm.load(userId: userId)
                 }
             }
+            .refreshable {
+                if let userId = appState.currentUser?.id.uuidString {
+                    await vm.load(userId: userId)
+                }
+            }
         }
     }
 }
 
-// MARK: - Stamp Card (grid cell)
+// MARK: - Stamp Card (grid cell) — Vintage Postage Stamp
 
 struct StampCard: View {
     let stamp: StampWithDefinition
 
     var body: some View {
-        let rarityIdx = StampsViewModel.rarityIndex(for: stamp.rarity)
-        let crest = StampsViewModel.crestType(for: stamp.stampSlug)
-
-        ZStack(alignment: .bottom) {
-            MetalStampCard(
-                rarity: rarityIdx,
-                crestType: crest,
-                size: CGSize(width: 110, height: 140)
-            )
-            .frame(width: 110, height: 140)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-
-            // Text overlay at bottom
-            VStack(spacing: 2) {
-                Text(stamp.title)
-                    .font(.system(size: 9, weight: .semibold))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.9), radius: 3, x: 0, y: 1)
-
-                Text(stamp.rarity.displayName.uppercased())
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(rarityColor.opacity(0.95))
-                    .shadow(color: .black.opacity(0.9), radius: 2, x: 0, y: 1)
-            }
-            .padding(.horizontal, 4)
-            .padding(.bottom, 7)
-            .padding(.top, 8)
-            .frame(maxWidth: .infinity)
-            .background(
-                LinearGradient(
-                    colors: [.black.opacity(0), .black.opacity(0.65)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            )
-        }
+        VintageStampCard(
+            title: stamp.title,
+            rarity: stamp.rarity,
+            iconName: StampsViewModel.iconName(for: stamp.stampSlug),
+            size: CGSize(width: 112, height: 142)
+        )
         .frame(maxWidth: .infinity)
-    }
-
-    var rarityColor: Color {
-        switch stamp.rarity {
-        case .common: return Color(white: 0.85)
-        case .rare: return Color(red: 0.5, green: 0.75, blue: 1.0)
-        case .epic: return Color(red: 0.75, green: 0.5, blue: 1.0)
-        case .legendary: return Color(hex: "#FFD700")
-        }
+        .shadow(color: .black.opacity(0.18), radius: 4, x: 1, y: 2)
     }
 }
 
@@ -114,30 +78,22 @@ struct StampCard: View {
 struct StampDetailSheet: View {
     let stamp: StampWithDefinition
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
 
-    var rarityIdx: Int { StampsViewModel.rarityIndex(for: stamp.rarity) }
-    var crest: Int { StampsViewModel.crestType(for: stamp.stampSlug) }
-
-    var rarityColor: Color {
+    var rarityFrameColor: Color {
         switch stamp.rarity {
-        case .common: return Color(white: 0.75)
-        case .rare: return Color(red: 0.45, green: 0.70, blue: 1.0)
-        case .epic: return Color(red: 0.72, green: 0.45, blue: 1.0)
-        case .legendary: return Color(hex: "#FFD700")
+        case .common:    return Color(red: 0.545, green: 0.251, blue: 0.286)
+        case .rare:      return Color(red: 0.290, green: 0.420, blue: 0.541)
+        case .epic:      return Color(red: 0.420, green: 0.290, blue: 0.541)
+        case .legendary: return Color(red: 0.541, green: 0.478, blue: 0.227)
         }
     }
 
-    var rarityGradient: LinearGradient {
+    var paperBackground: Color {
         switch stamp.rarity {
-        case .common:
-            return LinearGradient(colors: [Color(white: 0.22), Color(white: 0.13)], startPoint: .top, endPoint: .bottom)
-        case .rare:
-            return LinearGradient(colors: [Color(red: 0.08, green: 0.14, blue: 0.28), Color(red: 0.04, green: 0.07, blue: 0.16)], startPoint: .top, endPoint: .bottom)
-        case .epic:
-            return LinearGradient(colors: [Color(red: 0.14, green: 0.06, blue: 0.26), Color(red: 0.07, green: 0.03, blue: 0.14)], startPoint: .top, endPoint: .bottom)
-        case .legendary:
-            return LinearGradient(colors: [Color(red: 0.22, green: 0.17, blue: 0.04), Color(red: 0.10, green: 0.08, blue: 0.02)], startPoint: .top, endPoint: .bottom)
+        case .common:    return Color(red: 0.94, green: 0.91, blue: 0.86)
+        case .rare:      return Color(red: 0.90, green: 0.92, blue: 0.94)
+        case .epic:      return Color(red: 0.92, green: 0.89, blue: 0.94)
+        case .legendary: return Color(red: 0.94, green: 0.91, blue: 0.82)
         }
     }
 
@@ -162,48 +118,52 @@ struct StampDetailSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                rarityGradient
-                    .ignoresSafeArea()
+                // Parchment background
+                paperBackground.ignoresSafeArea()
 
-                // Subtle rarity glow behind shield
-                RadialGradient(
-                    colors: [rarityColor.opacity(0.15), .clear],
-                    center: .init(x: 0.5, y: 0.35),
-                    startRadius: 0,
-                    endRadius: 260
-                )
+                // Subtle aged paper texture overlay
+                Canvas { context, size in
+                    var rng = SeededDetailRNG(seed: 99)
+                    for _ in 0..<Int(size.width * size.height / 12) {
+                        let x = rng.next() * size.width
+                        let y = rng.next() * size.height
+                        let r = rng.next() * 0.8 + 0.2
+                        context.fill(
+                            Path(ellipseIn: CGRect(x: x, y: y, width: r, height: r)),
+                            with: .color(.black.opacity(0.04))
+                        )
+                    }
+                }
                 .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
 
-                        // ── Shield ─────────────────────────────────────
-                        MetalStampCard(
-                            rarity: rarityIdx,
-                            crestType: crest,
-                            size: CGSize(width: 220, height: 280)
+                        // ── Large Vintage Stamp ────────────────────────
+                        VintageStampCard(
+                            title: stamp.title,
+                            rarity: stamp.rarity,
+                            iconName: StampsViewModel.iconName(for: stamp.stampSlug),
+                            size: CGSize(width: 240, height: 300)
                         )
-                        .frame(width: 220, height: 280)
-                        .shadow(color: rarityColor.opacity(0.45), radius: 28, x: 0, y: 10)
-                        .shadow(color: .black.opacity(0.5), radius: 14, x: 0, y: 6)
-                        .padding(.top, 32)
-                        .padding(.bottom, 24)
+                        .shadow(color: .black.opacity(0.25), radius: 16, x: 2, y: 6)
+                        .padding(.top, 40)
+                        .padding(.bottom, 32)
 
                         // ── Title block ────────────────────────────────
-                        VStack(spacing: 6) {
+                        VStack(spacing: 8) {
                             // Series type chip
                             Label(seriesLabel, systemImage: seriesIcon)
                                 .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(rarityColor.opacity(0.8))
+                                .foregroundStyle(rarityFrameColor.opacity(0.9))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(rarityColor.opacity(0.12), in: Capsule())
-                                .overlay(Capsule().stroke(rarityColor.opacity(0.25), lineWidth: 0.5))
+                                .background(rarityFrameColor.opacity(0.12), in: Capsule())
+                                .overlay(Capsule().stroke(rarityFrameColor.opacity(0.3), lineWidth: 0.5))
 
                             Text(stamp.title)
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundStyle(.white)
+                                .font(.system(size: 26, weight: .bold, design: .serif))
+                                .foregroundStyle(Color(red: 0.15, green: 0.15, blue: 0.15))
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 24)
 
@@ -212,11 +172,11 @@ struct StampDetailSheet: View {
                                 ForEach(0..<rarityStarCount, id: \.self) { _ in
                                     Image(systemName: "star.fill")
                                         .font(.system(size: 10))
-                                        .foregroundStyle(rarityColor)
+                                        .foregroundStyle(rarityFrameColor)
                                 }
                                 Text(stamp.rarity.displayName.uppercased())
                                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(rarityColor)
+                                    .foregroundStyle(rarityFrameColor)
                             }
                         }
                         .padding(.bottom, 28)
@@ -226,50 +186,47 @@ struct StampDetailSheet: View {
                             // Header rule
                             HStack {
                                 Rectangle()
-                                    .fill(rarityColor.opacity(0.4))
+                                    .fill(rarityFrameColor.opacity(0.4))
                                     .frame(height: 0.5)
                                 Text("DETAILS")
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(rarityColor.opacity(0.6))
+                                    .foregroundStyle(rarityFrameColor.opacity(0.6))
                                     .fixedSize()
                                 Rectangle()
-                                    .fill(rarityColor.opacity(0.4))
+                                    .fill(rarityFrameColor.opacity(0.4))
                                     .frame(height: 0.5)
                             }
                             .padding(.bottom, 16)
 
                             Text(stamp.description)
-                                .font(.system(size: 15, weight: .regular))
-                                .foregroundStyle(Color.white.opacity(0.80))
+                                .font(.system(size: 15, weight: .regular, design: .serif))
+                                .foregroundStyle(Color(red: 0.20, green: 0.18, blue: 0.16))
                                 .lineSpacing(5)
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(20)
-                        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(rarityColor.opacity(0.15), lineWidth: 1))
+                        .background(rarityFrameColor.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(rarityFrameColor.opacity(0.2), lineWidth: 0.8))
                         .padding(.horizontal, 20)
                         .padding(.bottom, 16)
 
                         // ── Stats row ──────────────────────────────────
                         HStack(spacing: 12) {
-                            // Earned date
                             if let earnedAt = stamp.earnedAt {
                                 StatPill(
                                     icon: "calendar",
                                     label: "EARNED",
                                     value: earnedAt.formatted(date: .abbreviated, time: .omitted),
-                                    accentColor: rarityColor
+                                    accentColor: rarityFrameColor
                                 )
                             }
-
-                            // Source type
                             if let source = stamp.userStamp.sourceType, !source.isEmpty {
                                 StatPill(
                                     icon: "bolt.fill",
                                     label: "SOURCE",
                                     value: source.replacingOccurrences(of: "_", with: " ").capitalized,
-                                    accentColor: rarityColor
+                                    accentColor: rarityFrameColor
                                 )
                             }
                         }
@@ -280,21 +237,21 @@ struct StampDetailSheet: View {
                         VStack(spacing: 0) {
                             HStack {
                                 Rectangle()
-                                    .fill(rarityColor.opacity(0.3))
+                                    .fill(rarityFrameColor.opacity(0.3))
                                     .frame(height: 0.5)
                                 Text("LORE")
                                     .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(rarityColor.opacity(0.5))
+                                    .foregroundStyle(rarityFrameColor.opacity(0.6))
                                     .fixedSize()
                                 Rectangle()
-                                    .fill(rarityColor.opacity(0.3))
+                                    .fill(rarityFrameColor.opacity(0.3))
                                     .frame(height: 0.5)
                             }
                             .padding(.bottom, 12)
 
                             Text(rarityLore)
                                 .font(.system(size: 13, weight: .regular, design: .serif))
-                                .foregroundStyle(Color.white.opacity(0.45))
+                                .foregroundStyle(Color(red: 0.25, green: 0.22, blue: 0.18).opacity(0.7))
                                 .italic()
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(4)
@@ -305,12 +262,11 @@ struct StampDetailSheet: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.clear, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(paperBackground, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(rarityColor)
+                        .foregroundStyle(rarityFrameColor)
                         .fontWeight(.semibold)
                 }
             }
@@ -340,6 +296,16 @@ struct StampDetailSheet: View {
     }
 }
 
+// MARK: - Seeded RNG for detail sheet grain
+private struct SeededDetailRNG {
+    private var state: UInt64
+    init(seed: UInt64) { state = seed }
+    mutating func next() -> CGFloat {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        return CGFloat((state >> 33)) / CGFloat(UInt32.max)
+    }
+}
+
 // MARK: - Stat Pill
 
 private struct StatPill: View {
@@ -355,14 +321,14 @@ private struct StatPill: View {
                 .foregroundStyle(accentColor.opacity(0.6))
 
             Text(value)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(.system(size: 13, weight: .semibold, design: .serif))
+                .foregroundStyle(Color(red: 0.18, green: 0.15, blue: 0.12))
                 .lineLimit(1)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(accentColor.opacity(0.15), lineWidth: 1))
+        .background(accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(accentColor.opacity(0.2), lineWidth: 0.8))
     }
 }

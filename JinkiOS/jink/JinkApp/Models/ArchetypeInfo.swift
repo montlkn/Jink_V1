@@ -24,7 +24,7 @@ struct ArchetypeInfo: Identifiable {
                           movements: movements, urbanExpression: urbanExpression)
         }
         return [
-            "Classicist": make("Classicist", color: Color(hex: "#C9C8A6"),
+            "Classicist": make("Classicist", color: Color(hex: "#808000"),
                 tagline: "Enduring Order",
                 vibes: ["Formal", "Symmetrical", "Grand", "Rational", "Ornate", "Enduring"],
                 coreConcept: "Embodies reverence for enduring principles of order, harmony, and grandeur inherited from Greek and Roman antiquity. Built on mathematical proportion and the belief that true beauty is timeless and rational.",
@@ -52,7 +52,7 @@ struct ArchetypeInfo: Identifiable {
                 movements: ["Gothic Revival", "Victorian Eclecticism", "Art Nouveau", "Bohemian & Maximalist Styles", "Dark Academia", "Cottagecore"],
                 urbanExpression: "Winding medieval streets, hidden courtyards, Gothic cathedrals, picturesque neighborhoods"
             ),
-            "Stylist": make("Stylist", color: Color(hex: "#FFD700"),
+            "Stylist": make("Stylist", color: Color(hex: "#B8860B"),
                 tagline: "Glamour & Surface",
                 vibes: ["Glamorous", "Geometric", "Luxurious", "Polished", "Confident", "Sophisticated"],
                 coreConcept: "Defined by appreciation for glamour, surface, and visual rhythm. A confident and polished aesthetic that treats design as sophisticated curation.",
@@ -94,7 +94,7 @@ struct ArchetypeInfo: Identifiable {
                 movements: ["Industrial Heritage", "Loft Living", "Adaptive Reuse", "Warehouse Conversion"],
                 urbanExpression: "Converted warehouses, exposed infrastructure, industrial districts, working waterfronts, power plants, bridges, transit hubs"
             ),
-            "Visionary": make("Visionary", color: Color(hex: "#00FFFF"),
+            "Visionary": make("Visionary", color: Color(hex: "#008080"),
                 tagline: "Beyond Boundaries",
                 vibes: ["Sculptural", "Unconventional", "Dynamic", "Bold", "Innovative", "Playful", "Experimental"],
                 coreConcept: "Defined by relentless drive to push boundaries, experiment with form, and speculate on the future. Leverages new technologies to create sculptural, dynamic, previously unimaginable designs.",
@@ -136,7 +136,7 @@ struct ArchetypeInfo: Identifiable {
                 movements: ["Indigenous Architectures", "Critical Regionalism", "Tropical Modernism", "Mud/Adobe/Rammed Earth Traditions", "Sustainable Design"],
                 urbanExpression: "Historic neighborhoods, local markets, craft districts, sustainable communities, cultural quarters"
             ),
-            "Austerist": make("Austerist", color: Color(hex: "#95A5A6"),
+            "Austerist": make("Austerist", color: Color(hex: "#455A64"),
                 tagline: "Pure Efficiency",
                 vibes: ["Efficient", "Systematic", "Practical", "Standardized", "Functional", "Universal", "Cost-Conscious"],
                 coreConcept: "Efficiency-driven design optimized for function, cost, and standardization. Represents the pragmatic backbone of the built environment through systematic, no-frills solutions.",

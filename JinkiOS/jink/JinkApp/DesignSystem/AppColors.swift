@@ -25,15 +25,15 @@ enum AppColors {
 
     // MARK: - Archetypes (Designer Republic / Graphic Palette)
     enum archetypes {
-        static let classicist     = Color(hex: "#FAFF00") // Electric Lemon
-        static let romantic       = Color(hex: "#FF007F") // Vivid Raspberry
-        static let stylist        = Color(hex: "#00F5FF") // High-Speed Cyan
-        static let modernist      = Color(hex: "#FF4D00") // Safety Orange
-        static let industrialist  = Color(hex: "#080808") // Ink Black
-        static let visionary      = Color(hex: "#26FF00") // Laser Green
-        static let popCulturalist = Color(hex: "#E60000") // Post-Op Red
-        static let vernacularist  = Color(hex: "#0022FF") // Deep Electric Blue
-        static let austerist      = Color(hex: "#F5F5F5") // Paper White
+        static let classicist     = Color(hex: "#808000") // Olive
+        static let romantic       = Color(hex: "#DC143C") // Crimson
+        static let stylist        = Color(hex: "#B8860B") // Bronze
+        static let modernist      = Color(hex: "#0066FF") // Blue
+        static let industrialist  = Color(hex: "#FF8C00") // Orange
+        static let visionary      = Color(hex: "#008080") // Teal
+        static let popCulturalist = Color(hex: "#FF1493") // Pink
+        static let vernacularist  = Color(hex: "#32CD32") // Green
+        static let austerist      = Color(hex: "#455A64") // Charcoal
     }
 
     static func archetypeColor(for name: String) -> Color {
